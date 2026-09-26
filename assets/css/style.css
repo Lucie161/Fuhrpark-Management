@@ -1,0 +1,321 @@
+/**
+ * Stylesheet der Anwendung.
+ *
+ * Aufbau:  1. Farben & Variablen   2. Grundgerüst   3. Kopf & Navigation
+ *          4. Bausteine (Karten, Tabelle, Formular)   5. Fuß   6. Mobil
+ */
+
+/* --- 1. Farben & Variablen ------------------------------------------------ */
+
+:root {
+    --farbe-text:      #1c2024;
+    --farbe-gedaempft: #5f6b76;
+    --farbe-hinter:    #f4f6f8;
+    --farbe-flaeche:   #ffffff;
+    --farbe-rand:      #dde3e9;
+    --farbe-akzent:    #1f5f9e;
+
+    --farbe-gruen:     #1c7a4a;
+    --farbe-gelb:      #8a6112;
+    --farbe-rot:       #a32b2b;
+
+    --abstand:         1rem;
+    --radius:          8px;
+    --breite:          1100px;
+}
+
+/* --- 2. Grundgerüst ------------------------------------------------------- */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--farbe-text);
+    background: var(--farbe-hinter);
+}
+
+.container {
+    width: 100%;
+    max-width: var(--breite);
+    margin: 0 auto;
+    padding: 0 var(--abstand);
+}
+
+main.container {
+    padding-top: calc(var(--abstand) * 2);
+    padding-bottom: calc(var(--abstand) * 3);
+}
+
+h1, h2 {
+    line-height: 1.25;
+}
+
+.page-title {
+    margin: 0 0 var(--abstand);
+    font-size: 1.75rem;
+}
+
+.lead {
+    margin-top: 0;
+    color: var(--farbe-gedaempft);
+}
+
+.note {
+    padding: 0.75rem var(--abstand);
+    border-left: 3px solid var(--farbe-rand);
+    color: var(--farbe-gedaempft);
+    font-size: 0.925rem;
+}
+
+.alert {
+    padding: 0.75rem var(--abstand);
+    border: 1px solid var(--farbe-rot);
+    border-radius: var(--radius);
+    background: #fdf2f2;
+    color: var(--farbe-rot);
+}
+
+.section {
+    margin-top: calc(var(--abstand) * 2);
+}
+
+/* --- 3. Kopf & Navigation ------------------------------------------------- */
+
+.site-header {
+    background: var(--farbe-flaeche);
+    border-bottom: 1px solid var(--farbe-rand);
+}
+
+.site-header__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--abstand);
+    min-height: 60px;
+}
+
+.logo {
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--farbe-text);
+    white-space: nowrap;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.nav__link {
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: var(--farbe-gedaempft);
+}
+
+.nav__link:hover {
+    background: var(--farbe-hinter);
+    color: var(--farbe-text);
+}
+
+.nav__link--active {
+    color: var(--farbe-akzent);
+    font-weight: 600;
+}
+
+/* Schiebt "Anmelden" ans rechte Ende der Navigation. */
+.nav__link--right {
+    margin-left: auto;
+}
+
+.nav-toggle {
+    display: none;
+    margin-left: auto;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--farbe-rand);
+    border-radius: var(--radius);
+    background: var(--farbe-flaeche);
+    font: inherit;
+    cursor: pointer;
+}
+
+/* --- 4. Bausteine --------------------------------------------------------- */
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: var(--abstand);
+    margin: calc(var(--abstand) * 1.5) 0;
+}
+
+.card {
+    padding: var(--abstand);
+    border: 1px solid var(--farbe-rand);
+    border-radius: var(--radius);
+    background: var(--farbe-flaeche);
+}
+
+.card__value {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.card__label {
+    margin: 0.25rem 0 0;
+    color: var(--farbe-gedaempft);
+    font-size: 0.9rem;
+}
+
+.table {
+    width: 100%;
+    margin-top: var(--abstand);
+    border-collapse: collapse;
+    background: var(--farbe-flaeche);
+    border: 1px solid var(--farbe-rand);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.table th,
+.table td {
+    padding: 0.7rem var(--abstand);
+    text-align: left;
+    border-bottom: 1px solid var(--farbe-rand);
+}
+
+.table th {
+    background: var(--farbe-hinter);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--farbe-gedaempft);
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.table__num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.table__empty {
+    text-align: center;
+    color: var(--farbe-gedaempft);
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    background: var(--farbe-hinter);
+    font-size: 0.85rem;
+    color: var(--farbe-gedaempft);
+}
+
+.badge--verfuegbar { background: #e6f4ec; color: var(--farbe-gruen); }
+.badge--unterwegs  { background: #e8eff7; color: var(--farbe-akzent); }
+.badge--wartung    { background: #fbf2e0; color: var(--farbe-gelb); }
+
+.form {
+    max-width: 380px;
+    padding: calc(var(--abstand) * 1.5);
+    border: 1px solid var(--farbe-rand);
+    border-radius: var(--radius);
+    background: var(--farbe-flaeche);
+}
+
+.form__row {
+    margin-bottom: var(--abstand);
+}
+
+.form__label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.form__input {
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--farbe-rand);
+    border-radius: var(--radius);
+    font: inherit;
+}
+
+.form__input:focus {
+    outline: 2px solid var(--farbe-akzent);
+    outline-offset: 1px;
+}
+
+.button {
+    padding: 0.55rem 1.2rem;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--farbe-akzent);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.button:hover {
+    filter: brightness(1.1);
+}
+
+/* --- 5. Fuß --------------------------------------------------------------- */
+
+.site-footer {
+    padding: var(--abstand) 0;
+    border-top: 1px solid var(--farbe-rand);
+    background: var(--farbe-flaeche);
+    color: var(--farbe-gedaempft);
+    font-size: 0.875rem;
+}
+
+.site-footer p {
+    margin: 0;
+}
+
+/* --- 6. Mobil ------------------------------------------------------------- */
+
+@media (max-width: 700px) {
+    .nav-toggle {
+        display: block;
+    }
+
+    .nav {
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        flex-basis: 100%;
+        padding-bottom: var(--abstand);
+    }
+
+    /* Wird von assets/js/main.js gesetzt. */
+    .nav--offen {
+        display: flex;
+    }
+
+    .site-header__inner {
+        flex-wrap: wrap;
+    }
+
+    .nav__link--right {
+        margin-left: 0;
+    }
+
+    .table {
+        display: block;
+        overflow-x: auto;
+    }
+}
