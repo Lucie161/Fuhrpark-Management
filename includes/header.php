@@ -12,9 +12,12 @@ declare(strict_types=1);
 $pageTitle = $pageTitle ?? 'Übersicht';
 
 // Navigationspunkte: Dateiname => Beschriftung
+// TODO: 'genehmigungen.php' nur für den Fuhrparkleiter anzeigen, sobald Rollen existieren.
 $nav = [
-    'index.php'     => 'Übersicht',
-    'fahrzeuge.php' => 'Fahrzeuge',
+    'index.php'         => 'Übersicht',
+    'fahrzeuge.php'     => 'Fahrzeuge',
+    'buchen.php'        => 'Fahrzeug buchen',
+    'genehmigungen.php' => 'Anträge genehmigen',
 ];
 ?>
 <!DOCTYPE html>

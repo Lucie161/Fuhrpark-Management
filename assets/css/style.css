@@ -224,6 +224,13 @@ h1, h2 {
 .badge--verfuegbar { background: #e6f4ec; color: var(--farbe-gruen); }
 .badge--unterwegs  { background: #e8eff7; color: var(--farbe-akzent); }
 .badge--wartung    { background: #fbf2e0; color: var(--farbe-gelb); }
+.badge--vergeben   { background: #fdf2f2; color: var(--farbe-rot); }
+
+.alert--erfolg {
+    border-color: var(--farbe-gruen);
+    background: #e6f4ec;
+    color: var(--farbe-gruen);
+}
 
 .form {
     max-width: 380px;
@@ -231,6 +238,22 @@ h1, h2 {
     border: 1px solid var(--farbe-rand);
     border-radius: var(--radius);
     background: var(--farbe-flaeche);
+}
+
+/* Für mehrspaltige Formulare wie buchen.php. */
+.form--breit {
+    max-width: none;
+}
+
+.form__titel {
+    margin: 0 0 var(--abstand);
+    font-size: 1.15rem;
+}
+
+.form__raster {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0 var(--abstand);
 }
 
 .form__row {
@@ -270,6 +293,100 @@ h1, h2 {
 
 .button:hover {
     filter: brightness(1.1);
+}
+
+/* .button wird auch auf Links und <summary> gesetzt. */
+a.button {
+    display: inline-block;
+    text-decoration: none;
+}
+
+.button--klein {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.875rem;
+}
+
+.button--gefahr {
+    background: var(--farbe-rot);
+}
+
+/* Fahrzeugauswahl als Kacheln (buchen.php). Die ganze Kachel ist das Label
+   des Radio-Buttons. */
+.fahrzeugwahl {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: var(--abstand);
+}
+
+.fahrzeugkarte {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 2px solid var(--farbe-rand);
+    border-radius: var(--radius);
+    background: var(--farbe-flaeche);
+    cursor: pointer;
+}
+
+.fahrzeugkarte:has(:checked) {
+    border-color: var(--farbe-akzent);
+    background: #e8eff7;
+}
+
+.fahrzeugkarte__auswahl {
+    position: absolute;
+    top: 1.1rem;
+    left: 1.1rem;
+}
+
+/* Platzhalter, bis es echte Fahrzeugbilder gibt. */
+.fahrzeugkarte__bild {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 16 / 9;
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--farbe-hinter);
+    color: var(--farbe-gedaempft);
+    font-size: 0.9rem;
+}
+
+.fahrzeugkarte__kopf {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.fahrzeugkarte__daten {
+    color: var(--farbe-gedaempft);
+    font-size: 0.875rem;
+}
+
+/* Genehmigen / Ablehnen in einer Tabellenzeile (genehmigungen.php). */
+.aktionen {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.ablehnen summary {
+    display: inline-block;
+    list-style: none;
+}
+
+.ablehnen summary::-webkit-details-marker {
+    display: none;
+}
+
+.ablehnen__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 220px;
+    margin-top: 0.5rem;
 }
 
 /* --- 5. Fuß --------------------------------------------------------------- */
