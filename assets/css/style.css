@@ -207,6 +207,18 @@ h1, h2 {
     font-variant-numeric: tabular-nums;
 }
 
+/* Kleine zweite Zeile in einer Zelle, z. B. „gebucht von …“. */
+.table__zusatz {
+    display: block;
+    color: var(--farbe-gedaempft);
+    font-size: 0.85rem;
+}
+
+/* Ausgewählte Zeile, z. B. die Fahrt in rueckgabe.php. */
+.table__zeile--gewaehlt td {
+    background: #e8eff7;
+}
+
 .table__empty {
     text-align: center;
     color: var(--farbe-gedaempft);
@@ -226,10 +238,27 @@ h1, h2 {
 .badge--wartung    { background: #fbf2e0; color: var(--farbe-gelb); }
 .badge--vergeben   { background: #fdf2f2; color: var(--farbe-rot); }
 
+/* Stand einer Buchung (meine-buchungen.php). storniert und abgeschlossen
+   behalten das neutrale Grau von .badge. */
+.badge--offen      { background: #fbf2e0; color: var(--farbe-gelb); }
+.badge--genehmigt  { background: #e6f4ec; color: var(--farbe-gruen); }
+.badge--abgelehnt  { background: #fdf2f2; color: var(--farbe-rot); }
+
+.alert__zeile {
+    margin: 0;
+}
+
 .alert--erfolg {
     border-color: var(--farbe-gruen);
     background: #e6f4ec;
     color: var(--farbe-gruen);
+}
+
+/* Erfolgreich, aber mit Folgen, z. B. Rückgabe mit Schaden. */
+.alert--hinweis {
+    border-color: var(--farbe-gelb);
+    background: #fbf2e0;
+    color: var(--farbe-gelb);
 }
 
 .form {
@@ -273,6 +302,27 @@ h1, h2 {
     border: 1px solid var(--farbe-rand);
     border-radius: var(--radius);
     font: inherit;
+}
+
+.form__hinweis {
+    display: block;
+    margin-top: 0.3rem;
+    color: var(--farbe-gedaempft);
+    font-size: 0.85rem;
+}
+
+/* Radio-Buttons nebeneinander, z. B. Schaden ja/nein (rueckgabe.php). */
+.form__gruppe {
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0;
+    border: none;
+}
+
+.form__optionen {
+    display: flex;
+    gap: calc(var(--abstand) * 1.5);
+    padding: 0.55rem 0;
 }
 
 .form__input:focus {
@@ -364,7 +414,7 @@ a.button {
     font-size: 0.875rem;
 }
 
-/* Genehmigen / Ablehnen in einer Tabellenzeile (genehmigungen.php). */
+/* Aktionen in einer Tabellenzeile (genehmigungen.php, meine-buchungen.php). */
 .aktionen {
     display: flex;
     flex-wrap: wrap;
@@ -372,21 +422,122 @@ a.button {
     gap: 0.5rem;
 }
 
-.ablehnen summary {
+/* Aufklappbare Aktion ohne JavaScript: <details> mit einem Button als
+   <summary>, darunter ein kleines Formular (Ablehnen, Stornieren,
+   Fahrt beginnen). */
+.klappaktion summary {
     display: inline-block;
     list-style: none;
 }
 
-.ablehnen summary::-webkit-details-marker {
+.klappaktion summary::-webkit-details-marker {
     display: none;
 }
 
-.ablehnen__form {
+.klappaktion__form {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
     min-width: 220px;
     margin-top: 0.5rem;
+}
+
+.klappaktion__frage {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Betroffene Buchungen beim Sperren (fahrzeuge-verwalten.php). */
+.klappaktion__liste {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.85rem;
+    color: var(--farbe-gedaempft);
+}
+
+/* Fahrzeug-Steckbrief (fahrzeug.php): Bild links, Stammdaten rechts. */
+.steckbrief {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: calc(var(--abstand) * 1.5);
+    padding: calc(var(--abstand) * 1.5);
+    border: 1px solid var(--farbe-rand);
+    border-radius: var(--radius);
+    background: var(--farbe-flaeche);
+}
+
+.steckbrief__bild {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: calc(var(--radius) - 2px);
+}
+
+/* Platzhalter, bis es echte Fahrzeugbilder gibt. */
+.steckbrief__bild--platzhalter {
+    display: grid;
+    place-items: center;
+    background: var(--farbe-hinter);
+    color: var(--farbe-gedaempft);
+}
+
+.steckbrief__daten p:first-child {
+    margin-top: 0;
+}
+
+.merkmale {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.4rem var(--abstand);
+    margin: 0 0 calc(var(--abstand) * 1.5);
+}
+
+.merkmale dt {
+    color: var(--farbe-gedaempft);
+}
+
+.merkmale dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+/* Belegung als Tagesleiste. Die Zustände nutzen dieselben Farben wie die
+   Status-Badges. */
+.belegung {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.belegung__tag {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem 0.25rem;
+    border: 1px solid var(--farbe-rand);
+    border-radius: var(--radius);
+    background: var(--farbe-flaeche);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.belegung__tag--frei     { background: #e6f4ec; color: var(--farbe-gruen); }
+.belegung__tag--vergeben { background: #fdf2f2; color: var(--farbe-rot); }
+.belegung__tag--wartung  { background: #fbf2e0; color: var(--farbe-gelb); }
+
+.belegung__wochentag {
+    font-weight: 600;
+}
+
+.belegung__datum {
+    color: var(--farbe-text);
+}
+
+.belegung__zustand {
+    font-size: 0.8rem;
 }
 
 /* --- 5. Fuß --------------------------------------------------------------- */
@@ -434,5 +585,13 @@ a.button {
     .table {
         display: block;
         overflow-x: auto;
+    }
+
+    .steckbrief {
+        grid-template-columns: 1fr;
+    }
+
+    .belegung {
+        grid-template-columns: repeat(4, 1fr);
     }
 }

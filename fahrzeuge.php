@@ -22,31 +22,17 @@ $statusText = [
     'wartung'    => 'in Wartung',
 ];
 
+// Beispiel-Fuhrpark, dieselben Fahrzeuge wie in fahrzeug.php und buchen.php.
 $fahrzeuge = [
-    [
-        'kennzeichen' => 'M-FP 1001',
-        'hersteller'  => 'Volkswagen',
-        'modell'      => 'Passat Variant',
-        'baujahr'     => 2021,
-        'kmstand'     => 48250,
-        'status'      => 'verfuegbar',
-    ],
-    [
-        'kennzeichen' => 'M-FP 1002',
-        'hersteller'  => 'Ford',
-        'modell'      => 'Transit',
-        'baujahr'     => 2019,
-        'kmstand'     => 112400,
-        'status'      => 'unterwegs',
-    ],
-    [
-        'kennzeichen' => 'M-FP 1003',
-        'hersteller'  => 'Škoda',
-        'modell'      => 'Octavia',
-        'baujahr'     => 2023,
-        'kmstand'     => 9870,
-        'status'      => 'wartung',
-    ],
+    ['id' => 1, 'kennzeichen' => 'M-HS 101',  'hersteller' => 'Volkswagen',     'modell' => 'Passat Variant', 'baujahr' => 2021, 'kmstand' => 48250,  'status' => 'verfuegbar'],
+    ['id' => 2, 'kennzeichen' => 'M-HS 102',  'hersteller' => 'Škoda',          'modell' => 'Octavia Combi',  'baujahr' => 2023, 'kmstand' => 9870,   'status' => 'verfuegbar'],
+    ['id' => 3, 'kennzeichen' => 'M-HS 201',  'hersteller' => 'Ford',           'modell' => 'Transit',        'baujahr' => 2019, 'kmstand' => 112400, 'status' => 'unterwegs'],
+    ['id' => 4, 'kennzeichen' => 'M-HS 202',  'hersteller' => 'Mercedes-Benz',  'modell' => 'Sprinter',       'baujahr' => 2020, 'kmstand' => 87310,  'status' => 'wartung'],
+    ['id' => 5, 'kennzeichen' => 'M-HS 301E', 'hersteller' => 'Volkswagen',     'modell' => 'ID.3',           'baujahr' => 2022, 'kmstand' => 31540,  'status' => 'verfuegbar'],
+    ['id' => 6, 'kennzeichen' => 'M-HS 302E', 'hersteller' => 'Tesla',          'modell' => 'Model 3',        'baujahr' => 2024, 'kmstand' => 12020,  'status' => 'verfuegbar'],
+    ['id' => 7, 'kennzeichen' => 'M-HS 401',  'hersteller' => 'Vespa',          'modell' => 'Primavera 125',  'baujahr' => 2022, 'kmstand' => 6400,   'status' => 'verfuegbar'],
+    ['id' => 8, 'kennzeichen' => 'Rad 1',     'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'baujahr' => 2023, 'kmstand' => null,   'status' => 'verfuegbar'],
+    ['id' => 9, 'kennzeichen' => 'Rad 2',     'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'baujahr' => 2023, 'kmstand' => null,   'status' => 'verfuegbar'],
 ];
 
 require_once __DIR__ . '/includes/header.php';
@@ -70,11 +56,13 @@ require_once __DIR__ . '/includes/header.php';
     <tbody>
         <?php foreach ($fahrzeuge as $fahrzeug): ?>
             <tr>
-                <td><?= e($fahrzeug['kennzeichen']) ?></td>
+                <td>
+                    <a href="<?= url('fahrzeug.php?id=' . $fahrzeug['id']) ?>"><?= e($fahrzeug['kennzeichen']) ?></a>
+                </td>
                 <td><?= e($fahrzeug['hersteller']) ?></td>
                 <td><?= e($fahrzeug['modell']) ?></td>
                 <td><?= e((string) $fahrzeug['baujahr']) ?></td>
-                <td class="table__num"><?= number_format($fahrzeug['kmstand'], 0, ',', '.') ?></td>
+                <td class="table__num"><?= $fahrzeug['kmstand'] !== null ? number_format($fahrzeug['kmstand'], 0, ',', '.') : '&ndash;' ?></td>
                 <td>
                     <span class="badge badge--<?= e($fahrzeug['status']) ?>">
                         <?= e($statusText[$fahrzeug['status']] ?? $fahrzeug['status']) ?>

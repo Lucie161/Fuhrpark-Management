@@ -14,13 +14,16 @@ $pageTitle = 'Fahrzeug buchen';
 // Beispielsuche: morgen, ganztägig.
 $morgen = strtotime('+1 day');
 
+// Aus dem Steckbrief vorgewähltes Fahrzeug (fahrzeug.php → buchen.php?fahrzeug=1).
+$vorauswahl = (int) ($_GET['fahrzeug'] ?? 0);
+
 // Freie Fahrzeuge für die Beispielsuche.
 $fahrzeuge = [
-    ['kennzeichen' => 'M-HS 101',  'art' => 'Auto',    'typ' => 'Kombi',       'hersteller' => 'Volkswagen',     'modell' => 'Passat Variant', 'sitze' => 5],
-    ['kennzeichen' => 'M-HS 201',  'art' => 'Auto',    'typ' => 'Transporter', 'hersteller' => 'Ford',           'modell' => 'Transit',        'sitze' => 3],
-    ['kennzeichen' => 'M-HS 301E', 'art' => 'Auto',    'typ' => 'E-Auto',      'hersteller' => 'Volkswagen',     'modell' => 'ID.3',           'sitze' => 5],
-    ['kennzeichen' => 'M-HS 401',  'art' => 'Roller',  'typ' => 'Roller',      'hersteller' => 'Vespa',          'modell' => 'Primavera 125',  'sitze' => 2],
-    ['kennzeichen' => 'Rad 1',     'art' => 'Fahrrad', 'typ' => 'E-Fahrrad',   'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'sitze' => 1],
+    ['id' => 1, 'kennzeichen' => 'M-HS 101',  'art' => 'Auto',    'typ' => 'Kombi',       'hersteller' => 'Volkswagen',     'modell' => 'Passat Variant', 'sitze' => 5],
+    ['id' => 3, 'kennzeichen' => 'M-HS 201',  'art' => 'Auto',    'typ' => 'Transporter', 'hersteller' => 'Ford',           'modell' => 'Transit',        'sitze' => 3],
+    ['id' => 5, 'kennzeichen' => 'M-HS 301E', 'art' => 'Auto',    'typ' => 'E-Auto',      'hersteller' => 'Volkswagen',     'modell' => 'ID.3',           'sitze' => 5],
+    ['id' => 7, 'kennzeichen' => 'M-HS 401',  'art' => 'Roller',  'typ' => 'Roller',      'hersteller' => 'Vespa',          'modell' => 'Primavera 125',  'sitze' => 2],
+    ['id' => 8, 'kennzeichen' => 'Rad 1',     'art' => 'Fahrrad', 'typ' => 'E-Fahrrad',   'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'sitze' => 1],
 ];
 
 require_once __DIR__ . '/includes/header.php';
@@ -79,7 +82,8 @@ require_once __DIR__ . '/includes/header.php';
         <?php foreach ($fahrzeuge as $fahrzeug): ?>
             <label class="fahrzeugkarte">
                 <input class="fahrzeugkarte__auswahl" type="radio" name="fahrzeug"
-                       value="<?= e($fahrzeug['kennzeichen']) ?>">
+                       value="<?= e($fahrzeug['kennzeichen']) ?>"
+                       <?= $fahrzeug['id'] === $vorauswahl ? 'checked' : '' ?>>
 
                 <span class="fahrzeugkarte__bild"><?= e($fahrzeug['typ']) ?></span>
 

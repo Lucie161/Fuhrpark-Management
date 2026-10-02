@@ -1,6 +1,6 @@
 <?php
 /**
- * Anträge genehmigen (Anwendungsfall 7) — nur für den Fuhrparkleiter.
+ * Anträge genehmigen (Anwendungsfall 9) — nur für den Fuhrparkleiter.
  *
  * Prototyp ohne Funktion: Die Liste zeigt feste Beispieldaten.
  */
@@ -58,10 +58,10 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="aktionen">
                         <button class="button button--klein" type="button">Genehmigen</button>
 
-                        <details class="ablehnen">
+                        <details class="klappaktion">
                             <summary class="button button--klein button--gefahr">Ablehnen</summary>
 
-                            <div class="ablehnen__form">
+                            <div class="klappaktion__form">
                                 <label class="form__label">
                                     Begründung
                                     <textarea class="form__input" rows="3"></textarea>
