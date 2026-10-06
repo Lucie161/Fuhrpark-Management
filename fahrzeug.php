@@ -209,7 +209,9 @@ require_once __DIR__ . '/includes/header.php';
             <?php if ($fahrzeug['status'] === 'wartung'): ?>
                 <p class="note">Das Fahrzeug ist in Wartung und kann derzeit nicht gebucht werden.</p>
             <?php else: ?>
-                <a class="button" href="<?= url('buchen.php?fahrzeug=' . $id) ?>">Dieses Fahrzeug buchen</a>
+                <?php if (!ist_fuhrparkleiter()): ?>
+                    <a class="button" href="<?= url('buchen.php?fahrzeug=' . $id) ?>">Dieses Fahrzeug buchen</a>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </section>

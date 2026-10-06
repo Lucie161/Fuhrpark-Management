@@ -84,6 +84,19 @@ h1, h2 {
     margin-top: calc(var(--abstand) * 2);
 }
 
+/* Nur für Screenreader, z. B. der Stand einer Kalenderzelle (kalender.php). */
+.nur-vorlesen {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 /* --- 3. Kopf & Navigation ------------------------------------------------- */
 
 .site-header {
@@ -105,11 +118,15 @@ h1, h2 {
     white-space: nowrap;
 }
 
+/* Bricht bei vielen Punkten (Fuhrparkleiter) in eine zweite Zeile um,
+   statt über den Rand zu laufen. */
 .nav {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.25rem;
     flex: 1;
+    padding: 0.5rem 0;
 }
 
 .nav__link {
@@ -132,6 +149,31 @@ h1, h2 {
 /* Schiebt "Anmelden" ans rechte Ende der Navigation. */
 .nav__link--right {
     margin-left: auto;
+}
+
+/* Rollenauswahl, nur im Prototyp (rolle.php): eigene schmale Zeile unter
+   der Navigation, gestrichelt abgesetzt. */
+.rollenleiste {
+    border-top: 1px dashed var(--farbe-rand);
+    background: var(--farbe-hinter);
+}
+
+.rollenwahl {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    color: var(--farbe-gedaempft);
+    font-size: 0.85rem;
+}
+
+.rollenwahl__auswahl {
+    padding: 0.2rem 0.4rem;
+    border: 1px solid var(--farbe-rand);
+    border-radius: calc(var(--radius) - 4px);
+    background: var(--farbe-flaeche);
+    font: inherit;
 }
 
 .nav-toggle {
@@ -173,6 +215,17 @@ h1, h2 {
     font-size: 0.9rem;
 }
 
+/* Etwas ist zu erledigen (index.php, Fuhrparkleiter). */
+.card--offen {
+    border-left: 4px solid var(--farbe-gelb);
+}
+
+.card__link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
 .table {
     width: 100%;
     margin-top: var(--abstand);
@@ -202,7 +255,8 @@ h1, h2 {
     border-bottom: none;
 }
 
-.table__num {
+/* Mit .table davor, sonst gewinnt text-align: left aus .table th/td. */
+.table .table__num {
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
@@ -360,6 +414,13 @@ a.button {
     background: var(--farbe-rot);
 }
 
+/* Zweite Aktion neben einer Hauptaktion, z. B. „Alle meine Buchungen“. */
+.button--zweitrangig {
+    border: 1px solid var(--farbe-rand);
+    background: var(--farbe-flaeche);
+    color: var(--farbe-akzent);
+}
+
 /* Fahrzeugauswahl als Kacheln (buchen.php). Die ganze Kachel ist das Label
    des Radio-Buttons. */
 .fahrzeugwahl {
@@ -422,6 +483,30 @@ a.button {
     gap: 0.5rem;
 }
 
+/* Was jetzt ansteht: Fahrt kann beginnen, Fahrt läuft (index.php). Text
+   links, Aktion rechts. */
+.aktuell {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--abstand);
+    margin-bottom: var(--abstand);
+    padding: var(--abstand);
+    border: 1px solid var(--farbe-rand);
+    border-left: 4px solid var(--farbe-akzent);
+    border-radius: var(--radius);
+    background: var(--farbe-flaeche);
+}
+
+.aktuell--ueberfaellig {
+    border-left-color: var(--farbe-rot);
+}
+
+.aktuell__text {
+    margin: 0;
+}
+
 /* Aufklappbare Aktion ohne JavaScript: <details> mit einem Button als
    <summary>, darunter ein kleines Formular (Ablehnen, Stornieren,
    Fahrt beginnen). */
@@ -447,12 +532,85 @@ a.button {
     font-size: 0.9rem;
 }
 
-/* Betroffene Buchungen beim Sperren (fahrzeuge-verwalten.php). */
+/* Betroffene Buchungen beim Sperren (fahrzeuge.php). */
 .klappaktion__liste {
     margin: 0;
     padding-left: 1.1rem;
     font-size: 0.85rem;
     color: var(--farbe-gedaempft);
+}
+
+/* Filterzeile über einer Tabelle: Auswahl und Button nebeneinander
+   (auswertung.php). */
+.filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.5rem var(--abstand);
+    margin-bottom: var(--abstand);
+}
+
+.filter__feld {
+    flex: 0 1 340px;
+}
+
+/* Gefahrene km je Fahrzeug als Balken in der Tabelle (auswertung.php). Die
+   Breite kommt als Anteil am längsten Balken (--anteil, 0 bis 1) aus PHP.
+   Rechts bleibt Platz für den Wert hinter dem Balkenende. */
+.table__balkenspalte {
+    width: 40%;
+    min-width: 180px;
+}
+
+.kmbalken {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.kmbalken__balken {
+    flex: none;
+    width: calc((100% - 4rem) * var(--anteil));
+    min-width: 2px;
+    height: 12px;
+    border-radius: 0 4px 4px 0;
+    background: var(--farbe-akzent);
+}
+
+.kmbalken__wert {
+    font-variant-numeric: tabular-nums;
+}
+
+.kmbalken__ohne {
+    color: var(--farbe-gedaempft);
+    font-size: 0.85rem;
+}
+
+/* Vorschaubilder zu einer Schadensmeldung (fahrzeuge.php). */
+.schadensfotos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.schadensfotos__bild {
+    width: 72px;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border: 1px solid var(--farbe-rand);
+    border-radius: calc(var(--radius) - 4px);
+}
+
+/* Platzhalter, solange im Prototyp keine Fotos abgelegt werden. */
+.schadensfotos__bild--platzhalter {
+    display: grid;
+    place-items: center;
+    background: var(--farbe-hinter);
+    color: var(--farbe-gedaempft);
+    font-size: 0.75rem;
 }
 
 /* Fahrzeug-Steckbrief (fahrzeug.php): Bild links, Stammdaten rechts. */
@@ -540,6 +698,157 @@ a.button {
     font-size: 0.8rem;
 }
 
+/* Buchungskalender (kalender.php): Fahrzeuge × 14 Tage. Der Rahmen scrollt
+   seitlich, die Fahrzeugspalte bleibt dabei stehen. Farben wie bei der
+   Tagesleiste. */
+.kalender {
+    margin-top: var(--abstand);
+    overflow-x: auto;
+    border: 1px solid var(--farbe-rand);
+    border-radius: var(--radius);
+    background: var(--farbe-flaeche);
+}
+
+.kalender__tabelle {
+    width: 100%;
+    min-width: 56rem;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.kalender__tabelle th,
+.kalender__tabelle td {
+    padding: 0;
+    border-bottom: 1px solid var(--farbe-rand);
+    border-left: 1px solid var(--farbe-rand);
+    text-align: center;
+}
+
+.kalender__tabelle tbody:last-child tr:last-child > * {
+    border-bottom: none;
+}
+
+.kalender__kopf {
+    padding: 0.4rem 0.2rem;
+    background: var(--farbe-hinter);
+    color: var(--farbe-gedaempft);
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.kalender__kopf--wochenende {
+    background: #e9edf1;
+}
+
+.kalender__kopf--heute {
+    color: var(--farbe-akzent);
+    box-shadow: inset 0 -3px 0 var(--farbe-akzent);
+}
+
+.kalender__wochentag {
+    display: block;
+    font-weight: 600;
+}
+
+.kalender__tabelle .kalender__fahrzeug {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    min-width: 11rem;
+    padding: 0.4rem 0.75rem;
+    border-left: none;
+    background: var(--farbe-flaeche);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.kalender__tabelle thead .kalender__fahrzeug {
+    background: var(--farbe-hinter);
+    color: var(--farbe-gedaempft);
+}
+
+.kalender__modell {
+    display: block;
+    color: var(--farbe-gedaempft);
+    font-size: 0.8rem;
+    font-weight: 400;
+}
+
+.kalender__tabelle .kalender__gruppe th {
+    padding: 0.35rem 0.75rem;
+    border-left: none;
+    background: var(--farbe-hinter);
+    color: var(--farbe-gedaempft);
+    font-size: 0.75rem;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* Die ganze Zelle ist anklickbar, nicht nur der Kurztext. */
+.kalender__inhalt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3.25rem;
+    min-height: 2.75rem;
+    padding: 0 0.2rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+a.kalender__inhalt:hover,
+a.kalender__inhalt:focus-visible {
+    outline: 2px solid var(--farbe-akzent);
+    outline-offset: -2px;
+}
+
+.kalender__zelle--frei     { background: #e6f4ec; color: var(--farbe-gruen); }
+.kalender__zelle--vergeben { background: #f6dcdc; color: var(--farbe-rot); }
+.kalender__zelle--wartung  { background: #fbf2e0; color: var(--farbe-gelb); }
+
+/* Beantragt: noch nicht entschieden, daher nur schraffiert. */
+.kalender__zelle--beantragt {
+    background: repeating-linear-gradient(135deg, #f6dcdc 0 5px, #fdf2f2 5px 10px);
+}
+
+.kalender__zelle--ueberfaellig {
+    background: #e9b4b4;
+    font-weight: 600;
+}
+
+.kalender__zelle--eigene {
+    box-shadow: inset 0 0 0 2px var(--farbe-akzent);
+    color: var(--farbe-akzent);
+    font-weight: 600;
+}
+
+/* Legende über dem Kalender; die Muster nutzen die Zellklassen. */
+.legende {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem var(--abstand);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--farbe-gedaempft);
+    font-size: 0.85rem;
+}
+
+.legende__eintrag {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.legende__muster {
+    display: inline-block;
+    width: 1.1rem;
+    height: 1.1rem;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 3px;
+}
+
 /* --- 5. Fuß --------------------------------------------------------------- */
 
 .site-footer {
@@ -593,5 +902,14 @@ a.button {
 
     .belegung {
         grid-template-columns: repeat(4, 1fr);
+    }
+
+    /* Schmalere Fahrzeugspalte, damit neben ihr noch Tage sichtbar sind. */
+    .kalender__tabelle .kalender__fahrzeug {
+        min-width: 7rem;
+    }
+
+    .kalender__modell {
+        display: none;
     }
 }

@@ -45,6 +45,27 @@ function is_logged_in(): bool
 }
 
 /**
+ * Rolle des Nutzers: 'mitarbeiter' oder 'fuhrparkleiter'.
+ *
+ * Prototyp: gesetzt über die Rollenauswahl unter der Navigation (rolle.php).
+ * Später setzt login.php $_SESSION['rolle'] aus nutzer.rolle. Ohne Angabe
+ * gilt 'mitarbeiter'.
+ */
+function aktuelle_rolle(): string
+{
+    return ($_SESSION['rolle'] ?? '') === 'fuhrparkleiter' ? 'fuhrparkleiter' : 'mitarbeiter';
+}
+
+/**
+ * Ist der Nutzer Fuhrparkleiter? Er bucht nicht selbst, sondern genehmigt,
+ * verwaltet die Fahrzeuge und wertet aus (siehe docs/user-stories.md, „Rollen“).
+ */
+function ist_fuhrparkleiter(): bool
+{
+    return aktuelle_rolle() === 'fuhrparkleiter';
+}
+
+/**
  * Leitet auf eine Seite der Anwendung um und beendet das Skript.
  *   redirect('login.php');
  */

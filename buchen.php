@@ -11,8 +11,24 @@ require_once __DIR__ . '/includes/config.php';
 
 $pageTitle = 'Fahrzeug buchen';
 
-// Beispielsuche: morgen, ganztägig.
-$morgen = strtotime('+1 day');
+// Zeitraum der Suche: aus dem Buchungskalender übergeben
+// (kalender.php → buchen.php?beginn=2026-10-07&ende=2026-10-07), sonst
+// morgen, ganztägig. Übernommen wird nur ein gültiges Datum ab heute.
+$heute = new DateTimeImmutable('today');
+$zeitraum = [];
+
+foreach (['beginn', 'ende'] as $feld) {
+    $wert = $_GET[$feld] ?? '';
+    $datum = is_string($wert) ? DateTimeImmutable::createFromFormat('!Y-m-d', $wert) : false;
+
+    $zeitraum[$feld] = $datum !== false && $datum->format('Y-m-d') === $wert && $datum >= $heute
+        ? $datum
+        : $heute->modify('+1 day');
+}
+
+if ($zeitraum['ende'] < $zeitraum['beginn']) {
+    $zeitraum['ende'] = $zeitraum['beginn'];
+}
 
 // Aus dem Steckbrief vorgewähltes Fahrzeug (fahrzeug.php → buchen.php?fahrzeug=1).
 $vorauswahl = (int) ($_GET['fahrzeug'] ?? 0);
@@ -41,13 +57,13 @@ require_once __DIR__ . '/includes/header.php';
         <div class="form__row">
             <label class="form__label" for="beginn">Von</label>
             <input class="form__input" type="date" id="beginn" name="beginn"
-                   value="<?= date('Y-m-d', $morgen) ?>">
+                   value="<?= e($zeitraum['beginn']->format('Y-m-d')) ?>">
         </div>
 
         <div class="form__row">
             <label class="form__label" for="ende">Bis</label>
             <input class="form__input" type="date" id="ende" name="ende"
-                   value="<?= date('Y-m-d', $morgen) ?>">
+                   value="<?= e($zeitraum['ende']->format('Y-m-d')) ?>">
         </div>
 
         <div class="form__row">
@@ -74,7 +90,7 @@ require_once __DIR__ . '/includes/header.php';
 <form class="form form--breit section">
     <h2 class="form__titel">2. Freies Fahrzeug auswählen</h2>
     <p class="lead">
-        <?= count($fahrzeuge) ?> Fahrzeuge frei am <?= date('d.m.Y', $morgen) ?>
+        <?= count($fahrzeuge) ?> Fahrzeuge frei am <?= e($zeitraum['beginn']->format('d.m.Y')) ?>
         für 1 Person.
     </p>
 

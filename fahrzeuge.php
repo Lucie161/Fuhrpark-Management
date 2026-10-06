@@ -1,11 +1,35 @@
 <?php
 /**
- * Fahrzeugliste.
+ * Fahrzeuge (Anwendungsfälle 2 und 10).
  *
- * Beispiel für eine Unterseite mit Tabelle. Die Daten stammen derzeit aus
- * einem PHP-Array; sobald die Tabelle existiert, wird $fahrzeuge ersetzt durch:
+ * Alle sehen die Fahrzeugliste mit Status und Link zum Steckbrief. Der
+ * Fuhrparkleiter sieht zusätzlich den TÜV, kann Fahrzeuge in Wartung setzen
+ * und freigeben und sieht die gemeldeten Schäden und Bemerkungen.
  *
- *   $fahrzeuge = db()->query('SELECT * FROM fahrzeuge ORDER BY kennzeichen')->fetchAll();
+ * Statuspflege, keine Stammdatenpflege: Fahrzeuge werden hier weder angelegt
+ * noch gelöscht (siehe docs/aenderungen-fachkonzept.md, A14).
+ *
+ * Prototyp: Fahrzeuge, Buchungen und Meldungen sind feste Beispieldaten. Eine
+ * Statusänderung wird geprüft und auf dieser Seite angezeigt, aber noch nicht
+ * gespeichert. Mit Datenbank (siehe docs/technisches-konzept.md, Regel 10):
+ *
+ *   SELECT * FROM fahrzeuge ORDER BY kennzeichen
+ *   SELECT ... FROM buchungen
+ *    WHERE status IN ('offen', 'genehmigt', 'unterwegs') AND ende >= CURDATE()
+ *   nur Fuhrparkleiter:
+ *   SELECT ... FROM buchungen
+ *    WHERE status = 'abgeschlossen' AND (schaden = 1 OR bemerkung <> '')
+ *    ORDER BY zurueckgegeben_am DESC
+ *   SELECT buchung_id, datei FROM schadensfotos WHERE buchung_id IN (...)
+ *
+ * Schadensfotos sieht nur der Fuhrparkleiter (Datenschutz, siehe
+ * docs/technisches-konzept.md, Regel 6). Im Prototyp gibt es noch keine
+ * abgelegten Fotos, die Vorschau zeigt deshalb Platzhalter. Später die Fotos
+ * nicht direkt aus uploads/schaeden/ verlinken, sondern über ein Skript
+ * ausliefern, das die Rolle prüft.
+ *
+ * Beim Speichern:
+ *   UPDATE fahrzeuge SET status = :status WHERE id = :id
  */
 
 declare(strict_types=1);
@@ -14,69 +38,380 @@ require_once __DIR__ . '/includes/config.php';
 
 $pageTitle = 'Fahrzeuge';
 
-// Statuskürzel => Beschriftung. Das Kürzel dient zugleich als CSS-Klasse
-// (.badge--verfuegbar usw.) und bleibt deshalb bewusst ohne Umlaute.
+$fuhrparkleiter = ist_fuhrparkleiter();
+
+// Gespeicherter Fahrzeugstatus => Beschriftung. Das Kürzel dient zugleich als
+// CSS-Klasse (.badge--wartung usw.). „Unterwegs“ wird nicht gespeichert,
+// sondern aus den laufenden Fahrten abgeleitet.
 $statusText = [
     'verfuegbar' => 'verfügbar',
-    'unterwegs'  => 'unterwegs',
     'wartung'    => 'in Wartung',
 ];
 
-// Beispiel-Fuhrpark, dieselben Fahrzeuge wie in fahrzeug.php und buchen.php.
-$fahrzeuge = [
-    ['id' => 1, 'kennzeichen' => 'M-HS 101',  'hersteller' => 'Volkswagen',     'modell' => 'Passat Variant', 'baujahr' => 2021, 'kmstand' => 48250,  'status' => 'verfuegbar'],
-    ['id' => 2, 'kennzeichen' => 'M-HS 102',  'hersteller' => 'Škoda',          'modell' => 'Octavia Combi',  'baujahr' => 2023, 'kmstand' => 9870,   'status' => 'verfuegbar'],
-    ['id' => 3, 'kennzeichen' => 'M-HS 201',  'hersteller' => 'Ford',           'modell' => 'Transit',        'baujahr' => 2019, 'kmstand' => 112400, 'status' => 'unterwegs'],
-    ['id' => 4, 'kennzeichen' => 'M-HS 202',  'hersteller' => 'Mercedes-Benz',  'modell' => 'Sprinter',       'baujahr' => 2020, 'kmstand' => 87310,  'status' => 'wartung'],
-    ['id' => 5, 'kennzeichen' => 'M-HS 301E', 'hersteller' => 'Volkswagen',     'modell' => 'ID.3',           'baujahr' => 2022, 'kmstand' => 31540,  'status' => 'verfuegbar'],
-    ['id' => 6, 'kennzeichen' => 'M-HS 302E', 'hersteller' => 'Tesla',          'modell' => 'Model 3',        'baujahr' => 2024, 'kmstand' => 12020,  'status' => 'verfuegbar'],
-    ['id' => 7, 'kennzeichen' => 'M-HS 401',  'hersteller' => 'Vespa',          'modell' => 'Primavera 125',  'baujahr' => 2022, 'kmstand' => 6400,   'status' => 'verfuegbar'],
-    ['id' => 8, 'kennzeichen' => 'Rad 1',     'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'baujahr' => 2023, 'kmstand' => null,   'status' => 'verfuegbar'],
-    ['id' => 9, 'kennzeichen' => 'Rad 2',     'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'baujahr' => 2023, 'kmstand' => null,   'status' => 'verfuegbar'],
+// Aktion => [erlaubt bei Status, neuer Status].
+$aktionen = [
+    'wartung'   => ['verfuegbar', 'wartung'],
+    'freigeben' => ['wartung',    'verfuegbar'],
 ];
+
+// Stand einer Buchung => Beschriftung (wie in meine-buchungen.php).
+$buchungText = [
+    'offen'     => 'beantragt',
+    'genehmigt' => 'genehmigt',
+    'unterwegs' => 'unterwegs',
+];
+
+// Feste Liste der Zwecke (siehe docs/user-stories.md).
+$zweckText = [
+    'montage'           => 'Montage',
+    'service'           => 'Wartung/Service',
+    'kundentermin'      => 'Kundentermin',
+    'aufmass'           => 'Aufmaß',
+    'materialtransport' => 'Materialtransport',
+    'lieferant'         => 'Lieferantenbesuch',
+    'schulung'          => 'Schulung',
+    'sonstiges'         => 'Sonstiges',
+];
+
+// Beispiel-Fuhrpark, dieselben Fahrzeuge wie in fahrzeug.php. TÜV als
+// Jahr-Monat; TÜV und km-Stand sind null beim Fahrrad.
+$fahrzeuge = [
+    1 => ['kennzeichen' => 'M-HS 101',  'hersteller' => 'Volkswagen',     'modell' => 'Passat Variant', 'baujahr' => 2021, 'kmstand' => 48250,  'status' => 'verfuegbar', 'tuev' => '2027-03'],
+    2 => ['kennzeichen' => 'M-HS 102',  'hersteller' => 'Škoda',          'modell' => 'Octavia Combi',  'baujahr' => 2023, 'kmstand' => 9870,   'status' => 'verfuegbar', 'tuev' => '2026-05'],
+    3 => ['kennzeichen' => 'M-HS 201',  'hersteller' => 'Ford',           'modell' => 'Transit',        'baujahr' => 2019, 'kmstand' => 112400, 'status' => 'verfuegbar', 'tuev' => '2026-11'],
+    4 => ['kennzeichen' => 'M-HS 202',  'hersteller' => 'Mercedes-Benz',  'modell' => 'Sprinter',       'baujahr' => 2020, 'kmstand' => 87310,  'status' => 'wartung',    'tuev' => '2026-10'],
+    5 => ['kennzeichen' => 'M-HS 301E', 'hersteller' => 'Volkswagen',     'modell' => 'ID.3',           'baujahr' => 2022, 'kmstand' => 31540,  'status' => 'verfuegbar', 'tuev' => '2027-08'],
+    6 => ['kennzeichen' => 'M-HS 302E', 'hersteller' => 'Tesla',          'modell' => 'Model 3',        'baujahr' => 2024, 'kmstand' => 12020,  'status' => 'verfuegbar', 'tuev' => '2027-02'],
+    7 => ['kennzeichen' => 'M-HS 401',  'hersteller' => 'Vespa',          'modell' => 'Primavera 125',  'baujahr' => 2022, 'kmstand' => 6400,   'status' => 'verfuegbar', 'tuev' => '2027-06'],
+    8 => ['kennzeichen' => 'Rad 1',     'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'baujahr' => 2023, 'kmstand' => null,   'status' => 'verfuegbar', 'tuev' => null],
+    9 => ['kennzeichen' => 'Rad 2',     'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'baujahr' => 2023, 'kmstand' => null,   'status' => 'verfuegbar', 'tuev' => null],
+];
+
+$heute = new DateTimeImmutable('today');
+
+// Bestehende Buchungen ab heute (beantragt, genehmigt, unterwegs). Tage
+// relativ zu heute, wie in fahrzeug.php und meine-buchungen.php.
+$beispielBuchungen = [
+    ['fahrzeug_id' => 1, 'von' => 1,  'bis' => 1,  'fahrer' => 'Ella Luppold',    'zweck' => 'kundentermin',      'status' => 'genehmigt'],
+    ['fahrzeug_id' => 1, 'von' => 4,  'bis' => 6,  'fahrer' => 'Finn Clausen',    'zweck' => 'service',           'status' => 'offen'],
+    ['fahrzeug_id' => 3, 'von' => 0,  'bis' => 2,  'fahrer' => 'Kenneth Sander',  'zweck' => 'montage',           'status' => 'unterwegs'],
+    ['fahrzeug_id' => 3, 'von' => 7,  'bis' => 8,  'fahrer' => 'Larissa Wagner',  'zweck' => 'materialtransport', 'status' => 'genehmigt'],
+    ['fahrzeug_id' => 5, 'von' => 2,  'bis' => 2,  'fahrer' => 'Lucie Schneider', 'zweck' => 'kundentermin',      'status' => 'genehmigt'],
+    ['fahrzeug_id' => 7, 'von' => -2, 'bis' => -1, 'fahrer' => 'Lucie Schneider', 'zweck' => 'kundentermin',      'status' => 'unterwegs'],
+];
+
+// Meldungen aus Rückgaben (Schaden oder Bemerkung), neueste zuerst. Dieselben
+// Bemerkungen wie in den Fahrten von fahrzeug.php. Fotos gibt es nur zu
+// Schäden; die Dateinamen sind zufällig vergeben wie in rueckgabe.php.
+// Nur für den Fuhrparkleiter.
+$meldungen = [];
+
+if ($fuhrparkleiter) {
+    $meldungen = [
+        ['datum' => '30.09.2026', 'fahrzeug_id' => 8, 'fahrer' => 'Lucie Schneider', 'schaden' => false, 'bemerkung' => 'Akku nach Rückkehr wieder angeschlossen.',            'fotos' => []],
+        ['datum' => '27.09.2026', 'fahrzeug_id' => 4, 'fahrer' => 'Larissa Wagner',  'schaden' => true,  'bemerkung' => 'Delle an der Schiebetür rechts, Tür schließt schwer.', 'fotos' => ['3f9c1a7e5b2d4086a1c7e9f03b6d2a58.jpg', 'b81e04d9c67a2f3e5d1b8a09c4f7e263.jpg']],
+        ['datum' => '24.09.2026', 'fahrzeug_id' => 1, 'fahrer' => 'Larissa Wagner',  'schaden' => false, 'bemerkung' => 'Klappergeräusch hinten rechts bei Tempo über 100.',    'fotos' => []],
+        ['datum' => '22.09.2026', 'fahrzeug_id' => 3, 'fahrer' => 'Kenneth Sander',  'schaden' => false, 'bemerkung' => 'Ladefläche verschmutzt, Spanngurt fehlt.',             'fotos' => []],
+        ['datum' => '18.09.2026', 'fahrzeug_id' => 1, 'fahrer' => 'Finn Clausen',    'schaden' => false, 'bemerkung' => 'Innenraum könnte mal gereinigt werden.',              'fotos' => []],
+    ];
+}
+
+// --- Buchungen je Fahrzeug --------------------------------------------------
+
+$buchungenJeFahrzeug = [];
+
+foreach ($beispielBuchungen as $buchung) {
+    $buchung['start'] = $heute->modify($buchung['von'] . ' day');
+    $buchung['ende']  = $heute->modify($buchung['bis'] . ' day');
+    $buchungenJeFahrzeug[$buchung['fahrzeug_id']][] = $buchung;
+}
+
+// --- Formular verarbeiten (nur Fuhrparkleiter) ------------------------------
+// Läuft vor header.php, damit später eine Weiterleitung möglich ist. Die
+// Seite ist für alle offen, die Statusänderung nicht.
+
+$fehler = [];
+$bestaetigung = null;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = (int) ($_POST['fahrzeug'] ?? 0);
+    $aktion = (string) ($_POST['aktion'] ?? '');
+
+    if (!$fuhrparkleiter) {
+        $fehler[] = 'Den Status eines Fahrzeugs ändert nur der Fuhrparkleiter.';
+    } elseif (!isset($fahrzeuge[$id])) {
+        $fehler[] = 'Zu dieser Angabe gibt es kein Fahrzeug.';
+    } elseif (!isset($aktionen[$aktion])) {
+        $fehler[] = 'Diese Aktion gibt es nicht.';
+    } else {
+        [$erlaubtBei, $neuerStatus] = $aktionen[$aktion];
+        $alterStatus = $fahrzeuge[$id]['status'];
+
+        if ($alterStatus !== $erlaubtBei) {
+            $fehler[] = 'Das Fahrzeug ist bereits „' . ($statusText[$alterStatus] ?? $alterStatus)
+                . '“. Die Aktion ist dafür nicht möglich.';
+        } else {
+            // Nur für diese Anzeige; gespeichert wird noch nicht.
+            $fahrzeuge[$id]['status'] = $neuerStatus;
+
+            $bestaetigung = [
+                'fahrzeug'  => $id,
+                'status'    => $neuerStatus,
+                'buchungen' => count($buchungenJeFahrzeug[$id] ?? []),
+            ];
+        }
+    }
+}
+
+// --- Fahrzeuge aufbereiten --------------------------------------------------
+
+$diesenMonat = $heute->modify('first day of this month');
+
+foreach ($fahrzeuge as $id => &$fahrzeug) {
+    $fahrzeug['name'] = $fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']
+        . ' (' . $fahrzeug['kennzeichen'] . ')';
+
+    // TÜV: überfällig vor diesem Monat, fällig in diesem oder den nächsten
+    // zwei Monaten.
+    $fahrzeug['tuev_stand'] = null;
+
+    if ($fahrzeug['tuev'] !== null) {
+        $tuev = new DateTimeImmutable($fahrzeug['tuev'] . '-01');
+
+        if ($tuev < $diesenMonat) {
+            $fahrzeug['tuev_stand'] = 'ueberfaellig';
+        } elseif ($tuev <= $diesenMonat->modify('+2 month')) {
+            $fahrzeug['tuev_stand'] = 'faellig';
+        }
+    }
+
+    $fahrzeug['unterwegs'] = false;
+
+    foreach ($buchungenJeFahrzeug[$id] ?? [] as $buchung) {
+        if ($buchung['status'] === 'unterwegs') {
+            $fahrzeug['unterwegs'] = true;
+        }
+    }
+}
+unset($fahrzeug);
+
+$anzahlSchaeden = count(array_filter($meldungen, fn (array $m): bool => $m['schaden']));
+
+/**
+ * Zeitraum einer Buchung als Text, eintägig ohne „bis“.
+ */
+function zeitraum(array $buchung): string
+{
+    $von = $buchung['start']->format('d.m.Y');
+    $bis = $buchung['ende']->format('d.m.Y');
+
+    return $von === $bis ? $von : $von . ' bis ' . $bis;
+}
 
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<p class="note">
-    Beispieldaten &ndash; noch ohne Datenbankanbindung.
+<p class="lead">
+    <?php if ($fuhrparkleiter): ?>
+        Alle Fahrzeuge mit Status und TÜV. Fahrzeuge für Wartung oder Reparatur sperren und wieder
+        freigeben.
+    <?php else: ?>
+        Alle Fahrzeuge mit ihrem aktuellen Status. Ein Klick auf ein Fahrzeug zeigt den Steckbrief.
+    <?php endif; ?>
 </p>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Kennzeichen</th>
-            <th>Hersteller</th>
-            <th>Modell</th>
-            <th>Baujahr</th>
-            <th class="table__num">km-Stand</th>
-            <th>Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php foreach ($fahrzeuge as $fahrzeug): ?>
-            <tr>
-                <td>
-                    <a href="<?= url('fahrzeug.php?id=' . $fahrzeug['id']) ?>"><?= e($fahrzeug['kennzeichen']) ?></a>
-                </td>
-                <td><?= e($fahrzeug['hersteller']) ?></td>
-                <td><?= e($fahrzeug['modell']) ?></td>
-                <td><?= e((string) $fahrzeug['baujahr']) ?></td>
-                <td class="table__num"><?= $fahrzeug['kmstand'] !== null ? number_format($fahrzeug['kmstand'], 0, ',', '.') : '&ndash;' ?></td>
-                <td>
-                    <span class="badge badge--<?= e($fahrzeug['status']) ?>">
-                        <?= e($statusText[$fahrzeug['status']] ?? $fahrzeug['status']) ?>
-                    </span>
-                </td>
-            </tr>
-        <?php endforeach; ?>
+<p class="note">
+    Prototyp &ndash; Beispieldaten.
+    <?php if ($fuhrparkleiter): ?>
+        Statusänderungen werden geprüft und angezeigt, aber noch nicht gespeichert.
+    <?php endif; ?>
+</p>
 
-        <?php if ($fahrzeuge === []): ?>
+<?php if ($fehler !== []): ?>
+    <div class="alert">
+        <?php foreach ($fehler as $meldung): ?>
+            <p class="alert__zeile"><?= e($meldung) ?></p>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
+
+<?php if ($bestaetigung !== null): ?>
+    <?php $name = $fahrzeuge[$bestaetigung['fahrzeug']]['name']; ?>
+
+    <?php if ($bestaetigung['status'] === 'verfuegbar'): ?>
+        <p class="alert alert--erfolg">
+            <?= e($name) ?> ist wieder freigegeben und kann gebucht werden.
+        </p>
+    <?php else: ?>
+        <p class="alert alert--hinweis">
+            <?= e($name) ?> ist jetzt &bdquo;<?= e($statusText[$bestaetigung['status']]) ?>&ldquo;
+            und kann nicht mehr gebucht werden.
+            <?php if ($bestaetigung['buchungen'] > 0): ?>
+                Es bestehen noch <?= e((string) $bestaetigung['buchungen']) ?> Buchungen für dieses
+                Fahrzeug. Sie bleiben bestehen &ndash; bitte klären Sie sie mit den Fahrern.
+            <?php endif; ?>
+        </p>
+    <?php endif; ?>
+<?php endif; ?>
+
+<section class="section">
+    <table class="table">
+        <thead>
             <tr>
-                <td colspan="6" class="table__empty">Keine Fahrzeuge erfasst.</td>
+                <th>Fahrzeug</th>
+                <th>Baujahr</th>
+                <th class="table__num">km-Stand</th>
+                <th>Status</th>
+                <?php if ($fuhrparkleiter): ?>
+                    <th>Nächster TÜV</th>
+                    <th>Aktionen</th>
+                <?php endif; ?>
             </tr>
-        <?php endif; ?>
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            <?php foreach ($fahrzeuge as $id => $fahrzeug): ?>
+                <?php $buchungen = $buchungenJeFahrzeug[$id] ?? []; ?>
+                <tr>
+                    <td>
+                        <a href="<?= url('fahrzeug.php?id=' . $id) ?>"><?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']) ?></a>
+                        <span class="table__zusatz"><?= e($fahrzeug['kennzeichen']) ?></span>
+                    </td>
+                    <td><?= e((string) $fahrzeug['baujahr']) ?></td>
+                    <td class="table__num">
+                        <?= $fahrzeug['kmstand'] !== null ? e(number_format($fahrzeug['kmstand'], 0, ',', '.')) : '&ndash;' ?>
+                    </td>
+                    <td>
+                        <span class="badge badge--<?= e($fahrzeug['status']) ?>">
+                            <?= e($statusText[$fahrzeug['status']] ?? $fahrzeug['status']) ?>
+                        </span>
+                        <?php if ($fahrzeug['unterwegs']): ?>
+                            <span class="badge badge--unterwegs">unterwegs</span>
+                        <?php endif; ?>
+                    </td>
+
+                    <?php if ($fuhrparkleiter): ?>
+                        <td>
+                            <?php if ($fahrzeug['tuev'] === null): ?>
+                                &ndash;
+                            <?php else: ?>
+                                <?= e((new DateTimeImmutable($fahrzeug['tuev'] . '-01'))->format('m/Y')) ?>
+                                <?php if ($fahrzeug['tuev_stand'] === 'ueberfaellig'): ?>
+                                    <span class="badge badge--abgelehnt">überfällig</span>
+                                <?php elseif ($fahrzeug['tuev_stand'] === 'faellig'): ?>
+                                    <span class="badge badge--offen">bald fällig</span>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <div class="aktionen">
+                                <?php if ($fahrzeug['status'] === 'verfuegbar'): ?>
+                                    <details class="klappaktion">
+                                        <summary class="button button--klein">In Wartung setzen</summary>
+
+                                        <form class="klappaktion__form" method="post" action="<?= url('fahrzeuge.php') ?>">
+                                            <input type="hidden" name="fahrzeug" value="<?= e((string) $id) ?>">
+                                            <input type="hidden" name="aktion" value="wartung">
+
+                                            <?php if ($buchungen !== []): ?>
+                                                <p class="klappaktion__frage">Bestehende Buchungen bleiben erhalten:</p>
+                                                <ul class="klappaktion__liste">
+                                                    <?php foreach ($buchungen as $buchung): ?>
+                                                        <li>
+                                                            <?= e(zeitraum($buchung)) ?>, <?= e($buchung['fahrer']) ?>,
+                                                            <?= e($zweckText[$buchung['zweck']] ?? $buchung['zweck']) ?>
+                                                            (<?= e($buchungText[$buchung['status']] ?? $buchung['status']) ?>)
+                                                        </li>
+                                                    <?php endforeach; ?>
+                                                </ul>
+                                            <?php else: ?>
+                                                <p class="klappaktion__frage">Es bestehen keine Buchungen.</p>
+                                            <?php endif; ?>
+
+                                            <button class="button button--klein" type="submit">Fahrzeug sperren</button>
+                                        </form>
+                                    </details>
+                                <?php else: ?>
+                                    <form method="post" action="<?= url('fahrzeuge.php') ?>">
+                                        <input type="hidden" name="fahrzeug" value="<?= e((string) $id) ?>">
+                                        <input type="hidden" name="aktion" value="freigeben">
+                                        <button class="button button--klein" type="submit">Freigeben</button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                    <?php endif; ?>
+                </tr>
+            <?php endforeach; ?>
+
+            <?php if ($fahrzeuge === []): ?>
+                <tr>
+                    <td colspan="<?= $fuhrparkleiter ? 6 : 4 ?>" class="table__empty">Keine Fahrzeuge erfasst.</td>
+                </tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</section>
+
+<?php if ($fuhrparkleiter): ?>
+
+    <section class="section" id="meldungen">
+        <h2>Gemeldete Schäden und Bemerkungen</h2>
+
+        <p class="lead">
+            Aus den Rückgaben der Fahrer, neueste zuerst.
+            <?= e((string) $anzahlSchaeden) ?> <?= $anzahlSchaeden === 1 ? 'Schaden' : 'Schäden' ?> gemeldet.
+        </p>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Fahrzeug</th>
+                    <th>Fahrer</th>
+                    <th>Art</th>
+                    <th>Bemerkung</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($meldungen as $meldung): ?>
+                    <tr>
+                        <td><?= e($meldung['datum']) ?></td>
+                        <td>
+                            <a href="<?= url('fahrzeug.php?id=' . $meldung['fahrzeug_id']) ?>"><?= e($fahrzeuge[$meldung['fahrzeug_id']]['name']) ?></a>
+                        </td>
+                        <td><?= e($meldung['fahrer']) ?></td>
+                        <td>
+                            <?php if ($meldung['schaden']): ?>
+                                <span class="badge badge--abgelehnt">Schaden</span>
+                            <?php else: ?>
+                                <span class="badge">Bemerkung</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?= e($meldung['bemerkung']) ?>
+
+                            <?php if ($meldung['fotos'] !== []): ?>
+                                <ul class="schadensfotos" aria-label="Fotos zum Schaden">
+                                    <?php foreach ($meldung['fotos'] as $nr => $datei): ?>
+                                        <li class="schadensfotos__bild schadensfotos__bild--platzhalter">
+                                            Foto <?= e((string) ($nr + 1)) ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+
+                <?php if ($meldungen === []): ?>
+                    <tr>
+                        <td colspan="5" class="table__empty">Keine Meldungen.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </section>
+
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

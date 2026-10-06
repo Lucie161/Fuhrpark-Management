@@ -11,18 +11,29 @@ declare(strict_types=1);
 
 $pageTitle = $pageTitle ?? 'Übersicht';
 
-// Navigationspunkte: Dateiname => Beschriftung
-// TODO: 'genehmigungen.php' und 'fahrzeuge-verwalten.php' nur für den
-// Fuhrparkleiter anzeigen, sobald Rollen existieren.
+// Navigationspunkte: Dateiname => [Beschriftung, Rollen, die ihn sehen]. Der
+// Fuhrparkleiter bucht nicht selbst, daher fehlen ihm Buchen, Meine
+// Buchungen und Zurückgeben. Die Seiten sind nur ausgeblendet, nicht gesperrt.
 $nav = [
-    'index.php'               => 'Übersicht',
-    'fahrzeuge.php'           => 'Fahrzeuge',
-    'buchen.php'              => 'Fahrzeug buchen',
-    'meine-buchungen.php'     => 'Meine Buchungen',
-    'rueckgabe.php'           => 'Zurückgeben',
-    'genehmigungen.php'       => 'Anträge genehmigen',
-    'fahrzeuge-verwalten.php' => 'Fahrzeuge verwalten',
+    'index.php'               => ['Übersicht',           ['mitarbeiter', 'fuhrparkleiter']],
+    'fahrzeuge.php'           => ['Fahrzeuge',           ['mitarbeiter', 'fuhrparkleiter']],
+    'kalender.php'            => ['Kalender',            ['mitarbeiter', 'fuhrparkleiter']],
+    'buchen.php'              => ['Fahrzeug buchen',     ['mitarbeiter']],
+    'meine-buchungen.php'     => ['Meine Buchungen',     ['mitarbeiter']],
+    'rueckgabe.php'           => ['Zurückgeben',         ['mitarbeiter']],
+    'genehmigungen.php'       => ['Anträge genehmigen',  ['fuhrparkleiter']],
+    'auswertung.php'          => ['Fahrtenbuch',         ['fuhrparkleiter']],
 ];
+
+// Rollenauswahl (nur Prototyp, siehe rolle.php): kehrt danach auf diese
+// Seite zurück, samt Parametern wie dem Zeitraum der Auswertung.
+$rollenText = [
+    'mitarbeiter'    => 'Mitarbeiter',
+    'fuhrparkleiter' => 'Fuhrparkleiter',
+];
+
+$zurueck = basename($_SERVER['SCRIPT_NAME'])
+    . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -43,9 +54,11 @@ $nav = [
         </button>
 
         <nav id="hauptnavigation" class="nav">
-            <?php foreach ($nav as $datei => $beschriftung): ?>
-                <a class="nav__link<?= is_current($datei) ? ' nav__link--active' : '' ?>"
-                   href="<?= url($datei) ?>"><?= e($beschriftung) ?></a>
+            <?php foreach ($nav as $datei => [$beschriftung, $navRollen]): ?>
+                <?php if (in_array(aktuelle_rolle(), $navRollen, true)): ?>
+                    <a class="nav__link<?= is_current($datei) ? ' nav__link--active' : '' ?>"
+                       href="<?= url($datei) ?>"><?= e($beschriftung) ?></a>
+                <?php endif; ?>
             <?php endforeach; ?>
 
             <?php if (is_logged_in()): ?>
@@ -55,6 +68,21 @@ $nav = [
                    href="<?= url('login.php') ?>">Anmelden</a>
             <?php endif; ?>
         </nav>
+    </div>
+
+    <!-- Rollenauswahl, nur im Prototyp. Eigene Zeile, damit sie nicht wie
+         ein Teil der Navigation wirkt und auch mobil sichtbar bleibt. -->
+    <div class="rollenleiste">
+        <form class="container rollenwahl" method="post" action="<?= url('rolle.php') ?>">
+            <input type="hidden" name="zurueck" value="<?= e($zurueck) ?>">
+            <label class="rollenwahl__label" for="rollenwahl">Rolle (Test):</label>
+            <select class="rollenwahl__auswahl" id="rollenwahl" name="rolle">
+                <?php foreach ($rollenText as $wert => $text): ?>
+                    <option value="<?= e($wert) ?>"<?= $wert === aktuelle_rolle() ? ' selected' : '' ?>><?= e($text) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button class="button button--klein rollenwahl__knopf" type="submit">Wechseln</button>
+        </form>
     </div>
 </header>
 
