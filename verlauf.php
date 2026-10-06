@@ -1,8 +1,9 @@
 <?php
 /**
- * Fahrtenbuch auswerten (Anwendungsfall 11) — nur für den Fuhrparkleiter.
+ * Verlauf: Fahrtenbuch aller Fahrzeuge (Anwendungsfall 11), nur für den
+ * Fuhrparkleiter. Bis 06.10.2026 auswertung.php („Fahrtenbuch“).
  *
- * Aufruf: auswertung.php, mit Zeitraum auswertung.php?von=2026-09-01&bis=2026-09-30,
+ * Aufruf: verlauf.php, mit Zeitraum verlauf.php?von=2026-09-01&bis=2026-09-30,
  * die Fahrtenliste gefiltert mit &auswahl=art:auto (Kategorie) oder &auswahl=id:3
  * (ein Fahrzeug).
  *
@@ -10,6 +11,9 @@
  * ein Eintrag. Er entsteht automatisch bei der Rückgabe (entschieden am
  * 05.10.2026, siehe docs/vorlesung-notizen.md, Frage C). Eine Fahrt zählt zu
  * dem Tag, an dem sie zurückgegeben wurde.
+ *
+ * Die Summen je Fahrzeug stehen nicht mehr hier, sondern im Fahrtenbuch des
+ * Steckbriefs (fahrzeug.php); jedes Fahrzeug in der Liste verlinkt dorthin.
  *
  * Prototyp: Die Fahrten sind feste Beispieldaten. Mit Datenbank (siehe
  * docs/technisches-konzept.md, Regel 11):
@@ -21,15 +25,17 @@
  *    ORDER BY b.zurueckgegeben_am DESC
  *   SELECT * FROM fahrzeuge ORDER BY kennzeichen
  *
- * Die Summen je Fahrzeug rechnet die Seite aus derselben Liste, damit Liste
- * und Summen nicht voneinander abweichen können.
+ * Die Kennzahlen rechnet die Seite aus derselben Liste, damit Liste und
+ * Kennzahlen nicht voneinander abweichen können.
  */
 
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/config.php';
 
-$pageTitle = 'Fahrtenbuch';
+nur_fuer_rolle('fuhrparkleiter');
+
+$pageTitle = 'Verlauf';
 
 // Feste Liste der Zwecke (siehe docs/user-stories.md).
 $zweckText = [
@@ -58,24 +64,25 @@ $fahrzeuge = [
 ];
 
 // Abgeschlossene Fahrten, neueste zuerst. Dieselben Fahrten und Bemerkungen
-// wie in fahrzeug.php und fahrzeuge.php. km ist null bei
-// Fahrzeugen ohne km-Stand (Fahrrad, siehe rueckgabe.php).
+// wie in fahrzeug.php und schaeden.php. Der km-Stand Ende der letzten Fahrt
+// ist der heutige km-Stand des Fahrzeugs (wie in fahrzeuge.php). Ohne
+// km-Stand (Fahrrad, siehe rueckgabe.php) sind beide null.
 $fahrten = [
-    ['start' => '2026-10-01', 'rueckgabe' => '2026-10-01', 'fahrzeug_id' => 5, 'fahrer' => 'Lucie Schneider', 'zweck' => 'kundentermin',      'km' => 46,   'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-09-30', 'rueckgabe' => '2026-09-30', 'fahrzeug_id' => 8, 'fahrer' => 'Lucie Schneider', 'zweck' => 'aufmass',           'km' => null, 'schaden' => false, 'bemerkung' => 'Akku nach Rückkehr wieder angeschlossen.'],
-    ['start' => '2026-09-29', 'rueckgabe' => '2026-09-29', 'fahrzeug_id' => 1, 'fahrer' => 'Kenneth Sander',  'zweck' => 'kundentermin',      'km' => 84,   'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-09-25', 'rueckgabe' => '2026-09-27', 'fahrzeug_id' => 4, 'fahrer' => 'Larissa Wagner',  'zweck' => 'montage',           'km' => 143,  'schaden' => true,  'bemerkung' => 'Delle an der Schiebetür rechts, Tür schließt schwer.'],
-    ['start' => '2026-09-26', 'rueckgabe' => '2026-09-26', 'fahrzeug_id' => 3, 'fahrer' => 'Ella Luppold',    'zweck' => 'montage',           'km' => 96,   'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-09-24', 'rueckgabe' => '2026-09-24', 'fahrzeug_id' => 1, 'fahrer' => 'Larissa Wagner',  'zweck' => 'aufmass',           'km' => 132,  'schaden' => false, 'bemerkung' => 'Klappergeräusch hinten rechts bei Tempo über 100.'],
-    ['start' => '2026-09-22', 'rueckgabe' => '2026-09-22', 'fahrzeug_id' => 3, 'fahrer' => 'Kenneth Sander',  'zweck' => 'materialtransport', 'km' => 58,   'schaden' => false, 'bemerkung' => 'Ladefläche verschmutzt, Spanngurt fehlt.'],
-    ['start' => '2026-09-18', 'rueckgabe' => '2026-09-18', 'fahrzeug_id' => 1, 'fahrer' => 'Finn Clausen',    'zweck' => 'lieferant',         'km' => 210,  'schaden' => false, 'bemerkung' => 'Innenraum könnte mal gereinigt werden.'],
-    ['start' => '2026-09-15', 'rueckgabe' => '2026-09-15', 'fahrzeug_id' => 6, 'fahrer' => 'Ella Luppold',    'zweck' => 'schulung',          'km' => 188,  'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-09-12', 'rueckgabe' => '2026-09-12', 'fahrzeug_id' => 9, 'fahrer' => 'Larissa Wagner',  'zweck' => 'aufmass',           'km' => null, 'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-09-10', 'rueckgabe' => '2026-09-10', 'fahrzeug_id' => 7, 'fahrer' => 'Finn Clausen',    'zweck' => 'kundentermin',      'km' => 22,   'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-09-03', 'rueckgabe' => '2026-09-04', 'fahrzeug_id' => 2, 'fahrer' => 'Kenneth Sander',  'zweck' => 'service',           'km' => 265,  'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-08-27', 'rueckgabe' => '2026-08-27', 'fahrzeug_id' => 1, 'fahrer' => 'Ella Luppold',    'zweck' => 'kundentermin',      'km' => 118,  'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-08-20', 'rueckgabe' => '2026-08-21', 'fahrzeug_id' => 3, 'fahrer' => 'Finn Clausen',    'zweck' => 'montage',           'km' => 174,  'schaden' => false, 'bemerkung' => 'Rückfahrkamera zeigt zeitweise kein Bild.'],
-    ['start' => '2026-08-14', 'rueckgabe' => '2026-08-14', 'fahrzeug_id' => 2, 'fahrer' => 'Lucie Schneider', 'zweck' => 'lieferant',         'km' => 97,   'schaden' => false, 'bemerkung' => ''],
+    ['start' => '2026-10-01', 'rueckgabe' => '2026-10-01', 'fahrzeug_id' => 5, 'fahrer' => 'Lucie Schneider', 'zweck' => 'kundentermin',      'km_start' => 31494,  'km_ende' => 31540,  'schaden' => false, 'bemerkung' => ''],
+    ['start' => '2026-09-30', 'rueckgabe' => '2026-09-30', 'fahrzeug_id' => 8, 'fahrer' => 'Lucie Schneider', 'zweck' => 'aufmass',           'km_start' => null,   'km_ende' => null,   'schaden' => false, 'bemerkung' => 'Akku nach Rückkehr wieder angeschlossen.'],
+    ['start' => '2026-09-29', 'rueckgabe' => '2026-09-29', 'fahrzeug_id' => 1, 'fahrer' => 'Kenneth Sander',  'zweck' => 'kundentermin',      'km_start' => 48166,  'km_ende' => 48250,  'schaden' => false, 'bemerkung' => ''],
+    ['start' => '2026-09-25', 'rueckgabe' => '2026-09-27', 'fahrzeug_id' => 4, 'fahrer' => 'Larissa Wagner',  'zweck' => 'montage',           'km_start' => 87167,  'km_ende' => 87310,  'schaden' => true,  'bemerkung' => 'Delle an der Schiebetür rechts, Tür schließt schwer.'],
+    ['start' => '2026-09-26', 'rueckgabe' => '2026-09-26', 'fahrzeug_id' => 3, 'fahrer' => 'Ella Luppold',    'zweck' => 'montage',           'km_start' => 112304, 'km_ende' => 112400, 'schaden' => false, 'bemerkung' => ''],
+    ['start' => '2026-09-24', 'rueckgabe' => '2026-09-24', 'fahrzeug_id' => 1, 'fahrer' => 'Larissa Wagner',  'zweck' => 'aufmass',           'km_start' => 48034,  'km_ende' => 48166,  'schaden' => false, 'bemerkung' => 'Klappergeräusch hinten rechts bei Tempo über 100.'],
+    ['start' => '2026-09-22', 'rueckgabe' => '2026-09-22', 'fahrzeug_id' => 3, 'fahrer' => 'Kenneth Sander',  'zweck' => 'materialtransport', 'km_start' => 112246, 'km_ende' => 112304, 'schaden' => false, 'bemerkung' => 'Ladefläche verschmutzt, Spanngurt fehlt.'],
+    ['start' => '2026-09-18', 'rueckgabe' => '2026-09-18', 'fahrzeug_id' => 1, 'fahrer' => 'Finn Clausen',    'zweck' => 'lieferant',         'km_start' => 47824,  'km_ende' => 48034,  'schaden' => false, 'bemerkung' => 'Innenraum könnte mal gereinigt werden.'],
+    ['start' => '2026-09-15', 'rueckgabe' => '2026-09-15', 'fahrzeug_id' => 6, 'fahrer' => 'Ella Luppold',    'zweck' => 'schulung',          'km_start' => 11832,  'km_ende' => 12020,  'schaden' => false, 'bemerkung' => ''],
+    ['start' => '2026-09-12', 'rueckgabe' => '2026-09-12', 'fahrzeug_id' => 9, 'fahrer' => 'Larissa Wagner',  'zweck' => 'aufmass',           'km_start' => null,   'km_ende' => null,   'schaden' => false, 'bemerkung' => ''],
+    ['start' => '2026-09-10', 'rueckgabe' => '2026-09-10', 'fahrzeug_id' => 7, 'fahrer' => 'Finn Clausen',    'zweck' => 'kundentermin',      'km_start' => 6378,   'km_ende' => 6400,   'schaden' => false, 'bemerkung' => ''],
+    ['start' => '2026-09-03', 'rueckgabe' => '2026-09-04', 'fahrzeug_id' => 2, 'fahrer' => 'Kenneth Sander',  'zweck' => 'service',           'km_start' => 9605,   'km_ende' => 9870,   'schaden' => false, 'bemerkung' => ''],
+    ['start' => '2026-08-27', 'rueckgabe' => '2026-08-27', 'fahrzeug_id' => 1, 'fahrer' => 'Ella Luppold',    'zweck' => 'kundentermin',      'km_start' => 47706,  'km_ende' => 47824,  'schaden' => false, 'bemerkung' => ''],
+    ['start' => '2026-08-20', 'rueckgabe' => '2026-08-21', 'fahrzeug_id' => 3, 'fahrer' => 'Finn Clausen',    'zweck' => 'montage',           'km_start' => 112072, 'km_ende' => 112246, 'schaden' => false, 'bemerkung' => 'Rückfahrkamera zeigt zeitweise kein Bild.'],
+    ['start' => '2026-08-14', 'rueckgabe' => '2026-08-14', 'fahrzeug_id' => 2, 'fahrer' => 'Lucie Schneider', 'zweck' => 'lieferant',         'km_start' => 9508,   'km_ende' => 9605,   'schaden' => false, 'bemerkung' => ''],
 ];
 
 // Fahrzeugart => Beschriftung als Kategorie im Filter der Fahrtenliste.
@@ -127,8 +134,8 @@ if ($eingabe['bis'] === '' && $bis !== null) {
 
 // --- Filter der Fahrtenliste ------------------------------------------------
 // Eine Auswahl: entweder eine Kategorie ('art:auto') oder ein Fahrzeug
-// ('id:3'), leer für alle. Wirkt nur auf die Fahrtenliste, Kennzahlen und
-// Summen je Fahrzeug zeigen weiter den ganzen Fuhrpark.
+// ('id:3'), leer für alle. Wirkt nur auf die Fahrtenliste, die Kennzahlen
+// zeigen weiter den ganzen Fuhrpark.
 
 $auswahlKategorien = [];
 
@@ -156,15 +163,6 @@ if ($eingabe['auswahl'] !== '' && $auswahlText === null) {
 
 $imZeitraum = [];
 
-// Je Fahrzeug, auch ohne Fahrten im Zeitraum. km ist null bei Fahrzeugen
-// ohne km-Stand.
-$jeFahrzeug = [];
-
-foreach ($fahrzeuge as $id => $fahrzeug) {
-    $km = $fahrzeug['art'] === 'fahrrad' ? null : 0;
-    $jeFahrzeug[$id] = ['fahrten' => 0, 'km' => $km, 'schaeden' => 0, 'bemerkungen' => 0];
-}
-
 $summe = ['fahrten' => 0, 'km' => 0, 'schaeden' => 0, 'bemerkungen' => 0];
 
 if ($fehler === []) {
@@ -176,31 +174,25 @@ if ($fehler === []) {
             continue;
         }
 
+        // Gefahrene km; null ohne km-Stand.
+        $fahrt['km'] = $fahrt['km_ende'] !== null ? $fahrt['km_ende'] - $fahrt['km_start'] : null;
+
         $imZeitraum[] = $fahrt;
 
         // Eine Meldung ist entweder ein Schaden oder eine Bemerkung, wie in
-        // fahrzeuge.php.
+        // schaeden.php.
         $art = match (true) {
             $fahrt['schaden']          => 'schaeden',
             $fahrt['bemerkung'] !== '' => 'bemerkungen',
             default                    => null,
         };
 
-        $zeile = &$jeFahrzeug[$fahrt['fahrzeug_id']];
-        $zeile['fahrten']++;
         $summe['fahrten']++;
-
-        if ($fahrt['km'] !== null && $zeile['km'] !== null) {
-            $zeile['km'] += $fahrt['km'];
-            $summe['km'] += $fahrt['km'];
-        }
+        $summe['km'] += $fahrt['km'] ?? 0;
 
         if ($art !== null) {
-            $zeile[$art]++;
             $summe[$art]++;
         }
-
-        unset($zeile);
     }
 }
 
@@ -213,9 +205,6 @@ $fahrtenliste = array_values(array_filter(
 // km der Liste; null, wenn keine Fahrt einen km-Stand hat (nur Fahrräder).
 $kmWerte = array_filter(array_column($fahrtenliste, 'km'), fn (?int $km): bool => $km !== null);
 $kmListe = $fahrtenliste !== [] && $kmWerte === [] ? null : array_sum($kmWerte);
-
-// Längster Balken im Diagramm „Gefahrene km“; die übrigen relativ dazu.
-$maxKm = max(array_map(fn (array $zeile): int => $zeile['km'] ?? 0, $jeFahrzeug));
 
 $kennzahlen = [
     ['wert' => $summe['fahrten'],                         'label' => 'Fahrten'],
@@ -276,15 +265,15 @@ require_once __DIR__ . '/includes/header.php';
 ?>
 
 <p class="lead">
-    Abgeschlossene Fahrten eines Zeitraums, gefahrene Kilometer je Fahrzeug und gemeldete
-    Schäden und Bemerkungen.
+    Fahrtenbuch aller Fahrzeuge: abgeschlossene Fahrten eines Zeitraums mit km-Ständen, gemeldeten
+    Schäden und Bemerkungen. Die Summen eines Fahrzeugs stehen in seinem Steckbrief.
 </p>
 
 <p class="note">
     Prototyp &ndash; Beispieldaten. Eine Fahrt zählt zu dem Tag, an dem sie zurückgegeben wurde.
 </p>
 
-<form class="form form--breit" method="get" action="<?= url('auswertung.php') ?>">
+<form class="form form--breit" method="get" action="<?= url('verlauf.php') ?>">
     <h2 class="form__titel">Zeitraum</h2>
 
     <?php if ($auswahlText !== null): ?>
@@ -327,66 +316,10 @@ require_once __DIR__ . '/includes/header.php';
         <?php endforeach; ?>
     </div>
 
-    <section class="section">
-        <h2>Je Fahrzeug</h2>
-
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Fahrzeug</th>
-                    <th class="table__num">Fahrten</th>
-                    <th class="table__balkenspalte">Gefahrene km</th>
-                    <th class="table__num">Schäden</th>
-                    <th class="table__num">Bemerkungen</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($jeFahrzeug as $id => $zeile): ?>
-                    <?php $fahrzeug = $fahrzeuge[$id]; ?>
-                    <tr>
-                        <td>
-                            <a href="<?= url('fahrzeug.php?id=' . $id) ?>"><?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']) ?></a>
-                            <span class="table__zusatz"><?= e($fahrzeug['kennzeichen']) ?></span>
-                        </td>
-                        <td class="table__num"><?= e((string) $zeile['fahrten']) ?></td>
-                        <td>
-                            <?php if ($zeile['km'] === null): ?>
-                                <span class="kmbalken__ohne">ohne km-Stand</span>
-                            <?php else: ?>
-                                <?php $anteil = $maxKm > 0 ? $zeile['km'] / $maxKm : 0; ?>
-                                <div class="kmbalken">
-                                    <?php if ($zeile['km'] > 0): ?>
-                                        <span class="kmbalken__balken" aria-hidden="true"
-                                              style="--anteil: <?= e(number_format($anteil, 3, '.', '')) ?>"></span>
-                                    <?php endif; ?>
-                                    <span class="kmbalken__wert"><?= e(km_text($zeile['km'])) ?></span>
-                                </div>
-                            <?php endif; ?>
-                        </td>
-                        <td class="table__num">
-                            <?php if ($zeile['schaeden'] > 0): ?>
-                                <span class="badge badge--abgelehnt"><?= e((string) $zeile['schaeden']) ?></span>
-                            <?php else: ?>
-                                0
-                            <?php endif; ?>
-                        </td>
-                        <td class="table__num">
-                            <?php if ($zeile['bemerkungen'] > 0): ?>
-                                <span class="badge"><?= e((string) $zeile['bemerkungen']) ?></span>
-                            <?php else: ?>
-                                0
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </section>
-
     <section class="section" id="fahrten">
         <h2>Fahrten</h2>
 
-        <form class="filter" method="get" action="<?= url('auswertung.php') ?>#fahrten">
+        <form class="filter" method="get" action="<?= url('verlauf.php') ?>#fahrten">
             <input type="hidden" name="von" value="<?= e($eingabe['von']) ?>">
             <input type="hidden" name="bis" value="<?= e($eingabe['bis']) ?>">
 
@@ -424,7 +357,9 @@ require_once __DIR__ . '/includes/header.php';
                     <th>Fahrer</th>
                     <th>Fahrzeug</th>
                     <th>Zweck</th>
-                    <th class="table__num">km</th>
+                    <th class="table__num">km-Stand Anfang</th>
+                    <th class="table__num">km-Stand Ende</th>
+                    <th class="table__num">Gefahrene km</th>
                     <th>Zustand</th>
                 </tr>
             </thead>
@@ -435,10 +370,12 @@ require_once __DIR__ . '/includes/header.php';
                         <td><?= e(zeitraum($fahrt)) ?></td>
                         <td><?= e($fahrt['fahrer']) ?></td>
                         <td>
-                            <?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']) ?>
+                            <a href="<?= url('fahrzeug.php?id=' . $fahrt['fahrzeug_id']) ?>#fahrtenbuch"><?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']) ?></a>
                             <span class="table__zusatz"><?= e($fahrzeug['kennzeichen']) ?></span>
                         </td>
                         <td><?= e($zweckText[$fahrt['zweck']] ?? $fahrt['zweck']) ?></td>
+                        <td class="table__num"><?= e(km_text($fahrt['km_start'])) ?></td>
+                        <td class="table__num"><?= e(km_text($fahrt['km_ende'])) ?></td>
                         <td class="table__num"><?= e(km_text($fahrt['km'])) ?></td>
                         <td>
                             <?php if ($fahrt['schaden']): ?>
@@ -458,7 +395,7 @@ require_once __DIR__ . '/includes/header.php';
 
                 <?php if ($fahrtenliste === []): ?>
                     <tr>
-                        <td colspan="6" class="table__empty">Keine abgeschlossenen Fahrten für diese Auswahl im Zeitraum.</td>
+                        <td colspan="8" class="table__empty">Keine abgeschlossenen Fahrten für diese Auswahl im Zeitraum.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

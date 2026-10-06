@@ -12,18 +12,27 @@ declare(strict_types=1);
 $pageTitle = $pageTitle ?? 'Übersicht';
 
 // Navigationspunkte: Dateiname => [Beschriftung, Rollen, die ihn sehen]. Der
-// Fuhrparkleiter bucht nicht selbst, daher fehlen ihm Buchen, Meine
-// Buchungen und Zurückgeben. Die Seiten sind nur ausgeblendet, nicht gesperrt.
+// Fuhrparkleiter bucht nicht selbst, daher fehlen ihm Buchen und Meine
+// Buchungen. Die Seiten sind zusätzlich für die andere Rolle gesperrt
+// (nur_fuer_rolle()).
 $nav = [
     'index.php'               => ['Übersicht',           ['mitarbeiter', 'fuhrparkleiter']],
-    'fahrzeuge.php'           => ['Fahrzeuge',           ['mitarbeiter', 'fuhrparkleiter']],
-    'kalender.php'            => ['Kalender',            ['mitarbeiter', 'fuhrparkleiter']],
+    'fahrzeuge.php'           => ['Fahrzeuge',           ['fuhrparkleiter']],
+    'schaeden.php'            => ['Schäden',             ['fuhrparkleiter']],
     'buchen.php'              => ['Fahrzeug buchen',     ['mitarbeiter']],
     'meine-buchungen.php'     => ['Meine Buchungen',     ['mitarbeiter']],
-    'rueckgabe.php'           => ['Zurückgeben',         ['mitarbeiter']],
+    'kalender.php'            => ['Kalender',            ['mitarbeiter', 'fuhrparkleiter']],
     'genehmigungen.php'       => ['Anträge genehmigen',  ['fuhrparkleiter']],
-    'auswertung.php'          => ['Fahrtenbuch',         ['fuhrparkleiter']],
+    'verlauf.php'             => ['Verlauf',             ['fuhrparkleiter']],
 ];
+
+// Seiten ohne eigenen Navigationspunkt => Punkt, der für sie aktiv ist.
+$navUnterseiten = [
+    'fruehere-buchungen.php' => 'meine-buchungen.php',
+    'rueckgabe.php'          => 'meine-buchungen.php',
+];
+
+$aktiveSeite = $navUnterseiten[basename($_SERVER['SCRIPT_NAME'])] ?? basename($_SERVER['SCRIPT_NAME']);
 
 // Rollenauswahl (nur Prototyp, siehe rolle.php): kehrt danach auf diese
 // Seite zurück, samt Parametern wie dem Zeitraum der Auswertung.
@@ -32,7 +41,7 @@ $rollenText = [
     'fuhrparkleiter' => 'Fuhrparkleiter',
 ];
 
-$zurueck = basename($_SERVER['SCRIPT_NAME'])
+$rollenwahlZurueck = basename($_SERVER['SCRIPT_NAME'])
     . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
 ?>
 <!DOCTYPE html>
@@ -56,7 +65,7 @@ $zurueck = basename($_SERVER['SCRIPT_NAME'])
         <nav id="hauptnavigation" class="nav">
             <?php foreach ($nav as $datei => [$beschriftung, $navRollen]): ?>
                 <?php if (in_array(aktuelle_rolle(), $navRollen, true)): ?>
-                    <a class="nav__link<?= is_current($datei) ? ' nav__link--active' : '' ?>"
+                    <a class="nav__link<?= $datei === $aktiveSeite ? ' nav__link--active' : '' ?>"
                        href="<?= url($datei) ?>"><?= e($beschriftung) ?></a>
                 <?php endif; ?>
             <?php endforeach; ?>
@@ -74,7 +83,7 @@ $zurueck = basename($_SERVER['SCRIPT_NAME'])
          ein Teil der Navigation wirkt und auch mobil sichtbar bleibt. -->
     <div class="rollenleiste">
         <form class="container rollenwahl" method="post" action="<?= url('rolle.php') ?>">
-            <input type="hidden" name="zurueck" value="<?= e($zurueck) ?>">
+            <input type="hidden" name="zurueck" value="<?= e($rollenwahlZurueck) ?>">
             <label class="rollenwahl__label" for="rollenwahl">Rolle (Test):</label>
             <select class="rollenwahl__auswahl" id="rollenwahl" name="rolle">
                 <?php foreach ($rollenText as $wert => $text): ?>
@@ -88,3 +97,8 @@ $zurueck = basename($_SERVER['SCRIPT_NAME'])
 
 <main class="container">
     <h1 class="page-title"><?= e($pageTitle) ?></h1>
+
+    <?php $meldung = hole_meldung(); ?>
+    <?php if ($meldung !== null): ?>
+        <p class="alert alert--<?= e($meldung['art']) ?>"><?= e($meldung['text']) ?></p>
+    <?php endif; ?>

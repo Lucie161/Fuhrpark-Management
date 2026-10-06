@@ -1,8 +1,11 @@
 <?php
 /**
- * Fahrzeug zurückgeben (Anwendungsfall 6).
+ * Fahrzeug zurückgeben (Anwendungsfall 6), nur für Mitarbeiter.
  *
- * Aufruf: rueckgabe.php, bei mehreren laufenden Fahrten rueckgabe.php?buchung=12
+ * Kein Navigationspunkt: Aufruf über „Zurückgeben“ an der laufenden Fahrt in
+ * index.php (auch aus dem roten Banner) und meine-buchungen.php, jeweils mit
+ * rueckgabe.php?buchung=12. Ohne Angabe ist bei nur einer laufenden Fahrt
+ * diese gewählt.
  *
  * Prototyp: Die laufenden Fahrten sind feste Beispieldaten. Das Formular wird
  * geprüft und bestätigt, aber noch nicht gespeichert. Mit Datenbank:
@@ -24,6 +27,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/config.php';
+
+nur_fuer_rolle('mitarbeiter');
 
 $pageTitle = 'Fahrzeug zurückgeben';
 

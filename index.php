@@ -2,11 +2,14 @@
 /**
  * Überblick nach der Anmeldung (Anwendungsfall 8), je Rolle.
  *
- * Mitarbeiter: aktive Buchung mit „Fahrt beginnen“, laufende Fahrt, nächste
- * Fahrten und offene Anträge. Fuhrparkleiter: Fahrzeuge nach Status, offene
- * Anträge, überfällige Rückgaben und gemeldete Schäden. Er bucht nicht
- * selbst und hat daher keine eigenen Fahrten (siehe
- * docs/technisches-konzept.md, Regeln 5 und 8).
+ * Beide Rollen: ganz oben ein rotes Banner, sobald eine Rückgabe überfällig
+ * ist. Mitarbeiter: Banner nur für die eigenen Fahrten mit „Jetzt
+ * zurückgeben“, darunter aktive Buchung mit „Fahrt beginnen“, laufende Fahrt,
+ * nächste Fahrten und offene Anträge. Fuhrparkleiter: Banner mit der Anzahl,
+ * die Liste hinter „Details“; dann „Zu erledigen“ mit den offenen Anträgen
+ * zum direkten Entscheiden und den gemeldeten Schäden, zuletzt „Fuhrpark“
+ * mit den Fahrzeugen nach Status. Er bucht nicht selbst und hat daher keine
+ * eigenen Fahrten (siehe docs/technisches-konzept.md, Regeln 5 und 8).
  *
  * Prototyp: Alle Angaben sind feste Beispieldaten, dieselben wie in
  * meine-buchungen.php, fahrzeuge.php und genehmigungen.php. Mit
@@ -18,7 +21,7 @@
  *   Fuhrparkleiter:
  *   SELECT status, COUNT(*) FROM fahrzeuge GROUP BY status
  *   SELECT ... FROM buchungen WHERE status = 'unterwegs'
- *   SELECT COUNT(*) FROM buchungen WHERE status = 'offen'
+ *   offene Anträge wie in genehmigungen.php
  *   SELECT ... FROM buchungen b JOIN fahrzeuge f ON f.id = b.fahrzeug_id
  *    WHERE b.schaden = 1 AND f.status = 'wartung'
  */
@@ -110,12 +113,51 @@ if (ist_fuhrparkleiter()) {
         ['fahrzeug_id' => 7, 'fahrer' => $ich,             'bis' => -1],
     ];
 
-    // Offene Anträge wie in genehmigungen.php, Schäden an Fahrzeugen in
-    // Wartung wie in fahrzeuge.php.
-    $anzahlAntraege = 4;
+    // Offene Anträge und vergebene Zeiträume wie in genehmigungen.php.
+    $antraege = [
+        19 => ['fahrzeug_id' => 4, 'antragsteller' => 'Kenneth Sander',  'fahrer' => 'Kenneth Sander',  'von' => 3,  'bis' => 4,  'zweck' => 'materialtransport'],
+        14 => ['fahrzeug_id' => 2, 'antragsteller' => 'Kenneth Sander',  'fahrer' => 'Lucie Schneider', 'von' => 5,  'bis' => 6,  'zweck' => 'montage'],
+        20 => ['fahrzeug_id' => 6, 'antragsteller' => 'Kenneth Sander',  'fahrer' => 'Kenneth Sander',  'von' => 8,  'bis' => 9,  'zweck' => 'aufmass'],
+        15 => ['fahrzeug_id' => 1, 'antragsteller' => 'Lucie Schneider', 'fahrer' => 'Lucie Schneider', 'von' => 10, 'bis' => 11, 'zweck' => 'lieferant'],
+    ];
+
+    $vergeben = [
+        ['fahrzeug_id' => 1, 'von' => 1,  'bis' => 1],
+        ['fahrzeug_id' => 1, 'von' => 4,  'bis' => 6],
+        ['fahrzeug_id' => 3, 'von' => 0,  'bis' => 2],
+        ['fahrzeug_id' => 3, 'von' => 7,  'bis' => 8],
+        ['fahrzeug_id' => 5, 'von' => 2,  'bis' => 2],
+        ['fahrzeug_id' => 7, 'von' => -2, 'bis' => -1],
+        ['fahrzeug_id' => 8, 'von' => 0,  'bis' => 0],
+        ['fahrzeug_id' => 9, 'von' => 3,  'bis' => 4],
+    ];
+
+    // Schäden an Fahrzeugen in Wartung, wie in schaeden.php.
     $schaeden = [
         ['fahrzeug_id' => 4, 'datum' => '27.09.2026'],
     ];
+
+    // Anträge aufbereiten wie in genehmigungen.php. 'hindernis': warum
+    // Genehmigen nicht geht, sonst null.
+    foreach ($antraege as &$antrag) {
+        $antrag['start'] = $heute->modify($antrag['von'] . ' day');
+        $antrag['ende']  = $heute->modify($antrag['bis'] . ' day');
+
+        $antrag['hindernis'] = null;
+
+        if ($fahrzeuge[$antrag['fahrzeug_id']]['status'] === 'wartung') {
+            $antrag['hindernis'] = 'Das Fahrzeug ist in Wartung.';
+        } else {
+            foreach ($vergeben as $belegung) {
+                if ($belegung['fahrzeug_id'] === $antrag['fahrzeug_id']
+                    && $belegung['von'] <= $antrag['bis'] && $belegung['bis'] >= $antrag['von']) {
+                    $antrag['hindernis'] = 'Das Fahrzeug ist im Zeitraum bereits vergeben.';
+                    break;
+                }
+            }
+        }
+    }
+    unset($antrag);
 
     $ueberfaellig = [];
 
@@ -139,18 +181,21 @@ if (ist_fuhrparkleiter()) {
             ['wert' => $anzahlUnterwegs, 'label' => 'unterwegs'],
             ['wert' => $anzahlWartung,   'label' => 'in Wartung'],
         ],
-        'aufgaben' => [
-            ['wert' => $anzahlAntraege,       'label' => $anzahlAntraege === 1 ? 'Antrag wartet auf Entscheidung' : 'Anträge warten auf Entscheidung',
-             'link' => url('genehmigungen.php'),       'linktext' => 'Anträge genehmigen'],
-            ['wert' => count($ueberfaellig),  'label' => count($ueberfaellig) === 1 ? 'Rückgabe überfällig' : 'Rückgaben überfällig',
-             'link' => '#ueberfaellig',               'linktext' => 'Liste unten'],
-            ['wert' => count($schaeden),      'label' => count($schaeden) === 1 ? 'Schaden gemeldet' : 'Schäden gemeldet',
-             'link' => url('fahrzeuge.php') . '#meldungen', 'linktext' => 'Zu den Meldungen'],
-        ],
+        'antraege'     => $antraege,
+        'schaeden'     => count($schaeden),
         'ueberfaellig' => $ueberfaellig,
         'fahrzeuge'    => $fahrzeuge,
     ];
+
+    // Für das Formular aus includes/antrag-entscheidung.php: nach der
+    // Entscheidung zurück zur Übersicht.
+    $zurueck = 'index';
+    $offenerAntrag = null;
+    $kommentar = '';
 }
+
+// Eigene überfällige Rückgaben (nur Mitarbeiter), für das rote Banner.
+$meineUeberfaelligen = array_filter($laufende, fn (array $b): bool => $b['ueberfaellig']);
 
 /**
  * Zeitraum einer Buchung als Text, eintägig ohne „bis“.
@@ -165,6 +210,44 @@ function zeitraum(array $buchung): string
 
 require_once __DIR__ . '/includes/header.php';
 ?>
+
+<?php if ($fuhrpark !== null && $fuhrpark['ueberfaellig'] !== []): ?>
+    <?php $anzahl = count($fuhrpark['ueberfaellig']); ?>
+    <!-- Rotes Banner nur bei überfälligen Rückgaben; die Liste erst hinter
+         „Details“, ohne JavaScript. -->
+    <div class="banner">
+        <p class="banner__text">
+            <strong><?= e((string) $anzahl) ?> <?= $anzahl === 1 ? 'Rückgabe ist' : 'Rückgaben sind' ?> überfällig.</strong>
+            Bitte mit den Fahrern klären.
+        </p>
+
+        <details class="banner__details">
+            <summary>Details</summary>
+
+            <ul class="banner__liste">
+                <?php foreach ($fuhrpark['ueberfaellig'] as $fahrt): ?>
+                    <li>
+                        <a href="<?= url('fahrzeug.php?id=' . $fahrt['fahrzeug_id']) ?>"><?= e($fuhrpark['fahrzeuge'][$fahrt['fahrzeug_id']]['name']) ?></a>,
+                        <?= e($fahrt['fahrer']) ?>, fällig am <?= e($fahrt['ende']->format('d.m.Y')) ?>,
+                        seit <?= e((string) $fahrt['tage']) ?> <?= $fahrt['tage'] === 1 ? 'Tag' : 'Tagen' ?> überfällig
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </details>
+    </div>
+<?php endif; ?>
+
+<?php if ($fuhrpark === null): ?>
+    <?php foreach ($meineUeberfaelligen as $buchung): ?>
+        <div class="banner">
+            <p class="banner__text">
+                <strong>Ihre Rückgabe ist überfällig.</strong>
+                <?= e($buchung['fahrzeug']) ?> war am <?= e($buchung['ende']->format('d.m.Y')) ?> fällig.
+            </p>
+            <a class="button button--klein banner__knopf" href="<?= url('rueckgabe.php?buchung=' . $buchung['id']) ?>">Jetzt zurückgeben</a>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
 
 <p class="lead">
     <?php if ($fuhrpark !== null): ?>
@@ -183,6 +266,65 @@ require_once __DIR__ . '/includes/header.php';
 <?php if ($fuhrpark !== null): ?>
 
     <section class="section">
+        <h2>Zu erledigen</h2>
+
+        <?php $anzahl = count($fuhrpark['antraege']); ?>
+        <h3>
+            <?= $anzahl === 0 ? 'Keine offenen Anträge' : e((string) $anzahl) . ($anzahl === 1 ? ' offener Antrag' : ' offene Anträge') ?>
+        </h3>
+
+        <?php if ($anzahl > 0): ?>
+            <!-- Dasselbe Formular wie in genehmigungen.php (Regel 8); es
+                 schickt dorthin und kehrt danach hierher zurück. -->
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Antragsteller</th>
+                        <th>Fahrzeug</th>
+                        <th>Zeitraum</th>
+                        <th>Zweck</th>
+                        <th>Entscheidung</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($fuhrpark['antraege'] as $id => $antrag): ?>
+                        <tr>
+                            <td>
+                                <?= e($antrag['antragsteller']) ?>
+                                <?php if ($antrag['fahrer'] !== $antrag['antragsteller']): ?>
+                                    <span class="table__zusatz">für <?= e($antrag['fahrer']) ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <a href="<?= url('fahrzeug.php?id=' . $antrag['fahrzeug_id']) ?>"><?= e($fuhrpark['fahrzeuge'][$antrag['fahrzeug_id']]['name']) ?></a>
+                            </td>
+                            <td><?= e(zeitraum($antrag)) ?></td>
+                            <td><?= e($zweckText[$antrag['zweck']] ?? $antrag['zweck']) ?></td>
+                            <td>
+                                <?php require __DIR__ . '/includes/antrag-entscheidung.php'; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <p>
+                <a href="<?= url('genehmigungen.php') ?>">Alle Anträge mit Antragsdatum und Personenzahl</a>
+            </p>
+        <?php endif; ?>
+
+        <div class="cards">
+            <div class="card<?= $fuhrpark['schaeden'] > 0 ? ' card--offen' : '' ?>">
+                <p class="card__value"><?= e((string) $fuhrpark['schaeden']) ?></p>
+                <p class="card__label"><?= $fuhrpark['schaeden'] === 1 ? 'Schaden gemeldet' : 'Schäden gemeldet' ?></p>
+                <?php if ($fuhrpark['schaeden'] > 0): ?>
+                    <a class="card__link" href="<?= url('schaeden.php') ?>">Zu den Schäden</a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
         <h2>Fuhrpark</h2>
 
         <div class="cards">
@@ -194,48 +336,10 @@ require_once __DIR__ . '/includes/header.php';
             <?php endforeach; ?>
         </div>
 
-        <h3>Zu erledigen</h3>
-
-        <div class="cards">
-            <?php foreach ($fuhrpark['aufgaben'] as $kennzahl): ?>
-                <div class="card<?= $kennzahl['wert'] > 0 ? ' card--offen' : '' ?>">
-                    <p class="card__value"><?= e((string) $kennzahl['wert']) ?></p>
-                    <p class="card__label"><?= e($kennzahl['label']) ?></p>
-                    <?php if ($kennzahl['wert'] > 0): ?>
-                        <a class="card__link" href="<?= e($kennzahl['link']) ?>"><?= e($kennzahl['linktext']) ?></a>
-                    <?php endif; ?>
-                </div>
-            <?php endforeach; ?>
-        </div>
-
-        <?php if ($fuhrpark['ueberfaellig'] !== []): ?>
-            <table class="table" id="ueberfaellig">
-                <thead>
-                    <tr>
-                        <th>Überfällige Rückgabe</th>
-                        <th>Fahrer</th>
-                        <th>Fällig am</th>
-                        <th>Überfällig seit</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($fuhrpark['ueberfaellig'] as $fahrt): ?>
-                        <tr>
-                            <td>
-                                <a href="<?= url('fahrzeug.php?id=' . $fahrt['fahrzeug_id']) ?>"><?= e($fuhrpark['fahrzeuge'][$fahrt['fahrzeug_id']]['name']) ?></a>
-                            </td>
-                            <td><?= e($fahrt['fahrer']) ?></td>
-                            <td><?= e($fahrt['ende']->format('d.m.Y')) ?></td>
-                            <td>
-                                <span class="badge badge--abgelehnt">
-                                    <?= e((string) $fahrt['tage']) ?> <?= $fahrt['tage'] === 1 ? 'Tag' : 'Tagen' ?>
-                                </span>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php endif; ?>
+        <p>
+            <a href="<?= url('fahrzeuge.php') ?>">Alle Fahrzeuge</a> &middot;
+            <a href="<?= url('kalender.php') ?>">Kalender</a>
+        </p>
     </section>
 
 <?php else: ?>

@@ -268,6 +268,19 @@ h1, h2 {
     font-size: 0.85rem;
 }
 
+/* Sortierbare Spalte (fahrzeuge.php): Die Überschrift ist ein Link, der wie
+   die übrigen Überschriften aussieht. */
+.table__sortierlink {
+    color: inherit;
+    text-decoration: none;
+}
+
+.table__sortierlink:hover,
+.table__sortierlink:focus-visible {
+    color: var(--farbe-akzent);
+    text-decoration: underline;
+}
+
 /* Ausgewählte Zeile, z. B. die Fahrt in rueckgabe.php. */
 .table__zeile--gewaehlt td {
     background: #e8eff7;
@@ -475,6 +488,27 @@ a.button {
     font-size: 0.875rem;
 }
 
+/* Unten: „frei ab …“ bzw. Ampel links, Link zum Steckbrief rechts. */
+.fahrzeugkarte__fuss {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: auto;
+    font-size: 0.875rem;
+}
+
+/* Vergeben, in Wartung oder ohne passenden Führerschein: sichtbar, aber
+   nicht wählbar. Der Link zum Steckbrief bleibt nutzbar. */
+.fahrzeugkarte--gesperrt {
+    background: var(--farbe-hinter);
+    cursor: not-allowed;
+}
+
+.fahrzeugkarte--gesperrt .fahrzeugkarte__bild,
+.fahrzeugkarte--gesperrt strong {
+    opacity: 0.55;
+}
+
 /* Aktionen in einer Tabellenzeile (genehmigungen.php, meine-buchungen.php). */
 .aktionen {
     display: flex;
@@ -505,6 +539,49 @@ a.button {
 
 .aktuell__text {
     margin: 0;
+}
+
+/* Rotes Banner ganz oben auf der Übersicht, sobald eine Rückgabe überfällig
+   ist (index.php). Mitarbeiter: Text links, „Jetzt zurückgeben“ rechts.
+   Fuhrparkleiter: die Liste hinter „Details“, ohne JavaScript. */
+.banner {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem var(--abstand);
+    margin-bottom: var(--abstand);
+    padding: 0.75rem var(--abstand);
+    border-radius: var(--radius);
+    background: var(--farbe-rot);
+    color: #fff;
+}
+
+.banner__text {
+    margin: 0;
+}
+
+.banner a {
+    color: inherit;
+}
+
+.banner .banner__knopf {
+    background: #fff;
+    color: var(--farbe-rot);
+}
+
+.banner__details {
+    flex-basis: 100%;
+}
+
+.banner__details summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.banner__liste {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
 }
 
 /* Aufklappbare Aktion ohne JavaScript: <details> mit einem Button als
@@ -541,7 +618,7 @@ a.button {
 }
 
 /* Filterzeile über einer Tabelle: Auswahl und Button nebeneinander
-   (auswertung.php). */
+   (verlauf.php, fahrzeuge.php). */
 .filter {
     display: flex;
     flex-wrap: wrap;
@@ -554,39 +631,12 @@ a.button {
     flex: 0 1 340px;
 }
 
-/* Gefahrene km je Fahrzeug als Balken in der Tabelle (auswertung.php). Die
-   Breite kommt als Anteil am längsten Balken (--anteil, 0 bis 1) aus PHP.
-   Rechts bleibt Platz für den Wert hinter dem Balkenende. */
-.table__balkenspalte {
-    width: 40%;
-    min-width: 180px;
+/* Mehrere kurze Auswahlen nebeneinander (fahrzeuge.php). */
+.filter__feld--schmal {
+    flex-basis: 200px;
 }
 
-.kmbalken {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.kmbalken__balken {
-    flex: none;
-    width: calc((100% - 4rem) * var(--anteil));
-    min-width: 2px;
-    height: 12px;
-    border-radius: 0 4px 4px 0;
-    background: var(--farbe-akzent);
-}
-
-.kmbalken__wert {
-    font-variant-numeric: tabular-nums;
-}
-
-.kmbalken__ohne {
-    color: var(--farbe-gedaempft);
-    font-size: 0.85rem;
-}
-
-/* Vorschaubilder zu einer Schadensmeldung (fahrzeuge.php). */
+/* Vorschaubilder zu einer Schadensmeldung (schaeden.php). */
 .schadensfotos {
     display: flex;
     flex-wrap: wrap;
@@ -807,19 +857,18 @@ a.kalender__inhalt:focus-visible {
 .kalender__zelle--vergeben { background: #f6dcdc; color: var(--farbe-rot); }
 .kalender__zelle--wartung  { background: #fbf2e0; color: var(--farbe-gelb); }
 
+/* Mitarbeiter: Tag ohne eigene Buchung. Bewusst nicht „frei“, denn dort kann
+   jemand anderes gebucht haben. */
+.kalender__zelle--leer     { background: var(--farbe-flaeche); }
+
 /* Beantragt: noch nicht entschieden, daher nur schraffiert. */
 .kalender__zelle--beantragt {
     background: repeating-linear-gradient(135deg, #f6dcdc 0 5px, #fdf2f2 5px 10px);
+    color: var(--farbe-rot);
 }
 
 .kalender__zelle--ueberfaellig {
     background: #e9b4b4;
-    font-weight: 600;
-}
-
-.kalender__zelle--eigene {
-    box-shadow: inset 0 0 0 2px var(--farbe-akzent);
-    color: var(--farbe-akzent);
     font-weight: 600;
 }
 

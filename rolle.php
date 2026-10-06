@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['rolle'] ?? '', $ro
     $_SESSION['rolle'] = $_POST['rolle'];
 }
 
-// Zurück zur aufrufenden Seite, z. B. 'auswertung.php?von=2026-09-01'. Nur
+// Zurück zur aufrufenden Seite, z. B. 'verlauf.php?von=2026-09-01'. Nur
 // eine vorhandene Seite der Anwendung ist erlaubt, sonst ließe sich hierüber
 // auf fremde Adressen weiterleiten.
 $zurueck = $_POST['zurueck'] ?? '';

@@ -66,6 +66,47 @@ function ist_fuhrparkleiter(): bool
 }
 
 /**
+ * Sperrt eine Seite für die andere Rolle: Wer nicht die angegebene Rolle hat,
+ * landet auf der Übersicht. Steht direkt nach config.php, vor jeder
+ * Formularverarbeitung der Seite (siehe docs/technisches-konzept.md, „Rollen
+ * je Seite“).
+ *   nur_fuer_rolle('fuhrparkleiter');
+ *
+ * Weiterleitung statt Fehlerseite: Wechselt man im Prototyp die Rolle, kehrt
+ * rolle.php auf die aktuelle Seite zurück und landet so auf der Übersicht.
+ */
+function nur_fuer_rolle(string $rolle): void
+{
+    if (aktuelle_rolle() !== $rolle) {
+        redirect('index.php');
+    }
+}
+
+/**
+ * Merkt eine Meldung für die nächste Seite, z. B. vor einer Weiterleitung.
+ * header.php gibt sie einmal aus und vergisst sie dann.
+ *   merke_meldung('Antrag genehmigt.');
+ *   redirect('index.php');
+ *
+ * $art ist 'erfolg' oder 'hinweis' (CSS-Modifier von .alert).
+ */
+function merke_meldung(string $text, string $art = 'erfolg'): void
+{
+    $_SESSION['meldung'] = ['text' => $text, 'art' => $art];
+}
+
+/**
+ * Gemerkte Meldung holen und löschen; null, wenn keine da ist.
+ */
+function hole_meldung(): ?array
+{
+    $meldung = $_SESSION['meldung'] ?? null;
+    unset($_SESSION['meldung']);
+
+    return $meldung;
+}
+
+/**
  * Leitet auf eine Seite der Anwendung um und beendet das Skript.
  *   redirect('login.php');
  */
