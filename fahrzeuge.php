@@ -2,35 +2,58 @@
 /**
  * Fahrzeuge (Anwendungsfall 10), nur für den Fuhrparkleiter.
  *
- * Liste aller Fahrzeuge mit Status und TÜV, filterbar nach Fahrzeugart,
- * Status und fälligem TÜV, sortierbar nach Kennzeichen, km-Stand, TÜV und
+ * Liste aller Fahrzeuge mit Status und HU/AU, filterbar nach Fahrzeugart,
+ * Status und fälliger HU/AU, sortierbar nach Kennzeichen, km-Stand, HU/AU und
  * Baujahr. Fahrzeuge in Wartung setzen und wieder freigeben. Die gemeldeten
- * Schäden und Bemerkungen stehen in schaeden.php, hier nur ein Hinweis am
- * Fahrzeug. Mitarbeiter finden die Fahrzeuge in buchen.php und im Steckbrief.
+ * Schäden stehen in schaeden.php, hier nur ein Hinweis am Fahrzeug.
+ * Mitarbeiter finden die Fahrzeuge in buchen.php und im Steckbrief.
  *
  * Statuspflege, keine Stammdatenpflege: Fahrzeuge werden hier weder angelegt
  * noch gelöscht (siehe docs/aenderungen-fachkonzept.md, A14).
  *
  * Filter und Sortierung kommen per GET, ohne JavaScript, z. B.
- * fahrzeuge.php?art=auto&sortierung=tuev&richtung=auf. Übernommen werden nur
+ * fahrzeuge.php?art=auto&sortierung=hu_au&richtung=auf. Übernommen werden nur
  * Werte aus den festen Listen unten, alles andere fällt auf den Standard
  * zurück.
  *
- * Prototyp: Fahrzeuge und Buchungen sind feste Beispieldaten. Eine
+ * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Eine
  * Statusänderung wird geprüft und auf dieser Seite angezeigt, aber noch nicht
  * gespeichert. Mit Datenbank (siehe docs/technisches-konzept.md, Regel 10):
  *
  *   SELECT * FROM fahrzeuge [WHERE art = :art] ORDER BY <spalte> ASC|DESC
  *   SELECT ... FROM buchungen
  *    WHERE status IN ('offen', 'genehmigt', 'unterwegs') AND ende >= CURDATE()
- *   SELECT DISTINCT fahrzeug_id FROM buchungen WHERE schaden = 1
+ *   SELECT DISTINCT b.fahrzeug_id FROM schaeden s JOIN buchungen b ON b.id = s.buchung_id
+ *    WHERE s.schwere = 'wartung' AND s.behoben_am IS NULL
  *
  * <spalte> und die Richtung nur aus $sortierungen bzw. 'ASC'/'DESC', denn
- * ORDER BY lässt sich nicht als Platzhalter binden. Status und TÜV filtert
+ * ORDER BY lässt sich nicht als Platzhalter binden. Status und HU/AU filtert
  * PHP danach, denn „unterwegs“ ergibt sich erst aus den Buchungen.
  *
- * Beim Speichern:
- *   UPDATE fahrzeuge SET status = :status WHERE id = :id
+ * Wartung (entschieden am 10.10.2026): Jede Wartung ist eine Zeile in
+ * wartungen; „in Wartung“ ist ein Fahrzeug, solange es eine Zeile ohne
+ * freigegeben_am gibt. „In Wartung setzen“ verlangt Grund und
+ * voraussichtliches Ende, „Ende ändern“ das neue Ende. Bis dahin ist das
+ * Fahrzeug gesperrt, danach buchbar; freigegeben wird es von Hand. Beantragte
+ * und genehmigte Buchungen, die vor dem Ende beginnen, werden automatisch
+ * storniert; laufende Fahrten bleiben, der Fuhrparkleiter sieht einen Hinweis.
+ *
+ * Beim Speichern in einer Transaktion:
+ *   INSERT INTO wartungen (fahrzeug_id, grund, begonnen_am, voraussichtlich_bis, angelegt_von)
+ *   VALUES (:id, :grund, CURDATE(), :bis, :ich)                       -- In Wartung setzen
+ *   UPDATE wartungen SET voraussichtlich_bis = :bis
+ *    WHERE fahrzeug_id = :id AND freigegeben_am IS NULL               -- Ende ändern
+ *   UPDATE buchungen SET status = 'storniert',
+ *          entscheidung_kommentar = 'Automatisch storniert: …'
+ *    WHERE fahrzeug_id = :id AND status IN ('offen', 'genehmigt')
+ *      AND start <= :bis AND ende >= CURDATE()
+ * beim Freigeben:
+ *   UPDATE wartungen SET freigegeben_am = CURDATE(), freigegeben_von = :ich
+ *    WHERE fahrzeug_id = :id AND freigegeben_am IS NULL
+ * und der Schaden, der die Wartung ausgelöst hat, gilt als behoben:
+ *   UPDATE schaeden s JOIN buchungen b ON b.id = s.buchung_id
+ *      SET s.behoben_am = NOW(), s.behoben_von = :ich
+ *    WHERE b.fahrzeug_id = :id AND s.schwere = 'wartung' AND s.behoben_am IS NULL
  */
 
 declare(strict_types=1);
@@ -50,22 +73,29 @@ $statusText = [
     'wartung'    => 'in Wartung',
 ];
 
-// Fahrzeugart => Beschriftung im Filter (wie in verlauf.php).
+// Fahrzeugart => Beschriftung im Filter (wie in historie.php).
 $artText = [
-    'auto'    => 'Autos',
-    'roller'  => 'Roller',
-    'fahrrad' => 'Fahrräder',
+    'auto'        => 'Autos',
+    'transporter' => 'Transporter',
+    'roller'      => 'Roller',
+    'fahrrad'     => 'Fahrräder',
 ];
 
 // Erlaubte Sortierungen, zugleich die Spalten in ORDER BY. „Fahrzeug“ wird
 // nach dem Kennzeichen sortiert.
-$sortierungen = ['kennzeichen', 'kmstand', 'tuev', 'baujahr'];
+$sortierungen = ['kennzeichen', 'kmstand', 'hu_au', 'baujahr'];
 
-// Aktion => [erlaubt bei Status, neuer Status].
+// Aktion => [erlaubt bei Status, neuer Status]. „verlaengern“ ändert nur das
+// voraussichtliche Ende einer laufenden Wartung (auch auf früher).
 $aktionen = [
-    'wartung'   => ['verfuegbar', 'wartung'],
-    'freigeben' => ['wartung',    'verfuegbar'],
+    'wartung'     => ['verfuegbar', 'wartung'],
+    'verlaengern' => ['wartung',    'wartung'],
+    'freigeben'   => ['wartung',    'verfuegbar'],
 ];
+
+// Grund in entscheidung_kommentar, den der Fahrer unter „Frühere Buchungen“
+// liest.
+$stornoGrund = 'Automatisch storniert: Das Fahrzeug ist in diesem Zeitraum in Wartung.';
 
 // Stand einer Buchung => Beschriftung (wie in meine-buchungen.php).
 $buchungText = [
@@ -86,44 +116,26 @@ $zweckText = [
     'sonstiges'         => 'Sonstiges',
 ];
 
-// Beispiel-Fuhrpark, dieselben Fahrzeuge wie in fahrzeug.php. TÜV als
-// Jahr-Monat; TÜV und km-Stand sind null beim Fahrrad.
-$fahrzeuge = [
-    1 => ['kennzeichen' => 'M-HS 101',  'hersteller' => 'Volkswagen',     'modell' => 'Passat Variant', 'art' => 'auto',    'baujahr' => 2021, 'kmstand' => 48250,  'status' => 'verfuegbar', 'tuev' => '2027-03'],
-    2 => ['kennzeichen' => 'M-HS 102',  'hersteller' => 'Škoda',          'modell' => 'Octavia Combi',  'art' => 'auto',    'baujahr' => 2023, 'kmstand' => 9870,   'status' => 'verfuegbar', 'tuev' => '2026-05'],
-    3 => ['kennzeichen' => 'M-HS 201',  'hersteller' => 'Ford',           'modell' => 'Transit',        'art' => 'auto',    'baujahr' => 2019, 'kmstand' => 112400, 'status' => 'verfuegbar', 'tuev' => '2026-11'],
-    4 => ['kennzeichen' => 'M-HS 202',  'hersteller' => 'Mercedes-Benz',  'modell' => 'Sprinter',       'art' => 'auto',    'baujahr' => 2020, 'kmstand' => 87310,  'status' => 'wartung',    'tuev' => '2026-10'],
-    5 => ['kennzeichen' => 'M-HS 301E', 'hersteller' => 'Volkswagen',     'modell' => 'ID.3',           'art' => 'auto',    'baujahr' => 2022, 'kmstand' => 31540,  'status' => 'verfuegbar', 'tuev' => '2027-08'],
-    6 => ['kennzeichen' => 'M-HS 302E', 'hersteller' => 'Tesla',          'modell' => 'Model 3',        'art' => 'auto',    'baujahr' => 2024, 'kmstand' => 12020,  'status' => 'verfuegbar', 'tuev' => '2027-02'],
-    7 => ['kennzeichen' => 'M-HS 401',  'hersteller' => 'Vespa',          'modell' => 'Primavera 125',  'art' => 'roller',  'baujahr' => 2022, 'kmstand' => 6400,   'status' => 'verfuegbar', 'tuev' => '2027-06'],
-    8 => ['kennzeichen' => 'Rad 1',     'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'art' => 'fahrrad', 'baujahr' => 2023, 'kmstand' => null,   'status' => 'verfuegbar', 'tuev' => null],
-    9 => ['kennzeichen' => 'Rad 2',     'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'art' => 'fahrrad', 'baujahr' => 2023, 'kmstand' => null,   'status' => 'verfuegbar', 'tuev' => null],
-];
+$fahrzeuge = beispiel_fahrzeuge();
 
 $heute = new DateTimeImmutable('today');
 
-// Bestehende Buchungen ab heute (beantragt, genehmigt, unterwegs). Tage
-// relativ zu heute, wie in fahrzeug.php und meine-buchungen.php.
-$beispielBuchungen = [
-    ['fahrzeug_id' => 1, 'von' => 1,  'bis' => 1,  'fahrer' => 'Ella Luppold',    'zweck' => 'kundentermin',      'status' => 'genehmigt'],
-    ['fahrzeug_id' => 1, 'von' => 4,  'bis' => 6,  'fahrer' => 'Finn Clausen',    'zweck' => 'service',           'status' => 'offen'],
-    ['fahrzeug_id' => 3, 'von' => 0,  'bis' => 2,  'fahrer' => 'Kenneth Sander',  'zweck' => 'montage',           'status' => 'unterwegs'],
-    ['fahrzeug_id' => 3, 'von' => 7,  'bis' => 8,  'fahrer' => 'Larissa Wagner',  'zweck' => 'materialtransport', 'status' => 'genehmigt'],
-    ['fahrzeug_id' => 5, 'von' => 2,  'bis' => 2,  'fahrer' => 'Lucie Schneider', 'zweck' => 'kundentermin',      'status' => 'genehmigt'],
-    ['fahrzeug_id' => 7, 'von' => -2, 'bis' => -1, 'fahrer' => 'Lucie Schneider', 'zweck' => 'kundentermin',      'status' => 'unterwegs'],
-];
+// Fahrzeuge mit offenem Schaden, der die Wartung ausgelöst hat (wie in
+// schaeden.php). Mit dem Freigeben gilt er als behoben.
+$mitSchaden = [];
 
-// Fahrzeuge mit gemeldetem Schaden, wie in schaeden.php. Der Hinweis
-// erscheint nur, solange das Fahrzeug in Wartung steht; mit dem Freigeben
-// gilt der Schaden als erledigt (wie die Kachel in index.php).
-$mitSchaden = [4];
+foreach (beispiel_schaeden() as $schaden) {
+    if ($schaden['schwere'] === 'wartung' && $schaden['behoben_am'] === null) {
+        $mitSchaden[] = $schaden['fahrzeug_id'];
+    }
+}
 
 // --- Filter und Sortierung (GET) --------------------------------------------
 
 $filter = [
     'art'    => erlaubter_wert('art', array_keys($artText)),
     'status' => erlaubter_wert('status', array_keys($statusText)),
-    'tuev'   => erlaubter_wert('tuev', ['faellig']),
+    'hu_au'  => erlaubter_wert('hu_au', ['faellig']),
 ];
 
 $sortierung = erlaubter_wert('sortierung', $sortierungen, 'kennzeichen');
@@ -141,14 +153,21 @@ if ($sortierung !== 'kennzeichen' || $richtung !== 'auf') {
 $seite = 'fahrzeuge.php' . ($ansicht !== [] ? '?' . http_build_query($ansicht) : '');
 
 // --- Buchungen je Fahrzeug --------------------------------------------------
+// Bestehende Buchungen ab heute (beantragt, genehmigt, unterwegs).
 
 $buchungenJeFahrzeug = [];
 
-foreach ($beispielBuchungen as $buchung) {
-    $buchung['start'] = $heute->modify($buchung['von'] . ' day');
-    $buchung['ende']  = $heute->modify($buchung['bis'] . ' day');
-    $buchungenJeFahrzeug[$buchung['fahrzeug_id']][] = $buchung;
+foreach (beispiel_buchungen() as $buchung) {
+    if (isset($buchungText[$buchung['status']])
+        && ($buchung['ende'] >= $heute || $buchung['status'] === 'unterwegs')) {
+        $buchungenJeFahrzeug[$buchung['fahrzeug_id']][] = $buchung;
+    }
 }
+
+foreach ($buchungenJeFahrzeug as &$liste) {
+    usort($liste, fn (array $a, array $b): int => $a['start'] <=> $b['start']);
+}
+unset($liste);
 
 // --- Formular verarbeiten ---------------------------------------------------
 // Läuft vor header.php, damit später eine Weiterleitung möglich ist. Auch
@@ -156,6 +175,9 @@ foreach ($beispielBuchungen as $buchung) {
 
 $fehler = [];
 $bestaetigung = null;
+
+// Nach einem Fehler bleibt das Wartungsformular dieses Fahrzeugs offen.
+$offenesFormular = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = (int) ($_POST['fahrzeug'] ?? 0);
@@ -173,14 +195,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fehler[] = 'Das Fahrzeug ist bereits „' . ($statusText[$alterStatus] ?? $alterStatus)
                 . '“. Die Aktion ist dafür nicht möglich.';
         } else {
-            // Nur für diese Anzeige; gespeichert wird noch nicht.
-            $fahrzeuge[$id]['status'] = $neuerStatus;
+            $wartungBis = null;
 
-            $bestaetigung = [
-                'fahrzeug'  => $id,
-                'status'    => $neuerStatus,
-                'buchungen' => count($buchungenJeFahrzeug[$id] ?? []),
-            ];
+            $grund = is_string($_POST['grund'] ?? null) ? trim($_POST['grund']) : '';
+
+            if ($aktion === 'wartung' && ($grund === '' || mb_strlen($grund) > 200)) {
+                $fehler[] = 'Bitte geben Sie den Grund der Wartung an (höchstens 200 Zeichen), z. B. „Inspektion“ oder „HU/AU“.';
+                $offenesFormular = $id;
+            }
+
+            if ($neuerStatus === 'wartung') {
+                $wert = is_string($_POST['wartung_bis'] ?? null) ? $_POST['wartung_bis'] : '';
+                $datum = DateTimeImmutable::createFromFormat('!Y-m-d', $wert);
+
+                if ($datum === false || $datum->format('Y-m-d') !== $wert || $datum < $heute) {
+                    $fehler[] = 'Bitte geben Sie das voraussichtliche Ende der Wartung an, frühestens heute.';
+                    $offenesFormular = $id;
+                } else {
+                    $wartungBis = $datum;
+                }
+            }
+
+            if ($fehler === []) {
+                // Buchungen, die vor dem Ende der Wartung beginnen: beantragte
+                // und genehmigte werden storniert, laufende bleiben.
+                $storniert = [];
+                $laufend   = [];
+
+                foreach ($buchungenJeFahrzeug[$id] ?? [] as $buchung) {
+                    if ($wartungBis === null || $buchung['start'] > $wartungBis) {
+                        continue;
+                    }
+
+                    if ($buchung['status'] === 'unterwegs') {
+                        $laufend[] = $buchung;
+                    } else {
+                        $storniert[] = $buchung;
+                    }
+                }
+
+                // Nur für diese Anzeige; gespeichert wird noch nicht.
+                $fahrzeuge[$id]['status'] = $neuerStatus;
+                $fahrzeuge[$id]['wartung_bis'] = $wartungBis;
+                $buchungenJeFahrzeug[$id] = array_values(array_filter(
+                    $buchungenJeFahrzeug[$id] ?? [],
+                    fn (array $b): bool => !in_array($b, $storniert, true),
+                ));
+
+                $bestaetigung = [
+                    'fahrzeug'  => $id,
+                    'aktion'    => $aktion,
+                    'bis'       => $wartungBis,
+                    'storniert' => $storniert,
+                    'laufend'   => $laufend,
+                    'behoben'   => $neuerStatus === 'verfuegbar' && in_array($id, $mitSchaden, true),
+                ];
+            }
         }
     }
 }
@@ -190,20 +260,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $diesenMonat = $heute->modify('first day of this month');
 
 foreach ($fahrzeuge as $id => &$fahrzeug) {
-    $fahrzeug['name'] = $fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']
-        . ' (' . $fahrzeug['kennzeichen'] . ')';
-
-    // TÜV: überfällig vor diesem Monat, fällig in diesem oder den nächsten
+    // HU/AU: überfällig vor diesem Monat, fällig in diesem oder den nächsten
     // zwei Monaten.
-    $fahrzeug['tuev_stand'] = null;
+    $fahrzeug['hu_au_stand'] = null;
 
-    if ($fahrzeug['tuev'] !== null) {
-        $tuev = new DateTimeImmutable($fahrzeug['tuev'] . '-01');
+    if ($fahrzeug['hu_au'] !== null) {
+        $huAu = new DateTimeImmutable($fahrzeug['hu_au']);
 
-        if ($tuev < $diesenMonat) {
-            $fahrzeug['tuev_stand'] = 'ueberfaellig';
-        } elseif ($tuev <= $diesenMonat->modify('+2 month')) {
-            $fahrzeug['tuev_stand'] = 'faellig';
+        if ($huAu < $diesenMonat) {
+            $fahrzeug['hu_au_stand'] = 'ueberfaellig';
+        } elseif ($huAu <= $diesenMonat->modify('+2 month')) {
+            $fahrzeug['hu_au_stand'] = 'faellig';
         }
     }
 
@@ -233,10 +300,10 @@ $liste = array_filter($fahrzeuge, fn (array $f): bool =>
         'unterwegs' => $f['unterwegs'],
         default     => $f['stand'] === $filter['status'],
     }
-    && ($filter['tuev'] === '' || $f['tuev_stand'] !== null)
+    && ($filter['hu_au'] === '' || $f['hu_au_stand'] !== null)
 );
 
-// Ohne Wert (Fahrrad: kein km-Stand, kein TÜV) stehen die Fahrzeuge in
+// Ohne Wert (Fahrrad: kein km-Stand, keine HU/AU) stehen die Fahrzeuge in
 // beiden Richtungen am Ende. Bei Gleichstand entscheidet das Kennzeichen.
 uasort($liste, function (array $a, array $b) use ($sortierung, $richtung): int {
     $x = $a[$sortierung];
@@ -255,12 +322,12 @@ uasort($liste, function (array $a, array $b) use ($sortierung, $richtung): int {
 // Spalten der Tabelle: Überschrift, Sortierung (null = nicht sortierbar),
 // CSS-Klasse.
 $spalten = [
-    ['Fahrzeug',     'kennzeichen', ''],
-    ['Baujahr',      'baujahr',     ''],
-    ['km-Stand',     'kmstand',     'table__num'],
-    ['Status',       null,          ''],
-    ['Nächster TÜV', 'tuev',        ''],
-    ['Aktionen',     null,          ''],
+    ['Fahrzeug',       'kennzeichen', ''],
+    ['Baujahr',        'baujahr',     ''],
+    ['km-Stand',       'kmstand',     'table__num'],
+    ['Status',         null,          ''],
+    ['Nächste HU/AU',  'hu_au',       ''],
+    ['Aktionen',       null,          ''],
 ];
 
 /**
@@ -287,28 +354,12 @@ function sortier_link(string $spalte, string $sortierung, string $richtung, arra
     return url('fahrzeuge.php?' . http_build_query($parameter));
 }
 
-/**
- * Zeitraum einer Buchung als Text, eintägig ohne „bis“.
- */
-function zeitraum(array $buchung): string
-{
-    $von = $buchung['start']->format('d.m.Y');
-    $bis = $buchung['ende']->format('d.m.Y');
-
-    return $von === $bis ? $von : $von . ' bis ' . $bis;
-}
-
 require_once __DIR__ . '/includes/header.php';
 ?>
 
 <p class="lead">
-    Alle Fahrzeuge mit Status und TÜV. Fahrzeuge für Wartung oder Reparatur sperren und wieder
+    Alle Fahrzeuge mit Status und HU/AU. Fahrzeuge für Wartung oder Reparatur sperren und wieder
     freigeben. Gemeldete Schäden stehen unter <a href="<?= url('schaeden.php') ?>">Schäden</a>.
-</p>
-
-<p class="note">
-    Prototyp &ndash; Beispieldaten. Statusänderungen werden geprüft und angezeigt, aber noch nicht
-    gespeichert.
 </p>
 
 <?php if ($fehler !== []): ?>
@@ -320,21 +371,38 @@ require_once __DIR__ . '/includes/header.php';
 <?php endif; ?>
 
 <?php if ($bestaetigung !== null): ?>
-    <?php $name = $fahrzeuge[$bestaetigung['fahrzeug']]['name']; ?>
+    <?php $name = fahrzeug_name($bestaetigung['fahrzeug']); ?>
 
-    <?php if ($bestaetigung['status'] === 'verfuegbar'): ?>
+    <?php if ($bestaetigung['aktion'] === 'freigeben'): ?>
         <p class="alert alert--erfolg">
             <?= e($name) ?> ist wieder freigegeben und kann gebucht werden.
-        </p>
-    <?php else: ?>
-        <p class="alert alert--hinweis">
-            <?= e($name) ?> ist jetzt &bdquo;<?= e($statusText[$bestaetigung['status']]) ?>&ldquo;
-            und kann nicht mehr gebucht werden.
-            <?php if ($bestaetigung['buchungen'] > 0): ?>
-                Es bestehen noch <?= e((string) $bestaetigung['buchungen']) ?> Buchungen für dieses
-                Fahrzeug. Sie bleiben bestehen &ndash; bitte klären Sie sie mit den Fahrern.
+            <?php if ($bestaetigung['behoben']): ?>
+                Der gemeldete Schaden gilt damit als behoben.
             <?php endif; ?>
         </p>
+    <?php else: ?>
+        <div class="alert alert--hinweis">
+            <p class="alert__zeile">
+                <?= e($name) ?> ist in Wartung, voraussichtlich bis
+                <?= e($bestaetigung['bis']->format('d.m.Y')) ?>. Bis dahin kann es nicht gebucht werden.
+            </p>
+            <?php if ($bestaetigung['storniert'] !== []): ?>
+                <p class="alert__zeile">
+                    Automatisch storniert; die Fahrer sehen den Grund unter &bdquo;Frühere Buchungen&ldquo;:
+                </p>
+                <ul class="klappaktion__liste">
+                    <?php foreach ($bestaetigung['storniert'] as $buchung): ?>
+                        <li><?= e(zeitraum_text($buchung['start'], $buchung['ende'])) ?>, <?= e(nutzer_name($buchung['fahrer_id'])) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+            <?php foreach ($bestaetigung['laufend'] as $buchung): ?>
+                <p class="alert__zeile">
+                    <?= e(nutzer_name($buchung['fahrer_id'])) ?> ist mit dem Fahrzeug noch unterwegs. Bitte
+                    klären Sie die Rückgabe mit dem Fahrer.
+                </p>
+            <?php endforeach; ?>
+        </div>
     <?php endif; ?>
 <?php endif; ?>
 
@@ -366,10 +434,10 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
         <div class="filter__feld filter__feld--schmal">
-            <label class="form__label" for="tuev">TÜV</label>
-            <select class="form__input" id="tuev" name="tuev">
+            <label class="form__label" for="hu_au">HU/AU</label>
+            <select class="form__input" id="hu_au" name="hu_au">
                 <option value="">Alle</option>
-                <option value="faellig"<?= $filter['tuev'] === 'faellig' ? ' selected' : '' ?>>bald fällig oder überfällig</option>
+                <option value="faellig"<?= $filter['hu_au'] === 'faellig' ? ' selected' : '' ?>>bald fällig oder überfällig</option>
             </select>
         </div>
 
@@ -425,6 +493,15 @@ require_once __DIR__ . '/includes/header.php';
                         <?php if ($fahrzeug['stand'] === 'wartung' && $fahrzeug['unterwegs']): ?>
                             <span class="badge badge--unterwegs">unterwegs</span>
                         <?php endif; ?>
+                        <?php if (wartung_ende_offen($fahrzeug)): ?>
+                            <span class="badge badge--abgelehnt">Ende festlegen</span>
+                        <?php endif; ?>
+                        <?php if ($fahrzeug['status'] === 'wartung'): ?>
+                            <span class="table__zusatz"><?= e(wartung_text($fahrzeug)) ?></span>
+                        <?php endif; ?>
+                        <?php if (fahrzeug_ueberfaellig($id)): ?>
+                            <span class="badge badge--abgelehnt">Rückgabe überfällig</span>
+                        <?php endif; ?>
                         <?php if ($fahrzeug['schaden']): ?>
                             <span class="table__zusatz">
                                 <a href="<?= url('schaeden.php') ?>">Schaden gemeldet</a>
@@ -432,46 +509,70 @@ require_once __DIR__ . '/includes/header.php';
                         <?php endif; ?>
                     </td>
                     <td>
-                        <?php if ($fahrzeug['tuev'] === null): ?>
+                        <?php if ($fahrzeug['hu_au'] === null): ?>
                             &ndash;
                         <?php else: ?>
-                            <?= e((new DateTimeImmutable($fahrzeug['tuev'] . '-01'))->format('m/Y')) ?>
-                            <?php if ($fahrzeug['tuev_stand'] === 'ueberfaellig'): ?>
+                            <?= e((new DateTimeImmutable($fahrzeug['hu_au']))->format('m/Y')) ?>
+                            <?php if ($fahrzeug['hu_au_stand'] === 'ueberfaellig'): ?>
                                 <span class="badge badge--abgelehnt">überfällig</span>
-                            <?php elseif ($fahrzeug['tuev_stand'] === 'faellig'): ?>
+                            <?php elseif ($fahrzeug['hu_au_stand'] === 'faellig'): ?>
                                 <span class="badge badge--offen">bald fällig</span>
                             <?php endif; ?>
                         <?php endif; ?>
                     </td>
                     <td>
                         <div class="aktionen">
-                            <?php if ($fahrzeug['status'] === 'verfuegbar'): ?>
-                                <details class="klappaktion">
-                                    <summary class="button button--klein">In Wartung setzen</summary>
+                            <?php
+                            // Dasselbe Formular zum Sperren und zum Ändern des Endes.
+                            $wartungAktion = $fahrzeug['status'] === 'verfuegbar' ? 'wartung' : 'verlaengern';
+                            $wartungWert = $fahrzeug['status'] === 'wartung' && !wartung_ende_offen($fahrzeug)
+                                ? $fahrzeug['wartung_bis']->format('Y-m-d')
+                                : '';
+                            ?>
+                            <details class="klappaktion"<?= $offenesFormular === $id ? ' open' : '' ?>>
+                                <summary class="button button--klein"><?= $wartungAktion === 'wartung' ? 'In Wartung setzen' : 'Ende ändern' ?></summary>
 
-                                    <form class="klappaktion__form" method="post" action="<?= e(url($seite)) ?>">
-                                        <input type="hidden" name="fahrzeug" value="<?= e((string) $id) ?>">
-                                        <input type="hidden" name="aktion" value="wartung">
+                                <form class="klappaktion__form" method="post" action="<?= e(url($seite)) ?>">
+                                    <input type="hidden" name="fahrzeug" value="<?= e((string) $id) ?>">
+                                    <input type="hidden" name="aktion" value="<?= e($wartungAktion) ?>">
 
-                                        <?php if ($buchungen !== []): ?>
-                                            <p class="klappaktion__frage">Bestehende Buchungen bleiben erhalten:</p>
-                                            <ul class="klappaktion__liste">
-                                                <?php foreach ($buchungen as $buchung): ?>
-                                                    <li>
-                                                        <?= e(zeitraum($buchung)) ?>, <?= e($buchung['fahrer']) ?>,
-                                                        <?= e($zweckText[$buchung['zweck']] ?? $buchung['zweck']) ?>
-                                                        (<?= e($buchungText[$buchung['status']] ?? $buchung['status']) ?>)
-                                                    </li>
-                                                <?php endforeach; ?>
-                                            </ul>
-                                        <?php else: ?>
-                                            <p class="klappaktion__frage">Es bestehen keine Buchungen.</p>
-                                        <?php endif; ?>
+                                    <?php if ($wartungAktion === 'wartung'): ?>
+                                        <label class="form__label" for="grund-<?= e((string) $id) ?>">Grund</label>
+                                        <input class="form__input" type="text" id="grund-<?= e((string) $id) ?>"
+                                               name="grund" required maxlength="200" placeholder="z. B. Inspektion, HU/AU">
+                                    <?php endif; ?>
 
-                                        <button class="button button--klein" type="submit">Fahrzeug sperren</button>
-                                    </form>
-                                </details>
-                            <?php else: ?>
+                                    <label class="form__label" for="wartung-bis-<?= e((string) $id) ?>">Voraussichtlich bis</label>
+                                    <input class="form__input" type="date" id="wartung-bis-<?= e((string) $id) ?>"
+                                           name="wartung_bis" required min="<?= e($heute->format('Y-m-d')) ?>"
+                                           value="<?= e($wartungWert) ?>">
+
+                                    <?php if ($buchungen !== []): ?>
+                                        <p class="klappaktion__frage">
+                                            Beantragte und genehmigte Buchungen, die bis dahin beginnen, werden
+                                            automatisch storniert:
+                                        </p>
+                                        <ul class="klappaktion__liste">
+                                            <?php foreach ($buchungen as $buchung): ?>
+                                                <li>
+                                                    <?= e(zeitraum_text($buchung['start'], $buchung['ende'])) ?>,
+                                                    <?= e(nutzer_name($buchung['fahrer_id'])) ?>,
+                                                    <?= e($zweckText[$buchung['zweck']] ?? $buchung['zweck']) ?>
+                                                    (<?= e($buchungText[$buchung['status']] ?? $buchung['status']) ?>)
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    <?php else: ?>
+                                        <p class="klappaktion__frage">Es bestehen keine Buchungen.</p>
+                                    <?php endif; ?>
+
+                                    <button class="button button--klein" type="submit">
+                                        <?= $wartungAktion === 'wartung' ? 'Fahrzeug sperren' : 'Ende speichern' ?>
+                                    </button>
+                                </form>
+                            </details>
+
+                            <?php if ($fahrzeug['status'] === 'wartung'): ?>
                                 <form method="post" action="<?= e(url($seite)) ?>">
                                     <input type="hidden" name="fahrzeug" value="<?= e((string) $id) ?>">
                                     <input type="hidden" name="aktion" value="freigeben">

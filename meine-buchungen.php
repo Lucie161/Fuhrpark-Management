@@ -9,9 +9,8 @@
  * abgesagte Buchungen stehen in fruehere-buchungen.php, verlinkt unter der
  * Tabelle.
  *
- * Prototyp ohne Funktion: Buchungen sind feste Beispieldaten, die
- * Schaltflächen lösen noch nichts aus. Mit Datenbank wird $beispiele ersetzt
- * durch:
+ * Prototyp: Die Buchungen kommen aus includes/beispieldaten.php, die
+ * Schaltflächen lösen noch nichts aus. Mit Datenbank:
  *
  *   SELECT b.*, f.hersteller, f.modell, f.kennzeichen, ...
  *     FROM buchungen b JOIN fahrzeuge f ON f.id = b.fahrzeug_id
@@ -28,8 +27,7 @@ nur_fuer_rolle('mitarbeiter');
 
 $pageTitle = 'Meine Buchungen';
 
-// Angemeldeter Nutzer. Kommt später aus der Session.
-$ich = 'Lucie Schneider';
+$ich = aktueller_nutzer();
 
 // Statuskürzel einer Buchung => Beschriftung. Das Kürzel dient zugleich als
 // CSS-Klasse (.badge--offen usw.).
@@ -51,17 +49,7 @@ $zweckText = [
     'sonstiges'         => 'Sonstiges',
 ];
 
-// Aktuelle Beispielbuchungen. Tage relativ zu heute, damit der Prototyp
-// immer alle Zustände zeigt. Die früheren stehen in fruehere-buchungen.php.
 $heute = new DateTimeImmutable('today');
-
-$beispiele = [
-    ['id' => 11, 'fahrzeug_id' => 8, 'fahrzeug' => 'Riese & Müller Charger4 (Rad 1)',     'von' => 0,  'bis' => 0,  'zweck' => 'aufmass',           'personen' => 1, 'status' => 'genehmigt',     'antragsteller' => $ich,             'fahrer' => $ich, 'kommentar' => ''],
-    ['id' => 12, 'fahrzeug_id' => 7, 'fahrzeug' => 'Vespa Primavera 125 (M-HS 401)',      'von' => -2, 'bis' => -1, 'zweck' => 'kundentermin',      'personen' => 1, 'status' => 'unterwegs',     'antragsteller' => $ich,             'fahrer' => $ich, 'kommentar' => ''],
-    ['id' => 13, 'fahrzeug_id' => 5, 'fahrzeug' => 'Volkswagen ID.3 (M-HS 301E)',         'von' => 2,  'bis' => 2,  'zweck' => 'kundentermin',      'personen' => 1, 'status' => 'genehmigt',     'antragsteller' => $ich,             'fahrer' => $ich, 'kommentar' => ''],
-    ['id' => 14, 'fahrzeug_id' => 2, 'fahrzeug' => 'Škoda Octavia Combi (M-HS 102)',      'von' => 5,  'bis' => 6,  'zweck' => 'montage',           'personen' => 3, 'status' => 'offen',         'antragsteller' => 'Kenneth Sander', 'fahrer' => $ich, 'kommentar' => ''],
-    ['id' => 15, 'fahrzeug_id' => 1, 'fahrzeug' => 'Volkswagen Passat Variant (M-HS 101)', 'von' => 10, 'bis' => 11, 'zweck' => 'lieferant',         'personen' => 2, 'status' => 'offen',         'antragsteller' => $ich,             'fahrer' => $ich, 'kommentar' => ''],
-];
 
 // --- Buchungen aufbereiten --------------------------------------------------
 // Je Buchung wird festgehalten, welche Aktionen möglich sind. Die Regeln
@@ -69,16 +57,21 @@ $beispiele = [
 
 $aktuelle = [];
 
-foreach ($beispiele as $buchung) {
-    $buchung['start'] = $heute->modify($buchung['von'] . ' day');
-    $buchung['ende']  = $heute->modify($buchung['bis'] . ' day');
+foreach (beispiel_buchungen() as $buchung) {
+    if (($buchung['antragsteller_id'] !== $ich && $buchung['fahrer_id'] !== $ich)
+        || !isset($statusText[$buchung['status']])) {
+        continue;
+    }
 
-    // Aktiv: genehmigt, heute liegt im Zeitraum, ich bin der Fahrer.
+    // Aktiv: genehmigt, heute liegt im Zeitraum, ich bin der Fahrer. Ob die
+    // Fahrt wirklich beginnen kann, sagt 'sperre' (überfällige Rückgabe).
     $buchung['kann_beginnen'] = $buchung['status'] === 'genehmigt'
         && $buchung['start'] <= $heute && $heute <= $buchung['ende']
-        && $buchung['fahrer'] === $ich;
+        && $buchung['fahrer_id'] === $ich;
+    $buchung['sperre'] = $buchung['kann_beginnen'] ? sperre_fahrtbeginn($ich, $buchung['fahrzeug_id']) : null;
 
-    // Stornieren nur, solange die Fahrt nicht begonnen hat.
+    // Stornieren nur, solange die Fahrt nicht begonnen hat; Antragsteller
+    // und Fahrer dürfen beide.
     $buchung['kann_stornieren'] = in_array($buchung['status'], ['offen', 'genehmigt'], true);
 
     $buchung['ueberfaellig'] = $buchung['status'] === 'unterwegs' && $buchung['ende'] < $heute;
@@ -89,27 +82,12 @@ foreach ($beispiele as $buchung) {
 // Nächste zuerst.
 usort($aktuelle, fn (array $a, array $b): int => $a['start'] <=> $b['start']);
 
-/**
- * Zeitraum einer Buchung als Text, eintägig ohne „bis“.
- */
-function zeitraum(array $buchung): string
-{
-    $von = $buchung['start']->format('d.m.Y');
-    $bis = $buchung['ende']->format('d.m.Y');
-
-    return $von === $bis ? $von : $von . ' bis ' . $bis;
-}
-
 require_once __DIR__ . '/includes/header.php';
 ?>
 
 <p class="lead">
     Ihre aktuellen Buchungen: beantragt, genehmigt oder unterwegs, die nächste zuerst. Dazu
     gehören auch Buchungen, die jemand anderes für Sie als Fahrer angelegt hat.
-</p>
-
-<p class="note">
-    Prototyp &ndash; Beispieldaten, noch ohne Funktion. Angemeldet als <?= e($ich) ?>.
 </p>
 
 <section class="section">
@@ -129,18 +107,18 @@ require_once __DIR__ . '/includes/header.php';
         <tbody>
             <?php foreach ($aktuelle as $buchung): ?>
                 <tr>
-                    <td><?= e(zeitraum($buchung)) ?></td>
+                    <td><?= e(zeitraum_text($buchung['start'], $buchung['ende'])) ?></td>
                     <td>
-                        <a href="<?= url('fahrzeug.php?id=' . $buchung['fahrzeug_id']) ?>"><?= e($buchung['fahrzeug']) ?></a>
-                        <?php if ($buchung['antragsteller'] !== $ich): ?>
-                            <span class="table__zusatz">gebucht von <?= e($buchung['antragsteller']) ?></span>
+                        <a href="<?= url('fahrzeug.php?id=' . $buchung['fahrzeug_id']) ?>"><?= e(fahrzeug_name($buchung['fahrzeug_id'])) ?></a>
+                        <?php if ($buchung['antragsteller_id'] !== $ich): ?>
+                            <span class="table__zusatz">gebucht von <?= e(nutzer_name($buchung['antragsteller_id'])) ?></span>
                         <?php endif; ?>
-                        <?php if ($buchung['fahrer'] !== $ich): ?>
-                            <span class="table__zusatz">Fahrer: <?= e($buchung['fahrer']) ?></span>
+                        <?php if ($buchung['fahrer_id'] !== $ich): ?>
+                            <span class="table__zusatz">Fahrer: <?= e(nutzer_name($buchung['fahrer_id'])) ?></span>
                         <?php endif; ?>
                     </td>
                     <td><?= e($zweckText[$buchung['zweck']] ?? $buchung['zweck']) ?></td>
-                    <td class="table__num"><?= e((string) $buchung['personen']) ?></td>
+                    <td class="table__num"><?= e((string) $buchung['personenanzahl']) ?></td>
                     <td>
                         <span class="badge badge--<?= e($buchung['status']) ?>">
                             <?= e($statusText[$buchung['status']] ?? $buchung['status']) ?>
@@ -152,18 +130,7 @@ require_once __DIR__ . '/includes/header.php';
                     <td>
                         <div class="aktionen">
                             <?php if ($buchung['kann_beginnen']): ?>
-                                <details class="klappaktion">
-                                    <summary class="button button--klein">Fahrt beginnen</summary>
-
-                                    <div class="klappaktion__form">
-                                        <label class="form__label">
-                                            Vorhandene Schäden (optional)
-                                            <textarea class="form__input" rows="2"
-                                                      placeholder="z. B. Kratzer am Kotflügel links"></textarea>
-                                        </label>
-                                        <button class="button button--klein" type="button">Fahrzeug übernommen, Fahrt beginnen</button>
-                                    </div>
-                                </details>
+                                <?php require __DIR__ . '/includes/fahrt-beginnen.php'; ?>
                             <?php endif; ?>
 
                             <?php if ($buchung['status'] === 'unterwegs'): ?>

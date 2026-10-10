@@ -23,7 +23,7 @@ $nav = [
     'meine-buchungen.php'     => ['Meine Buchungen',     ['mitarbeiter']],
     'kalender.php'            => ['Kalender',            ['mitarbeiter', 'fuhrparkleiter']],
     'genehmigungen.php'       => ['Anträge genehmigen',  ['fuhrparkleiter']],
-    'verlauf.php'             => ['Verlauf',             ['fuhrparkleiter']],
+    'historie.php'            => ['Historie',            ['fuhrparkleiter']],
 ];
 
 // Seiten ohne eigenen Navigationspunkt => Punkt, der für sie aktiv ist.
@@ -34,13 +34,8 @@ $navUnterseiten = [
 
 $aktiveSeite = $navUnterseiten[basename($_SERVER['SCRIPT_NAME'])] ?? basename($_SERVER['SCRIPT_NAME']);
 
-// Rollenauswahl (nur Prototyp, siehe rolle.php): kehrt danach auf diese
-// Seite zurück, samt Parametern wie dem Zeitraum der Auswertung.
-$rollenText = [
-    'mitarbeiter'    => 'Mitarbeiter',
-    'fuhrparkleiter' => 'Fuhrparkleiter',
-];
-
+// Personenauswahl (nur Prototyp, siehe rolle.php): kehrt danach auf diese
+// Seite zurück, samt Parametern wie dem Zeitraum der Historie.
 $rollenwahlZurueck = basename($_SERVER['SCRIPT_NAME'])
     . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
 ?>
@@ -79,15 +74,19 @@ $rollenwahlZurueck = basename($_SERVER['SCRIPT_NAME'])
         </nav>
     </div>
 
-    <!-- Rollenauswahl, nur im Prototyp. Eigene Zeile, damit sie nicht wie
+    <!-- Personenauswahl, nur im Prototyp. Eigene Zeile, damit sie nicht wie
          ein Teil der Navigation wirkt und auch mobil sichtbar bleibt. -->
     <div class="rollenleiste">
         <form class="container rollenwahl" method="post" action="<?= url('rolle.php') ?>">
             <input type="hidden" name="zurueck" value="<?= e($rollenwahlZurueck) ?>">
-            <label class="rollenwahl__label" for="rollenwahl">Rolle (Test):</label>
-            <select class="rollenwahl__auswahl" id="rollenwahl" name="rolle">
-                <?php foreach ($rollenText as $wert => $text): ?>
-                    <option value="<?= e($wert) ?>"<?= $wert === aktuelle_rolle() ? ' selected' : '' ?>><?= e($text) ?></option>
+            <label class="rollenwahl__label" for="rollenwahl">Angemeldet als (Test):</label>
+            <select class="rollenwahl__auswahl" id="rollenwahl" name="nutzer">
+                <?php foreach (nutzer_auswahl() as $wert => $text): ?>
+                    <?php
+                    $rollenwahlZusatz = beispiel_nutzer()[$wert]['rolle'] === 'fuhrparkleiter' ? 'Fuhrparkleiter' : 'Mitarbeiter';
+                    $rollenwahlZusatz .= hat_ueberfaellige_rueckgabe($wert) ? ', Rückgabe überfällig' : '';
+                    ?>
+                    <option value="<?= e((string) $wert) ?>"<?= $wert === aktueller_nutzer() ? ' selected' : '' ?>><?= e($text . ' (' . $rollenwahlZusatz . ')') ?></option>
                 <?php endforeach; ?>
             </select>
             <button class="button button--klein rollenwahl__knopf" type="submit">Wechseln</button>

@@ -7,21 +7,34 @@
  * rueckgabe.php?buchung=12. Ohne Angabe ist bei nur einer laufenden Fahrt
  * diese gewählt.
  *
- * Prototyp: Die laufenden Fahrten sind feste Beispieldaten. Das Formular wird
- * geprüft und bestätigt, aber noch nicht gespeichert. Mit Datenbank:
+ * Ein neuer Schaden ist entweder ein Kleinschaden (z. B. ein Kratzer, das
+ * Fahrzeug bleibt fahrbereit) oder ein Schaden, mit dem das Fahrzeug in die
+ * Wartung muss. Beides braucht eine Beschreibung; Fotos sind bei beiden
+ * möglich. Die Bemerkung zum Zustand ist davon getrennt und bleibt optional.
+ *
+ * Prototyp: Die laufenden Fahrten kommen aus includes/beispieldaten.php. Das
+ * Formular wird geprüft und bestätigt, aber noch nicht gespeichert. Mit
+ * Datenbank:
  *
  *   SELECT b.*, f.kmstand, ... FROM buchungen b JOIN fahrzeuge f ON f.id = b.fahrzeug_id
  *    WHERE b.fahrer_id = :ich AND b.status = 'unterwegs'
  *
- * Beim Speichern (siehe docs/technisches-konzept.md, Regel 6):
+ * Beim Speichern in einer Transaktion (siehe docs/technisches-konzept.md,
+ * Regel 6):
  *   UPDATE buchungen  SET status = 'abgeschlossen', zurueckgegeben_am = NOW(),
- *                         km_ende = :km, schaden = :schaden, bemerkung = :bemerkung
- *   UPDATE fahrzeuge  SET kmstand = :km [, status = 'wartung' bei Schaden]
+ *                         km_ende = :km, bemerkung = :bemerkung
+ *   UPDATE fahrzeuge  SET kmstand = :km
+ *   INSERT INTO schaeden (buchung_id, anlass, schwere, beschreibung, gemeldet_am)
+ *   VALUES (:buchung, 'rueckgabe', :schwere, :beschreibung, NOW())   -- nur bei Schaden
+ *   INSERT INTO wartungen (fahrzeug_id, schaden_id, grund, begonnen_am)
+ *   VALUES (:fahrzeug, :schaden, :beschreibung, CURDATE())          -- nur bei Schaden mit Wartung
+ *   (voraussichtlich_bis bleibt NULL: Das Ende kennt der Fahrer nicht. Bis der
+ *   Fuhrparkleiter es auf der Übersicht festlegt, ist das Fahrzeug ganz gesperrt.)
  *
  * Schadensfotos werden geprüft (Anzahl, Größe, Dateityp am Inhalt), aber im
  * Prototyp noch nicht abgelegt. Später: move_uploaded_file() nach
  * uploads/schaeden/ unter einem zufälligen Namen, dazu je Foto
- *   INSERT INTO schadensfotos (buchung_id, datei) VALUES (:buchung, :datei)
+ *   INSERT INTO schadensfotos (schaden_id, datei) VALUES (:schaden, :datei)
  */
 
 declare(strict_types=1);
@@ -32,8 +45,7 @@ nur_fuer_rolle('mitarbeiter');
 
 $pageTitle = 'Fahrzeug zurückgeben';
 
-// Angemeldeter Nutzer. Kommt später aus der Session.
-$ich = 'Lucie Schneider';
+$ich = aktueller_nutzer();
 
 // Feste Liste der Zwecke (siehe docs/user-stories.md).
 $zweckText = [
@@ -47,20 +59,22 @@ $zweckText = [
     'sonstiges'         => 'Sonstiges',
 ];
 
+// Neuer Schaden => Beschriftung. Die Kürzel außer 'nein' sind zugleich
+// schaeden.schwere; 'wartung' sperrt das Fahrzeug.
+$schadenText = [
+    'nein'    => 'Nein',
+    'klein'   => 'Ja, Kleinschaden',
+    'wartung' => 'Ja, muss in die Wartung',
+];
+
 $heute = new DateTimeImmutable('today');
 
 // Meine laufenden Fahrten (Status „unterwegs“), wie in meine-buchungen.php.
 // km_start ist null bei Fahrzeugen ohne km-Stand (Fahrrad).
-$laufende = [
-    12 => [
-        'fahrzeug_id' => 7,
-        'fahrzeug'    => 'Vespa Primavera 125 (M-HS 401)',
-        'start'       => $heute->modify('-2 day'),
-        'ende'        => $heute->modify('-1 day'),
-        'zweck'       => 'kundentermin',
-        'km_start'    => 6400,
-    ],
-];
+$laufende = array_filter(
+    beispiel_buchungen(),
+    fn (array $b): bool => $b['fahrer_id'] === $ich && $b['status'] === 'unterwegs',
+);
 
 // Schadensfotos: höchstens 3 Stück zu je 5 MB, nur JPEG, PNG oder WebP.
 // Die Grenzen liegen unter post_max_size (XAMPP: 40 MB).
@@ -86,9 +100,10 @@ $fehler = [];
 $bestaetigung = null;
 
 $eingabe = [
-    'km_ende'   => trim((string) ($_POST['km_ende'] ?? '')),
-    'schaden'   => (string) ($_POST['schaden'] ?? 'nein'),
-    'bemerkung' => trim((string) ($_POST['bemerkung'] ?? '')),
+    'km_ende'      => trim((string) ($_POST['km_ende'] ?? '')),
+    'schaden'      => (string) ($_POST['schaden'] ?? 'nein'),
+    'beschreibung' => trim((string) ($_POST['beschreibung'] ?? '')),
+    'bemerkung'    => trim((string) ($_POST['bemerkung'] ?? '')),
 ];
 
 // Überschreitet die Anfrage post_max_size, verwirft PHP alle Felder. Ohne
@@ -115,24 +130,26 @@ if ($zuGross) {
             }
         }
 
-        if (!in_array($eingabe['schaden'], ['nein', 'ja'], true)) {
+        $mitSchaden = $eingabe['schaden'] !== 'nein';
+
+        if (!isset($schadenText[$eingabe['schaden']])) {
             $fehler[] = 'Bitte geben Sie an, ob ein neuer Schaden entstanden ist.';
-        } elseif ($eingabe['schaden'] === 'ja' && $eingabe['bemerkung'] === '') {
-            $fehler[] = 'Bitte beschreiben Sie den Schaden in der Bemerkung.';
+        } elseif ($mitSchaden && $eingabe['beschreibung'] === '') {
+            $fehler[] = 'Bitte beschreiben Sie den Schaden.';
         }
 
         // Fotos gehören zur Schadensmeldung und werden ohne Schaden ignoriert.
         $fotos = [];
 
-        if ($eingabe['schaden'] === 'ja') {
+        if ($mitSchaden) {
             [$fotos, $fotoFehler] = pruefe_fotos($_FILES['fotos'] ?? [], $maxFotos, $maxFotoBytes, $fotoTypen);
             $fehler = array_merge($fehler, $fotoFehler);
         }
 
         if ($fehler === []) {
             $bestaetigung = [
-                'fahrzeug' => $fahrt['fahrzeug'],
-                'schaden'  => $eingabe['schaden'] === 'ja',
+                'fahrzeug' => fahrzeug_name($fahrt['fahrzeug_id']),
+                'schaden'  => $eingabe['schaden'],
                 'km'       => $kmEnde !== null ? $kmEnde - $fahrt['km_start'] : null,
                 'fotos'    => count($fotos),
             ];
@@ -189,24 +206,8 @@ function pruefe_fotos(array $dateien, int $max, int $maxBytes, array $typen): ar
     return [$fotos, $fehler];
 }
 
-/**
- * Zeitraum einer Fahrt als Text, eintägig ohne „bis“.
- */
-function zeitraum(array $fahrt): string
-{
-    $von = $fahrt['start']->format('d.m.Y');
-    $bis = $fahrt['ende']->format('d.m.Y');
-
-    return $von === $bis ? $von : $von . ' bis ' . $bis;
-}
-
 require_once __DIR__ . '/includes/header.php';
 ?>
-
-<p class="note">
-    Prototyp &ndash; Beispieldaten. Die Rückgabe wird geprüft, aber noch nicht gespeichert.
-    Angemeldet als <?= e($ich) ?>.
-</p>
 
 <?php if ($fehler !== []): ?>
     <div class="alert">
@@ -218,11 +219,16 @@ require_once __DIR__ . '/includes/header.php';
 
 <?php if ($bestaetigung !== null): ?>
 
-    <?php if ($bestaetigung['schaden']): ?>
+    <?php if ($bestaetigung['schaden'] === 'wartung'): ?>
         <p class="alert alert--hinweis">
             Rückgabe gespeichert. <?= e($bestaetigung['fahrzeug']) ?> steht wegen des gemeldeten
             Schadens jetzt &bdquo;in Wartung&ldquo;. Der Fuhrparkleiter sieht Ihre Meldung und gibt
             das Fahrzeug nach der Reparatur wieder frei.
+        </p>
+    <?php elseif ($bestaetigung['schaden'] === 'klein'): ?>
+        <p class="alert alert--erfolg">
+            Rückgabe gespeichert. <?= e($bestaetigung['fahrzeug']) ?> ist wieder für andere frei.
+            Der Fuhrparkleiter sieht den Kleinschaden, der nächste Fahrer sieht ihn vor Fahrtbeginn.
         </p>
     <?php else: ?>
         <p class="alert alert--erfolg">
@@ -266,8 +272,8 @@ require_once __DIR__ . '/includes/header.php';
             <tbody>
                 <?php foreach ($laufende as $id => $laufend): ?>
                     <tr<?= $id === $buchungId ? ' class="table__zeile--gewaehlt"' : '' ?>>
-                        <td><?= e(zeitraum($laufend)) ?></td>
-                        <td><?= e($laufend['fahrzeug']) ?></td>
+                        <td><?= e(zeitraum_text($laufend['start'], $laufend['ende'])) ?></td>
+                        <td><?= e(fahrzeug_name($laufend['fahrzeug_id'])) ?></td>
                         <td><?= e($zweckText[$laufend['zweck']] ?? $laufend['zweck']) ?></td>
                         <td>
                             <span class="badge badge--unterwegs">unterwegs</span>
@@ -289,7 +295,7 @@ require_once __DIR__ . '/includes/header.php';
     <?php if ($fahrt !== null): ?>
         <form class="form form--breit section" method="post" action="<?= url('rueckgabe.php') ?>"
               enctype="multipart/form-data">
-            <h2 class="form__titel">Rückgabe: <?= e($fahrt['fahrzeug']) ?></h2>
+            <h2 class="form__titel">Rückgabe: <?= e(fahrzeug_name($fahrt['fahrzeug_id'])) ?></h2>
 
             <input type="hidden" name="buchung" value="<?= e((string) $buchungId) ?>">
 
@@ -309,32 +315,30 @@ require_once __DIR__ . '/includes/header.php';
                 <fieldset class="form__row form__gruppe">
                     <legend class="form__label">Neuer Schaden entstanden?</legend>
                     <div class="form__optionen">
-                        <label>
-                            <input type="radio" name="schaden" value="nein"
-                                   <?= $eingabe['schaden'] !== 'ja' ? 'checked' : '' ?>>
-                            Nein
-                        </label>
-                        <label>
-                            <input type="radio" name="schaden" value="ja"
-                                   <?= $eingabe['schaden'] === 'ja' ? 'checked' : '' ?>>
-                            Ja
-                        </label>
+                        <?php foreach ($schadenText as $wert => $text): ?>
+                            <label>
+                                <input type="radio" name="schaden" value="<?= e($wert) ?>"
+                                       <?= $wert === $eingabe['schaden'] || ($wert === 'nein' && !isset($schadenText[$eingabe['schaden']])) ? 'checked' : '' ?>>
+                                <?= e($text) ?>
+                            </label>
+                        <?php endforeach; ?>
                     </div>
                     <span class="form__hinweis">
-                        Bei einem Schaden wird das Fahrzeug gesperrt, bis der Fuhrparkleiter es
-                        wieder freigibt.
+                        Ein Kleinschaden (z. B. ein Kratzer) sperrt das Fahrzeug nicht; der nächste
+                        Fahrer sieht ihn vor Fahrtbeginn. Mit Wartung ist das Fahrzeug gesperrt, bis
+                        der Fuhrparkleiter es wieder freigibt.
                     </span>
                 </fieldset>
             </div>
 
-            <div class="form__row">
-                <label class="form__label" for="bemerkung">Bemerkung zum Zustand</label>
-                <textarea class="form__input" id="bemerkung" name="bemerkung" rows="3"
-                          placeholder="z. B. Delle hinten links, Innenraum verschmutzt, Warnleuchte an"><?= e($eingabe['bemerkung']) ?></textarea>
-                <span class="form__hinweis">Optional, bei einem Schaden Pflicht: Was ist beschädigt?</span>
+            <div class="form__row" data-nur-bei-schaden>
+                <label class="form__label" for="beschreibung">Beschreibung des Schadens</label>
+                <textarea class="form__input" id="beschreibung" name="beschreibung" rows="2"
+                          placeholder="z. B. Delle hinten links, Tür schließt schwer"><?= e($eingabe['beschreibung']) ?></textarea>
+                <span class="form__hinweis">Nur bei einem Schaden, dann Pflicht: Was ist beschädigt?</span>
             </div>
 
-            <div class="form__row">
+            <div class="form__row" data-nur-bei-schaden>
                 <label class="form__label" for="fotos">Fotos vom Schaden (optional)</label>
                 <input class="form__input" type="file" id="fotos" name="fotos[]" multiple
                        accept="image/jpeg,image/png,image/webp">
@@ -342,6 +346,13 @@ require_once __DIR__ . '/includes/header.php';
                     Nur bei einem Schaden. Höchstens <?= e((string) $maxFotos) ?> Fotos
                     (JPEG, PNG oder WebP) zu je <?= e((string) intdiv($maxFotoBytes, 1024 * 1024)) ?> MB.
                 </span>
+            </div>
+
+            <div class="form__row">
+                <label class="form__label" for="bemerkung">Bemerkung zum Zustand (optional)</label>
+                <textarea class="form__input" id="bemerkung" name="bemerkung" rows="2"
+                          placeholder="z. B. Innenraum verschmutzt, Akku fast leer"><?= e($eingabe['bemerkung']) ?></textarea>
+                <span class="form__hinweis">Steht im Fahrtenbuch und sperrt das Fahrzeug nicht.</span>
             </div>
 
             <button class="button" type="submit">Rückgabe speichern</button>

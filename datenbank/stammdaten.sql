@@ -26,15 +26,15 @@ INSERT INTO nutzer_fuehrerscheine (nutzer_id, klasse) VALUES
 
 -- Fahrzeuge einfügen
 INSERT INTO fahrzeuge
-    (id, kennzeichen, art, typ, hersteller, modell, baujahr, bild, status,
-     sitzplaetze, antrieb, kmstand, fuehrerschein, tuev)
+    (id, kennzeichen, art, typ, hersteller, modell, baujahr, bild,
+     sitzplaetze, antrieb, kmstand, fuehrerschein, hu_au)
 VALUES
-    (1, 'M-HS 101',  'auto',    'Kombi',       'Volkswagen',     'Passat Variant', 2021, NULL, 'verfuegbar', 5, 'diesel',  48250,  'B',  '2027-03-01'),
-    (2, 'M-HS 102',  'auto',    'Kombi',       'Škoda',          'Octavia Combi',  2023, NULL, 'verfuegbar', 5, 'benzin',  9870,   'B',  '2026-05-01'),
-    (3, 'M-HS 201',  'auto',    'Transporter', 'Ford',           'Transit',        2019, NULL, 'verfuegbar', 3, 'diesel',  112400, 'B',  '2026-11-01'),
-    (4, 'M-HS 202',  'auto',    'Transporter', 'Mercedes-Benz',  'Sprinter',       2020, NULL, 'wartung',    3, 'diesel',  87310,  'C1', '2026-10-01'),
-    (5, 'M-HS 301E', 'auto',    'E-Auto',      'Volkswagen',     'ID.3',           2022, NULL, 'verfuegbar', 5, 'elektro', 31540,  'B',  '2027-08-01'),
-    (6, 'M-HS 302E', 'auto',    'E-Auto',      'Tesla',          'Model 3',        2024, NULL, 'verfuegbar', 5, 'elektro', 12020,  'B',  '2027-02-01'),
-    (7, 'M-HS 401',  'roller',  'Roller',      'Vespa',          'Primavera 125',  2022, NULL, 'verfuegbar', 2, 'benzin',  6400,   'A1', '2027-06-01'),
-    (8, 'Rad 1',     'fahrrad', 'E-Fahrrad',   'Riese & Müller', 'Charger4',       2023, NULL, 'verfuegbar', 1, 'elektro', NULL,   NULL, NULL),
-    (9, 'Rad 2',     'fahrrad', 'E-Fahrrad',   'Riese & Müller', 'Charger4',       2023, NULL, 'verfuegbar', 1, 'elektro', NULL,   NULL, NULL);
+    (1, 'M-HS 101',  'auto',        'Kombi',       'Volkswagen',     'Passat Variant', 2021, 'vw-passat-variant.jpg',     5, 'diesel',  48250,  'B',  '2027-03-01'),
+    (2, 'M-HS 102',  'auto',        'Kombi',       'Škoda',          'Octavia Combi',  2023, 'skoda-octavia-combi.jpg',   5, 'benzin',  9870,   'B',  '2026-05-01'),
+    (3, 'M-HS 201',  'transporter', 'Transporter', 'Ford',           'Transit',        2019, 'ford-transit.jpg',          3, 'diesel',  112400, 'B',  '2026-11-01'),
+    (4, 'M-HS 202',  'transporter', 'Transporter', 'Mercedes-Benz',  'Sprinter',       2020, 'mercedes-sprinter.jpg',     3, 'diesel',  87310,  'C1', '2026-10-01'),
+    (5, 'M-HS 301E', 'auto',        'E-Auto',      'Volkswagen',     'ID.3',           2022, 'vw-id3.jpg',                5, 'elektro', 31540,  'B',  '2027-08-01'),
+    (6, 'M-HS 302E', 'auto',        'E-Auto',      'Tesla',          'Model 3',        2024, 'tesla-model-3.jpg',         5, 'elektro', 12020,  'B',  '2027-02-01'),
+    (7, 'M-HS 401',  'roller',      'Roller',      'Vespa',          'Primavera 125',  2022, 'vespa-primavera.jpg',       2, 'benzin',  6400,   'A1', '2027-06-01'),
+    (8, 'Rad 1',     'fahrrad',     'E-Fahrrad',   'Riese & Müller', 'Charger4',       2023, 'riese-mueller-charger.jpg', 1, 'elektro', NULL,   NULL, NULL),
+    (9, 'Rad 2',     'fahrrad',     'E-Fahrrad',   'Riese & Müller', 'Charger4',       2023, 'riese-mueller-charger.jpg', 1, 'elektro', NULL,   NULL, NULL);

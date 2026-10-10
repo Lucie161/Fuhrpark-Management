@@ -2,18 +2,28 @@
 /**
  * Schäden (Anwendungsfall 10), nur für den Fuhrparkleiter.
  *
- * Gemeldete Schäden und Bemerkungen aus den Rückgaben, neueste zuerst, mit
- * Link zum Steckbrief des Fahrzeugs. Steht das Fahrzeug noch in Wartung,
- * lässt es sich hier freigeben; das Formular schickt an fahrzeuge.php, das
- * die Statusänderung prüft und bestätigt.
+ * Alle gemeldeten Schäden, zuerst die offenen, dann die behobenen, jeweils
+ * neueste zuerst: Schäden aus Rückgaben (Kleinschaden oder mit Wartung) und
+ * vorhandene Schäden, die ein Fahrer bei Fahrtbeginn notiert hat („bei
+ * Übernahme“). Bemerkungen ohne Schaden stehen nur im Fahrtenbuch
+ * (docs/aenderungen-todo2.md, Punkt 10).
  *
- * Prototyp: Fahrzeuge und Meldungen sind feste Beispieldaten. Mit Datenbank
- * (siehe docs/technisches-konzept.md, Regel 10):
+ * Ein offener Schaden lässt sich als behoben markieren. Steht das Fahrzeug
+ * wegen des Schadens in Wartung, wird es stattdessen freigegeben; das
+ * Formular schickt an fahrzeuge.php, das Freigeben gilt dort zugleich als
+ * „behoben“.
  *
- *   SELECT ... FROM buchungen b JOIN fahrzeuge f ON f.id = b.fahrzeug_id
- *    WHERE b.status = 'abgeschlossen' AND (b.schaden = 1 OR b.bemerkung <> '')
- *    ORDER BY b.zurueckgegeben_am DESC
- *   SELECT buchung_id, datei FROM schadensfotos WHERE buchung_id IN (...)
+ * Prototyp: Die Daten kommen aus includes/beispieldaten.php. „Behoben“ wird
+ * geprüft und angezeigt, aber noch nicht gespeichert. Mit Datenbank:
+ *
+ *   SELECT s.*, b.fahrzeug_id, b.fahrer_id
+ *     FROM schaeden s JOIN buchungen b ON b.id = s.buchung_id
+ *    ORDER BY s.behoben_am IS NOT NULL, s.gemeldet_am DESC
+ *   SELECT schaden_id, datei FROM schadensfotos WHERE schaden_id IN (...)
+ *
+ * Beim Speichern:
+ *   UPDATE schaeden SET behoben_am = NOW(), behoben_von = :ich
+ *    WHERE id = :id AND behoben_am IS NULL
  *
  * Schadensfotos sieht nur der Fuhrparkleiter (Datenschutz, siehe
  * docs/technisches-konzept.md, Regel 6). Im Prototyp gibt es noch keine
@@ -30,112 +40,151 @@ nur_fuer_rolle('fuhrparkleiter');
 
 $pageTitle = 'Schäden';
 
-// Beispiel-Fuhrpark, dieselben Fahrzeuge und derselbe gespeicherte Status
-// wie in fahrzeuge.php.
-$fahrzeuge = [
-    1 => ['name' => 'Volkswagen Passat Variant (M-HS 101)', 'status' => 'verfuegbar'],
-    2 => ['name' => 'Škoda Octavia Combi (M-HS 102)',       'status' => 'verfuegbar'],
-    3 => ['name' => 'Ford Transit (M-HS 201)',              'status' => 'verfuegbar'],
-    4 => ['name' => 'Mercedes-Benz Sprinter (M-HS 202)',    'status' => 'wartung'],
-    5 => ['name' => 'Volkswagen ID.3 (M-HS 301E)',          'status' => 'verfuegbar'],
-    6 => ['name' => 'Tesla Model 3 (M-HS 302E)',            'status' => 'verfuegbar'],
-    7 => ['name' => 'Vespa Primavera 125 (M-HS 401)',       'status' => 'verfuegbar'],
-    8 => ['name' => 'Riese & Müller Charger4 (Rad 1)',      'status' => 'verfuegbar'],
-    9 => ['name' => 'Riese & Müller Charger4 (Rad 2)',      'status' => 'verfuegbar'],
+// Art einer Meldung => Beschriftung: Schwere bei Rückgabe, bei Übernahme
+// eigene Art (sperrt das Fahrzeug nie).
+$artText = [
+    'wartung'    => 'Schaden',
+    'klein'      => 'Kleinschaden',
+    'uebernahme' => 'bei Übernahme',
 ];
 
-// Meldungen aus Rückgaben (Schaden oder Bemerkung), neueste zuerst. Dieselben
-// Bemerkungen wie in den Fahrten von fahrzeug.php. Fotos gibt es nur zu
-// Schäden; die Dateinamen sind zufällig vergeben wie in rueckgabe.php.
-$meldungen = [
-    ['datum' => '30.09.2026', 'fahrzeug_id' => 8, 'fahrer' => 'Lucie Schneider', 'schaden' => false, 'bemerkung' => 'Akku nach Rückkehr wieder angeschlossen.',            'fotos' => []],
-    ['datum' => '27.09.2026', 'fahrzeug_id' => 4, 'fahrer' => 'Larissa Wagner',  'schaden' => true,  'bemerkung' => 'Delle an der Schiebetür rechts, Tür schließt schwer.', 'fotos' => ['3f9c1a7e5b2d4086a1c7e9f03b6d2a58.jpg', 'b81e04d9c67a2f3e5d1b8a09c4f7e263.jpg']],
-    ['datum' => '24.09.2026', 'fahrzeug_id' => 1, 'fahrer' => 'Larissa Wagner',  'schaden' => false, 'bemerkung' => 'Klappergeräusch hinten rechts bei Tempo über 100.',    'fotos' => []],
-    ['datum' => '22.09.2026', 'fahrzeug_id' => 3, 'fahrer' => 'Kenneth Sander',  'schaden' => false, 'bemerkung' => 'Ladefläche verschmutzt, Spanngurt fehlt.',             'fotos' => []],
-    ['datum' => '18.09.2026', 'fahrzeug_id' => 1, 'fahrer' => 'Finn Clausen',    'schaden' => false, 'bemerkung' => 'Innenraum könnte mal gereinigt werden.',              'fotos' => []],
-];
+$fahrzeuge = beispiel_fahrzeuge();
+$schaeden  = beispiel_schaeden();
 
-$anzahlSchaeden = count(array_filter($meldungen, fn (array $m): bool => $m['schaden']));
+// --- „Behoben“ verarbeiten --------------------------------------------------
+// Läuft vor header.php, damit später eine Weiterleitung möglich ist.
+
+$fehler = [];
+$bestaetigung = null;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = (int) (is_string($_POST['schaden'] ?? null) ? $_POST['schaden'] : 0);
+
+    if (!isset($schaeden[$id])) {
+        $fehler[] = 'Diesen Schaden gibt es nicht.';
+    } elseif ($schaeden[$id]['behoben_am'] !== null) {
+        $fehler[] = 'Der Schaden ist bereits als behoben markiert.';
+    } elseif ($schaeden[$id]['schwere'] === 'wartung' && $fahrzeuge[$schaeden[$id]['fahrzeug_id']]['status'] === 'wartung') {
+        $fehler[] = 'Das Fahrzeug steht wegen dieses Schadens in Wartung. Bitte geben Sie es frei; der Schaden gilt dann als behoben.';
+    } else {
+        // Nur für diese Anzeige; gespeichert wird noch nicht.
+        $schaeden[$id]['behoben_am'] = new DateTimeImmutable('today');
+        $bestaetigung = 'Schaden an ' . fahrzeug_name($schaeden[$id]['fahrzeug_id']) . ' als behoben markiert.';
+    }
+}
+
+// --- Offen und behoben, jeweils neueste zuerst -------------------------------
+
+uasort($schaeden, fn (array $a, array $b): int => $b['gemeldet_am'] <=> $a['gemeldet_am']);
+
+$offene   = array_filter($schaeden, fn (array $s): bool => $s['behoben_am'] === null);
+$behobene = array_filter($schaeden, fn (array $s): bool => $s['behoben_am'] !== null);
+
+$anzahlSperrend = count(array_filter($offene, fn (array $s): bool => $s['schwere'] === 'wartung'));
+
+/**
+ * Art einer Meldung als Kürzel für $artText.
+ */
+function schaden_art(array $schaden): string
+{
+    return $schaden['anlass'] === 'uebernahme' ? 'uebernahme' : $schaden['schwere'];
+}
 
 require_once __DIR__ . '/includes/header.php';
 ?>
 
 <p class="lead">
-    Schäden und Bemerkungen aus den Rückgaben der Fahrer, neueste zuerst.
-    <?= e((string) $anzahlSchaeden) ?> <?= $anzahlSchaeden === 1 ? 'Schaden' : 'Schäden' ?> gemeldet.
-    Ein Fahrzeug mit Schaden steht nach der Rückgabe in Wartung, bis Sie es freigeben.
+    Gemeldete Schäden, zuerst die offenen. <?= e((string) count($offene)) ?> offen, davon
+    <?= e((string) $anzahlSperrend) ?> mit Wartung. Ein Kleinschaden sperrt das Fahrzeug nicht und
+    muss nicht sofort behoben werden; die Fahrer sehen ihn vor Fahrtbeginn und müssen ihn nicht
+    erneut melden. Bemerkungen ohne Schaden stehen im Fahrtenbuch.
 </p>
 
-<p class="note">
-    Prototyp &ndash; Beispieldaten. &bdquo;Freigeben&ldquo; führt zur Fahrzeugliste und wird dort
-    geprüft und angezeigt, aber noch nicht gespeichert.
-</p>
+<?php if ($fehler !== []): ?>
+    <div class="alert">
+        <?php foreach ($fehler as $meldung): ?>
+            <p class="alert__zeile"><?= e($meldung) ?></p>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
 
-<section class="section">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Datum</th>
-                <th>Fahrzeug</th>
-                <th>Fahrer</th>
-                <th>Art</th>
-                <th>Bemerkung</th>
-                <th>Aktionen</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($meldungen as $meldung): ?>
-                <?php $fahrzeug = $fahrzeuge[$meldung['fahrzeug_id']]; ?>
+<?php if ($bestaetigung !== null): ?>
+    <p class="alert alert--erfolg"><?= e($bestaetigung) ?></p>
+<?php endif; ?>
+
+<?php foreach (['Offen' => $offene, 'Behoben' => $behobene] as $titel => $liste): ?>
+    <section class="section">
+        <h2><?= e($titel) ?></h2>
+
+        <table class="table">
+            <thead>
                 <tr>
-                    <td><?= e($meldung['datum']) ?></td>
-                    <td>
-                        <a href="<?= url('fahrzeug.php?id=' . $meldung['fahrzeug_id']) ?>"><?= e($fahrzeug['name']) ?></a>
-                        <?php if ($fahrzeug['status'] === 'wartung'): ?>
-                            <span class="table__zusatz">in Wartung</span>
-                        <?php endif; ?>
-                    </td>
-                    <td><?= e($meldung['fahrer']) ?></td>
-                    <td>
-                        <?php if ($meldung['schaden']): ?>
-                            <span class="badge badge--abgelehnt">Schaden</span>
-                        <?php else: ?>
-                            <span class="badge">Bemerkung</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?= e($meldung['bemerkung']) ?>
-
-                        <?php if ($meldung['fotos'] !== []): ?>
-                            <ul class="schadensfotos" aria-label="Fotos zum Schaden">
-                                <?php foreach ($meldung['fotos'] as $nr => $datei): ?>
-                                    <li class="schadensfotos__bild schadensfotos__bild--platzhalter">
-                                        Foto <?= e((string) ($nr + 1)) ?>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?php if ($fahrzeug['status'] === 'wartung'): ?>
-                            <form method="post" action="<?= url('fahrzeuge.php') ?>">
-                                <input type="hidden" name="fahrzeug" value="<?= e((string) $meldung['fahrzeug_id']) ?>">
-                                <input type="hidden" name="aktion" value="freigeben">
-                                <button class="button button--klein" type="submit">Freigeben</button>
-                            </form>
-                        <?php else: ?>
-                            &ndash;
-                        <?php endif; ?>
-                    </td>
+                    <th>Gemeldet</th>
+                    <th>Fahrzeug</th>
+                    <th>Fahrer</th>
+                    <th>Art</th>
+                    <th>Beschreibung</th>
+                    <th><?= $titel === 'Offen' ? 'Aktionen' : 'Behoben am' ?></th>
                 </tr>
-            <?php endforeach; ?>
+            </thead>
+            <tbody>
+                <?php foreach ($liste as $id => $schaden): ?>
+                    <?php
+                    $fahrzeug = $fahrzeuge[$schaden['fahrzeug_id']];
+                    $art = schaden_art($schaden);
+                    ?>
+                    <tr>
+                        <td><?= e($schaden['gemeldet_am']->format('d.m.Y')) ?></td>
+                        <td>
+                            <a href="<?= url('fahrzeug.php?id=' . $schaden['fahrzeug_id']) ?>"><?= e(fahrzeug_name($schaden['fahrzeug_id'])) ?></a>
+                            <?php if ($fahrzeug['status'] === 'wartung' && $schaden['behoben_am'] === null): ?>
+                                <span class="table__zusatz">in Wartung</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?= e(nutzer_name($schaden['fahrer_id'])) ?></td>
+                        <td>
+                            <span class="badge<?= $art === 'wartung' ? ' badge--abgelehnt' : '' ?>"><?= e($artText[$art]) ?></span>
+                        </td>
+                        <td>
+                            <?= e($schaden['beschreibung']) ?>
 
-            <?php if ($meldungen === []): ?>
-                <tr>
-                    <td colspan="6" class="table__empty">Keine Meldungen.</td>
-                </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
-</section>
+                            <?php if ($schaden['fotos'] !== []): ?>
+                                <ul class="schadensfotos" aria-label="Fotos zum Schaden">
+                                    <?php foreach ($schaden['fotos'] as $nr => $datei): ?>
+                                        <li class="schadensfotos__bild schadensfotos__bild--platzhalter">
+                                            Foto <?= e((string) ($nr + 1)) ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($schaden['behoben_am'] !== null): ?>
+                                <?= e($schaden['behoben_am']->format('d.m.Y')) ?>
+                            <?php elseif ($schaden['schwere'] === 'wartung' && $fahrzeug['status'] === 'wartung'): ?>
+                                <form method="post" action="<?= url('fahrzeuge.php') ?>">
+                                    <input type="hidden" name="fahrzeug" value="<?= e((string) $schaden['fahrzeug_id']) ?>">
+                                    <input type="hidden" name="aktion" value="freigeben">
+                                    <button class="button button--klein" type="submit">Fahrzeug freigeben</button>
+                                </form>
+                            <?php else: ?>
+                                <form method="post" action="<?= url('schaeden.php') ?>">
+                                    <input type="hidden" name="schaden" value="<?= e((string) $id) ?>">
+                                    <button class="button button--klein" type="submit">Als behoben markieren</button>
+                                </form>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+
+                <?php if ($liste === []): ?>
+                    <tr>
+                        <td colspan="6" class="table__empty"><?= $titel === 'Offen' ? 'Keine offenen Schäden.' : 'Noch keine behobenen Schäden.' ?></td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </section>
+<?php endforeach; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

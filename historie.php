@@ -1,28 +1,37 @@
 <?php
 /**
- * Verlauf: Fahrtenbuch aller Fahrzeuge (Anwendungsfall 11), nur für den
- * Fuhrparkleiter. Bis 06.10.2026 auswertung.php („Fahrtenbuch“).
+ * Historie: Fahrtenbuch aller Fahrzeuge (Anwendungsfall 11), nur für den
+ * Fuhrparkleiter. Bis 06.10.2026 auswertung.php, bis 10.10.2026 verlauf.php.
  *
- * Aufruf: verlauf.php, mit Zeitraum verlauf.php?von=2026-09-01&bis=2026-09-30,
+ * Aufruf: historie.php, mit Zeitraum historie.php?von=2026-09-01&bis=2026-09-30,
  * die Fahrtenliste gefiltert mit &auswahl=art:auto (Kategorie) oder &auswahl=id:3
- * (ein Fahrzeug).
+ * (ein Fahrzeug) und mit &fahrer=2 (ein Mitarbeiter); beides lässt sich
+ * kombinieren. Wartungen stehen als eigene Zeilen zwischen den Fahrten, wenn
+ * sie den Zeitraum berühren; &nur_fahrten=1 blendet sie aus, ebenso der
+ * Filter nach einem Mitarbeiter (eine Wartung hat keinen Fahrer). Sie zählen
+ * nicht zu den Kennzahlen.
  *
  * Es gibt kein eigenes Fahrtenbuch: Jede Buchung im Status „abgeschlossen“ ist
  * ein Eintrag. Er entsteht automatisch bei der Rückgabe (entschieden am
  * 05.10.2026, siehe docs/vorlesung-notizen.md, Frage C). Eine Fahrt zählt zu
  * dem Tag, an dem sie zurückgegeben wurde.
  *
- * Die Summen je Fahrzeug stehen nicht mehr hier, sondern im Fahrtenbuch des
+ * Die Summen je Fahrzeug stehen nicht hier, sondern im Fahrtenbuch des
  * Steckbriefs (fahrzeug.php); jedes Fahrzeug in der Liste verlinkt dorthin.
  *
- * Prototyp: Die Fahrten sind feste Beispieldaten. Mit Datenbank (siehe
- * docs/technisches-konzept.md, Regel 11):
+ * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Mit Datenbank
+ * (siehe docs/technisches-konzept.md, Regel 11):
  *
- *   SELECT b.*, n.name AS fahrer, b.km_ende - b.km_start AS km
- *     FROM buchungen b JOIN nutzer n ON n.id = b.fahrer_id
+ *   SELECT b.*, n.vorname, n.nachname, b.km_ende - b.km_start AS km,
+ *          s.schwere, s.beschreibung
+ *     FROM buchungen b
+ *     JOIN nutzer n ON n.id = b.fahrer_id
+ *     LEFT JOIN schaeden s ON s.buchung_id = b.id AND s.anlass = 'rueckgabe'
  *    WHERE b.status = 'abgeschlossen'
  *      AND DATE(b.zurueckgegeben_am) BETWEEN :von AND :bis
  *    ORDER BY b.zurueckgegeben_am DESC
+ *   SELECT * FROM wartungen
+ *    WHERE begonnen_am <= :bis AND (freigegeben_am IS NULL OR freigegeben_am >= :von)
  *   SELECT * FROM fahrzeuge ORDER BY kennzeichen
  *
  * Die Kennzahlen rechnet die Seite aus derselben Liste, damit Liste und
@@ -35,7 +44,7 @@ require_once __DIR__ . '/includes/config.php';
 
 nur_fuer_rolle('fuhrparkleiter');
 
-$pageTitle = 'Verlauf';
+$pageTitle = 'Historie';
 
 // Feste Liste der Zwecke (siehe docs/user-stories.md).
 $zweckText = [
@@ -49,48 +58,41 @@ $zweckText = [
     'sonstiges'         => 'Sonstiges',
 ];
 
-// Beispiel-Fuhrpark, dieselben Fahrzeuge wie in fahrzeug.php. Fahrräder
-// führen keinen km-Stand.
-$fahrzeuge = [
-    1 => ['kennzeichen' => 'M-HS 101',  'hersteller' => 'Volkswagen',     'modell' => 'Passat Variant', 'art' => 'auto'],
-    2 => ['kennzeichen' => 'M-HS 102',  'hersteller' => 'Škoda',          'modell' => 'Octavia Combi',  'art' => 'auto'],
-    3 => ['kennzeichen' => 'M-HS 201',  'hersteller' => 'Ford',           'modell' => 'Transit',        'art' => 'auto'],
-    4 => ['kennzeichen' => 'M-HS 202',  'hersteller' => 'Mercedes-Benz',  'modell' => 'Sprinter',       'art' => 'auto'],
-    5 => ['kennzeichen' => 'M-HS 301E', 'hersteller' => 'Volkswagen',     'modell' => 'ID.3',           'art' => 'auto'],
-    6 => ['kennzeichen' => 'M-HS 302E', 'hersteller' => 'Tesla',          'modell' => 'Model 3',        'art' => 'auto'],
-    7 => ['kennzeichen' => 'M-HS 401',  'hersteller' => 'Vespa',          'modell' => 'Primavera 125',  'art' => 'roller'],
-    8 => ['kennzeichen' => 'Rad 1',     'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'art' => 'fahrrad'],
-    9 => ['kennzeichen' => 'Rad 2',     'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'art' => 'fahrrad'],
-];
-
-// Abgeschlossene Fahrten, neueste zuerst. Dieselben Fahrten und Bemerkungen
-// wie in fahrzeug.php und schaeden.php. Der km-Stand Ende der letzten Fahrt
-// ist der heutige km-Stand des Fahrzeugs (wie in fahrzeuge.php). Ohne
-// km-Stand (Fahrrad, siehe rueckgabe.php) sind beide null.
-$fahrten = [
-    ['start' => '2026-10-01', 'rueckgabe' => '2026-10-01', 'fahrzeug_id' => 5, 'fahrer' => 'Lucie Schneider', 'zweck' => 'kundentermin',      'km_start' => 31494,  'km_ende' => 31540,  'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-09-30', 'rueckgabe' => '2026-09-30', 'fahrzeug_id' => 8, 'fahrer' => 'Lucie Schneider', 'zweck' => 'aufmass',           'km_start' => null,   'km_ende' => null,   'schaden' => false, 'bemerkung' => 'Akku nach Rückkehr wieder angeschlossen.'],
-    ['start' => '2026-09-29', 'rueckgabe' => '2026-09-29', 'fahrzeug_id' => 1, 'fahrer' => 'Kenneth Sander',  'zweck' => 'kundentermin',      'km_start' => 48166,  'km_ende' => 48250,  'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-09-25', 'rueckgabe' => '2026-09-27', 'fahrzeug_id' => 4, 'fahrer' => 'Larissa Wagner',  'zweck' => 'montage',           'km_start' => 87167,  'km_ende' => 87310,  'schaden' => true,  'bemerkung' => 'Delle an der Schiebetür rechts, Tür schließt schwer.'],
-    ['start' => '2026-09-26', 'rueckgabe' => '2026-09-26', 'fahrzeug_id' => 3, 'fahrer' => 'Ella Luppold',    'zweck' => 'montage',           'km_start' => 112304, 'km_ende' => 112400, 'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-09-24', 'rueckgabe' => '2026-09-24', 'fahrzeug_id' => 1, 'fahrer' => 'Larissa Wagner',  'zweck' => 'aufmass',           'km_start' => 48034,  'km_ende' => 48166,  'schaden' => false, 'bemerkung' => 'Klappergeräusch hinten rechts bei Tempo über 100.'],
-    ['start' => '2026-09-22', 'rueckgabe' => '2026-09-22', 'fahrzeug_id' => 3, 'fahrer' => 'Kenneth Sander',  'zweck' => 'materialtransport', 'km_start' => 112246, 'km_ende' => 112304, 'schaden' => false, 'bemerkung' => 'Ladefläche verschmutzt, Spanngurt fehlt.'],
-    ['start' => '2026-09-18', 'rueckgabe' => '2026-09-18', 'fahrzeug_id' => 1, 'fahrer' => 'Finn Clausen',    'zweck' => 'lieferant',         'km_start' => 47824,  'km_ende' => 48034,  'schaden' => false, 'bemerkung' => 'Innenraum könnte mal gereinigt werden.'],
-    ['start' => '2026-09-15', 'rueckgabe' => '2026-09-15', 'fahrzeug_id' => 6, 'fahrer' => 'Ella Luppold',    'zweck' => 'schulung',          'km_start' => 11832,  'km_ende' => 12020,  'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-09-12', 'rueckgabe' => '2026-09-12', 'fahrzeug_id' => 9, 'fahrer' => 'Larissa Wagner',  'zweck' => 'aufmass',           'km_start' => null,   'km_ende' => null,   'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-09-10', 'rueckgabe' => '2026-09-10', 'fahrzeug_id' => 7, 'fahrer' => 'Finn Clausen',    'zweck' => 'kundentermin',      'km_start' => 6378,   'km_ende' => 6400,   'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-09-03', 'rueckgabe' => '2026-09-04', 'fahrzeug_id' => 2, 'fahrer' => 'Kenneth Sander',  'zweck' => 'service',           'km_start' => 9605,   'km_ende' => 9870,   'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-08-27', 'rueckgabe' => '2026-08-27', 'fahrzeug_id' => 1, 'fahrer' => 'Ella Luppold',    'zweck' => 'kundentermin',      'km_start' => 47706,  'km_ende' => 47824,  'schaden' => false, 'bemerkung' => ''],
-    ['start' => '2026-08-20', 'rueckgabe' => '2026-08-21', 'fahrzeug_id' => 3, 'fahrer' => 'Finn Clausen',    'zweck' => 'montage',           'km_start' => 112072, 'km_ende' => 112246, 'schaden' => false, 'bemerkung' => 'Rückfahrkamera zeigt zeitweise kein Bild.'],
-    ['start' => '2026-08-14', 'rueckgabe' => '2026-08-14', 'fahrzeug_id' => 2, 'fahrer' => 'Lucie Schneider', 'zweck' => 'lieferant',         'km_start' => 9508,   'km_ende' => 9605,   'schaden' => false, 'bemerkung' => ''],
-];
-
 // Fahrzeugart => Beschriftung als Kategorie im Filter der Fahrtenliste.
 $artText = [
-    'auto'    => 'Autos',
-    'roller'  => 'Roller',
-    'fahrrad' => 'Fahrräder',
+    'auto'        => 'Autos',
+    'transporter' => 'Transporter',
+    'roller'      => 'Roller',
+    'fahrrad'     => 'Fahrräder',
 ];
+
+// Schwere eines Schadens => Beschriftung (schaeden.schwere).
+$schwereText = [
+    'klein'   => 'Kleinschaden',
+    'wartung' => 'Schaden',
+];
+
+$fahrzeuge = beispiel_fahrzeuge();
+
+// Mitarbeiter für den Filter „Mitarbeiter“, nach Nachname.
+$mitarbeiter = [];
+
+foreach (beispiel_nutzer() as $id => $person) {
+    if ($person['rolle'] === 'mitarbeiter') {
+        $mitarbeiter[$id] = $person['nachname'] . ', ' . $person['vorname'];
+    }
+}
+
+asort($mitarbeiter);
+
+// Schaden aus der Rückgabe je Buchung.
+$schadenJeBuchung = [];
+
+foreach (beispiel_schaeden() as $schaden) {
+    if ($schaden['anlass'] === 'rueckgabe') {
+        $schadenJeBuchung[$schaden['buchung_id']] = $schaden;
+    }
+}
 
 $heute = new DateTimeImmutable('today');
 
@@ -133,9 +135,9 @@ if ($eingabe['bis'] === '' && $bis !== null) {
 }
 
 // --- Filter der Fahrtenliste ------------------------------------------------
-// Eine Auswahl: entweder eine Kategorie ('art:auto') oder ein Fahrzeug
-// ('id:3'), leer für alle. Wirkt nur auf die Fahrtenliste, die Kennzahlen
-// zeigen weiter den ganzen Fuhrpark.
+// Fahrzeug: entweder eine Kategorie ('art:auto') oder ein Fahrzeug ('id:3'),
+// leer für alle. Mitarbeiter: eine Nutzer-ID, leer für alle. Beide wirken nur
+// auf die Fahrtenliste, die Kennzahlen zeigen weiter den ganzen Fuhrpark.
 
 $auswahlKategorien = [];
 
@@ -146,8 +148,7 @@ foreach ($artText as $art => $text) {
 $auswahlFahrzeuge = [];
 
 foreach ($fahrzeuge as $id => $fahrzeug) {
-    $auswahlFahrzeuge['id:' . $id] = $fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']
-        . ' (' . $fahrzeug['kennzeichen'] . ')';
+    $auswahlFahrzeuge['id:' . $id] = fahrzeug_name($id);
 }
 
 $wert = $_GET['auswahl'] ?? '';
@@ -159,6 +160,17 @@ if ($eingabe['auswahl'] !== '' && $auswahlText === null) {
     $fehler[] = 'Diese Fahrzeugauswahl gibt es nicht.';
 }
 
+$wert = $_GET['fahrer'] ?? '';
+$eingabe['fahrer'] = is_string($wert) ? $wert : '-';
+
+$fahrerFilter = $eingabe['fahrer'] === '' ? null : (int) $eingabe['fahrer'];
+
+if ($fahrerFilter !== null && (!isset($mitarbeiter[$fahrerFilter]) || (string) $fahrerFilter !== $eingabe['fahrer'])) {
+    $fehler[] = 'Diesen Mitarbeiter gibt es nicht.';
+}
+
+$nurFahrten = ($_GET['nur_fahrten'] ?? '') === '1';
+
 // --- Auswerten --------------------------------------------------------------
 
 $imZeitraum = [];
@@ -166,41 +178,66 @@ $imZeitraum = [];
 $summe = ['fahrten' => 0, 'km' => 0, 'schaeden' => 0, 'bemerkungen' => 0];
 
 if ($fehler === []) {
-    foreach ($fahrten as $fahrt) {
-        $fahrt['start']     = new DateTimeImmutable($fahrt['start']);
-        $fahrt['rueckgabe'] = new DateTimeImmutable($fahrt['rueckgabe']);
-
-        if ($fahrt['rueckgabe'] < $von || $fahrt['rueckgabe'] > $bis) {
+    foreach (beispiel_buchungen() as $fahrt) {
+        if ($fahrt['status'] !== 'abgeschlossen'
+            || $fahrt['zurueckgegeben_am'] < $von || $fahrt['zurueckgegeben_am'] > $bis) {
             continue;
         }
 
-        // Gefahrene km; null ohne km-Stand.
+        // Gefahrene km für die Summen; null ohne km-Stand.
         $fahrt['km'] = $fahrt['km_ende'] !== null ? $fahrt['km_ende'] - $fahrt['km_start'] : null;
+        $fahrt['schaden'] = $schadenJeBuchung[$fahrt['id']] ?? null;
 
         $imZeitraum[] = $fahrt;
-
-        // Eine Meldung ist entweder ein Schaden oder eine Bemerkung, wie in
-        // schaeden.php.
-        $art = match (true) {
-            $fahrt['schaden']          => 'schaeden',
-            $fahrt['bemerkung'] !== '' => 'bemerkungen',
-            default                    => null,
-        };
 
         $summe['fahrten']++;
         $summe['km'] += $fahrt['km'] ?? 0;
 
-        if ($art !== null) {
-            $summe[$art]++;
+        if ($fahrt['schaden'] !== null) {
+            $summe['schaeden']++;
+        }
+
+        if ($fahrt['bemerkung'] !== '') {
+            $summe['bemerkungen']++;
         }
     }
+
+    usort($imZeitraum, fn (array $a, array $b): int => $b['zurueckgegeben_am'] <=> $a['zurueckgegeben_am']);
 }
 
 // Fahrtenliste: die Fahrten im Zeitraum, eingeschränkt auf die Auswahl.
 $fahrtenliste = array_values(array_filter(
     $imZeitraum,
-    fn (array $fahrt): bool => passt_zur_auswahl($fahrt, $eingabe['auswahl'], $fahrzeuge),
+    fn (array $fahrt): bool => passt_zur_auswahl($fahrt, $eingabe['auswahl'], $fahrzeuge)
+        && ($fahrerFilter === null || $fahrt['fahrer_id'] === $fahrerFilter),
 ));
+
+// Wartungen im Zeitraum, eingeschränkt auf die Fahrzeugauswahl. Eine laufende
+// Wartung reicht bis heute.
+$wartungsliste = [];
+
+if ($fehler === [] && !$nurFahrten && $fahrerFilter === null) {
+    $wartungsliste = array_values(array_filter(
+        beispiel_wartungen(),
+        fn (array $w): bool => $w['begonnen_am'] <= $bis
+            && ($w['freigegeben_am'] ?? $heute) >= $von
+            && passt_zur_auswahl($w, $eingabe['auswahl'], $fahrzeuge),
+    ));
+}
+
+// Fahrten und Wartungen in einer Liste, nach dem Ende sortiert (Rückgabe bzw.
+// Freigabe), eine laufende Wartung ganz oben.
+$eintraege = [];
+
+foreach ($fahrtenliste as $fahrt) {
+    $eintraege[] = ['art' => 'fahrt', 'datum' => $fahrt['zurueckgegeben_am'], 'daten' => $fahrt];
+}
+
+foreach ($wartungsliste as $wartung) {
+    $eintraege[] = ['art' => 'wartung', 'datum' => $wartung['freigegeben_am'] ?? $heute->modify('+1 day'), 'daten' => $wartung];
+}
+
+usort($eintraege, fn (array $a, array $b): int => $b['datum'] <=> $a['datum']);
 
 // km der Liste; null, wenn keine Fahrt einen km-Stand hat (nur Fahrräder).
 $kmWerte = array_filter(array_column($fahrtenliste, 'km'), fn (?int $km): bool => $km !== null);
@@ -212,6 +249,12 @@ $kennzahlen = [
     ['wert' => $summe['schaeden'],                        'label' => $summe['schaeden'] === 1 ? 'Schaden gemeldet' : 'Schäden gemeldet'],
     ['wert' => $summe['bemerkungen'],                     'label' => 'Bemerkungen zum Zustand'],
 ];
+
+// Beschreibung der Auswahl für den Satz über der Liste.
+$filterText = implode(', ', array_filter([
+    $auswahlText ?? 'alle Fahrzeuge',
+    $fahrerFilter !== null && isset($mitarbeiter[$fahrerFilter]) ? nutzer_name($fahrerFilter) : null,
+]));
 
 /**
  * Datum aus einem Formularfeld (JJJJ-MM-TT), null bei ungültiger Eingabe.
@@ -243,17 +286,6 @@ function passt_zur_auswahl(array $fahrt, string $auswahl, array $fahrzeuge): boo
 }
 
 /**
- * Zeitraum einer Fahrt als Text, eintägig ohne „bis“.
- */
-function zeitraum(array $fahrt): string
-{
-    $von = $fahrt['start']->format('d.m.Y');
-    $bis = $fahrt['rueckgabe']->format('d.m.Y');
-
-    return $von === $bis ? $von : $von . ' bis ' . $bis;
-}
-
-/**
  * Kilometer mit Tausenderpunkt, Strich ohne km-Stand.
  */
 function km_text(?int $km): string
@@ -269,15 +301,20 @@ require_once __DIR__ . '/includes/header.php';
     Schäden und Bemerkungen. Die Summen eines Fahrzeugs stehen in seinem Steckbrief.
 </p>
 
-<p class="note">
-    Prototyp &ndash; Beispieldaten. Eine Fahrt zählt zu dem Tag, an dem sie zurückgegeben wurde.
+<p class="note">Eine Fahrt zählt zu dem Tag, an dem sie zurückgegeben wurde.
 </p>
 
-<form class="form form--breit" method="get" action="<?= url('verlauf.php') ?>">
+<form class="form form--breit" method="get" action="<?= url('historie.php') ?>">
     <h2 class="form__titel">Zeitraum</h2>
 
     <?php if ($auswahlText !== null): ?>
         <input type="hidden" name="auswahl" value="<?= e($eingabe['auswahl']) ?>">
+    <?php endif; ?>
+    <?php if ($fahrerFilter !== null): ?>
+        <input type="hidden" name="fahrer" value="<?= e($eingabe['fahrer']) ?>">
+    <?php endif; ?>
+    <?php if ($nurFahrten): ?>
+        <input type="hidden" name="nur_fahrten" value="1">
     <?php endif; ?>
 
     <div class="form__raster">
@@ -319,7 +356,7 @@ require_once __DIR__ . '/includes/header.php';
     <section class="section" id="fahrten">
         <h2>Fahrten</h2>
 
-        <form class="filter" method="get" action="<?= url('verlauf.php') ?>#fahrten">
+        <form class="filter" method="get" action="<?= url('historie.php') ?>#fahrten">
             <input type="hidden" name="von" value="<?= e($eingabe['von']) ?>">
             <input type="hidden" name="bis" value="<?= e($eingabe['bis']) ?>">
 
@@ -340,14 +377,31 @@ require_once __DIR__ . '/includes/header.php';
                 </select>
             </div>
 
+            <div class="filter__feld filter__feld--schmal">
+                <label class="form__label" for="fahrer">Mitarbeiter</label>
+                <select class="form__input" id="fahrer" name="fahrer">
+                    <option value="">Alle</option>
+                    <?php foreach ($mitarbeiter as $id => $name): ?>
+                        <option value="<?= e((string) $id) ?>"<?= $id === $fahrerFilter ? ' selected' : '' ?>><?= e($name) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <label class="filter__haken">
+                <input type="checkbox" name="nur_fahrten" value="1"<?= $nurFahrten ? ' checked' : '' ?>>
+                nur Fahrten
+            </label>
+
             <button class="button" type="submit">Filtern</button>
         </form>
 
         <p class="lead">
             <?= e($von->format('d.m.Y')) ?> bis <?= e($bis->format('d.m.Y')) ?>,
-            <?= e($auswahlText ?? 'alle Fahrzeuge') ?>:
+            <?= e($filterText) ?>:
             <?= e((string) count($fahrtenliste)) ?> <?= count($fahrtenliste) === 1 ? 'Fahrt' : 'Fahrten' ?><?php if ($fahrtenliste !== []): ?>,
-                <?= e($kmListe === null ? 'ohne km-Stand' : km_text($kmListe) . ' km') ?>. Neueste zuerst.<?php else: ?>.<?php endif; ?>
+                <?= e($kmListe === null ? 'ohne km-Stand' : km_text($kmListe) . ' km') ?><?php endif; ?><?php if ($wartungsliste !== []): ?>,
+                dazu <?= e((string) count($wartungsliste)) ?> <?= count($wartungsliste) === 1 ? 'Wartung' : 'Wartungen' ?><?php endif; ?>.
+            <?php if ($eintraege !== []): ?>Neueste zuerst.<?php endif; ?>
         </p>
 
         <table class="table">
@@ -359,16 +413,49 @@ require_once __DIR__ . '/includes/header.php';
                     <th>Zweck</th>
                     <th class="table__num">km-Stand Anfang</th>
                     <th class="table__num">km-Stand Ende</th>
-                    <th class="table__num">Gefahrene km</th>
                     <th>Zustand</th>
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($fahrtenliste as $fahrt): ?>
-                    <?php $fahrzeug = $fahrzeuge[$fahrt['fahrzeug_id']]; ?>
+                <?php foreach ($eintraege as $eintrag): ?>
+                    <?php if ($eintrag['art'] === 'wartung'): ?>
+                        <?php
+                        $wartung = $eintrag['daten'];
+                        $fahrzeug = $fahrzeuge[$wartung['fahrzeug_id']];
+                        ?>
+                        <tr class="table__zeile--wartung">
+                            <td>
+                                <?php if ($wartung['freigegeben_am'] !== null): ?>
+                                    <?= e(zeitraum_text($wartung['begonnen_am'], $wartung['freigegeben_am'])) ?>
+                                <?php else: ?>
+                                    seit <?= e($wartung['begonnen_am']->format('d.m.Y')) ?>
+                                <?php endif; ?>
+                            </td>
+                            <td>&ndash;</td>
+                            <td>
+                                <a href="<?= url('fahrzeug.php?id=' . $wartung['fahrzeug_id']) ?>#fahrtenbuch"><?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']) ?></a>
+                                <span class="table__zusatz"><?= e($fahrzeug['kennzeichen']) ?></span>
+                            </td>
+                            <td>Wartung</td>
+                            <td class="table__num">&ndash;</td>
+                            <td class="table__num">&ndash;</td>
+                            <td>
+                                <?= e($wartung['grund']) ?>
+                                <?php if ($wartung['freigegeben_am'] === null): ?>
+                                    <span class="table__zusatz">läuft, <?= e(wartung_text($fahrzeug)) ?></span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php continue; ?>
+                    <?php endif; ?>
+
+                    <?php
+                    $fahrt = $eintrag['daten'];
+                    $fahrzeug = $fahrzeuge[$fahrt['fahrzeug_id']];
+                    ?>
                     <tr>
-                        <td><?= e(zeitraum($fahrt)) ?></td>
-                        <td><?= e($fahrt['fahrer']) ?></td>
+                        <td><?= e(zeitraum_text($fahrt['start'], $fahrt['zurueckgegeben_am'])) ?></td>
+                        <td><?= e(nutzer_name($fahrt['fahrer_id'])) ?></td>
                         <td>
                             <a href="<?= url('fahrzeug.php?id=' . $fahrt['fahrzeug_id']) ?>#fahrtenbuch"><?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']) ?></a>
                             <span class="table__zusatz"><?= e($fahrzeug['kennzeichen']) ?></span>
@@ -376,10 +463,10 @@ require_once __DIR__ . '/includes/header.php';
                         <td><?= e($zweckText[$fahrt['zweck']] ?? $fahrt['zweck']) ?></td>
                         <td class="table__num"><?= e(km_text($fahrt['km_start'])) ?></td>
                         <td class="table__num"><?= e(km_text($fahrt['km_ende'])) ?></td>
-                        <td class="table__num"><?= e(km_text($fahrt['km'])) ?></td>
                         <td>
-                            <?php if ($fahrt['schaden']): ?>
-                                <span class="badge badge--abgelehnt">Schaden</span>
+                            <?php if ($fahrt['schaden'] !== null): ?>
+                                <span class="badge<?= $fahrt['schaden']['schwere'] === 'wartung' ? ' badge--abgelehnt' : '' ?>"><?= e($schwereText[$fahrt['schaden']['schwere']]) ?></span>
+                                <span class="table__zusatz"><?= e($fahrt['schaden']['beschreibung']) ?></span>
                             <?php elseif ($fahrt['bemerkung'] !== ''): ?>
                                 <span class="badge">Bemerkung</span>
                             <?php else: ?>
@@ -393,9 +480,9 @@ require_once __DIR__ . '/includes/header.php';
                     </tr>
                 <?php endforeach; ?>
 
-                <?php if ($fahrtenliste === []): ?>
+                <?php if ($eintraege === []): ?>
                     <tr>
-                        <td colspan="8" class="table__empty">Keine abgeschlossenen Fahrten für diese Auswahl im Zeitraum.</td>
+                        <td colspan="7" class="table__empty">Keine abgeschlossenen Fahrten für diese Auswahl im Zeitraum.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

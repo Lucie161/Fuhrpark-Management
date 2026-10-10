@@ -1,11 +1,12 @@
 <?php
 /**
- * Rolle wechseln — nur für den Prototyp.
+ * Angemeldete Person wechseln — nur für den Prototyp.
  *
- * Solange die Anmeldung keine Zugangsdaten prüft, wird die Rolle über die
- * Auswahl in der Navigation gewählt (includes/header.php). Später setzt
- * login.php $_SESSION['rolle'] aus nutzer.rolle; dann entfallen diese Datei
- * und die Auswahl.
+ * Solange die Anmeldung keine Zugangsdaten prüft, wird die Person über die
+ * Auswahl unter der Navigation gewählt (includes/header.php). Gesetzt werden
+ * dieselben Werte wie später in login.php: $_SESSION['user_id'] und
+ * $_SESSION['rolle'] aus nutzer.rolle. Mit der Anmeldung entfallen diese
+ * Datei und die Auswahl.
  *
  * Eigene Datei statt Verarbeitung auf jeder Seite: Ein POST an die aktuelle
  * Seite würde deren eigene Formularverarbeitung auslösen.
@@ -15,13 +16,14 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/config.php';
 
-$rollen = ['mitarbeiter', 'fuhrparkleiter'];
+$nutzerId = (int) (is_string($_POST['nutzer'] ?? null) ? $_POST['nutzer'] : 0);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['rolle'] ?? '', $rollen, true)) {
-    $_SESSION['rolle'] = $_POST['rolle'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset(beispiel_nutzer()[$nutzerId])) {
+    $_SESSION['user_id'] = $nutzerId;
+    $_SESSION['rolle']   = beispiel_nutzer()[$nutzerId]['rolle'];
 }
 
-// Zurück zur aufrufenden Seite, z. B. 'verlauf.php?von=2026-09-01'. Nur
+// Zurück zur aufrufenden Seite, z. B. 'historie.php?von=2026-09-01'. Nur
 // eine vorhandene Seite der Anwendung ist erlaubt, sonst ließe sich hierüber
 // auf fremde Adressen weiterleiten.
 $zurueck = $_POST['zurueck'] ?? '';

@@ -4,25 +4,30 @@
  *
  * Eine Seite: oben die Suche (Buchen für, Zeitraum, Personen, Zweck,
  * Fahrzeugart) als GET-Formular, darunter alle passenden Fahrzeuge mit Bild,
- * darunter das Absenden. Belegte Fahrzeuge, Fahrzeuge in Wartung und solche,
- * für die dem Fahrer der Führerschein fehlt (Ampel „rot“), bleiben sichtbar,
- * sind aber nicht wählbar. Jedes Fahrzeug verlinkt auf seinen Steckbrief;
- * eine eigene Fahrzeugliste haben Mitarbeiter nicht (siehe
+ * darunter das Absenden. Angezeigt werden nur Fahrzeuge, die im Zeitraum
+ * gebucht werden können; belegte, in Wartung, mit überfälliger Rückgabe und
+ * solche, für die dem Fahrer der Führerschein fehlt (Ampel „rot“), sind
+ * ausgeblendet (entschieden am 10.10.2026). Jedes Fahrzeug verlinkt auf seinen
+ * Steckbrief; eine eigene Fahrzeugliste haben Mitarbeiter nicht (siehe
  * docs/technisches-konzept.md, Regel 1).
  *
- * Ampel: Autos werden beantragt (Status „offen“), Roller und Fahrräder sind
- * sofort bestätigt („genehmigt“).
+ * Ampel: Autos und Transporter werden beantragt (Status „offen“), Roller und
+ * Fahrräder sind sofort bestätigt („genehmigt“), siehe braucht_genehmigung().
+ *
+ * Überfällige Rückgabe (docs/aenderungen-todo2.md, Punkt 12): Wer selbst eine
+ * hat, kann nichts buchen; wer eine hat, kann nicht als Fahrer eingetragen
+ * werden; ein Fahrzeug mit überfälliger Rückgabe ist nicht wählbar.
  *
  * Aufruf mit Vorauswahl aus dem Steckbrief: buchen.php?fahrzeug=1. Die Suche
  * steht in der Adresse, z. B. buchen.php?beginn=2026-10-07&ende=2026-10-08&zweck=montage.
  *
- * Prototyp: Nutzer, Fahrzeuge und Buchungen sind feste Beispieldaten. Eine
- * Buchung wird geprüft und bestätigt, aber noch nicht gespeichert. Mit
- * Datenbank:
+ * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Eine Buchung
+ * wird geprüft und bestätigt, aber noch nicht gespeichert. Mit Datenbank:
  *
- *   SELECT id, name, fuehrerscheine FROM nutzer ORDER BY name
+ *   SELECT id, vorname, nachname FROM nutzer WHERE rolle = 'mitarbeiter'
+ *   SELECT nutzer_id, klasse FROM nutzer_fuehrerscheine
  *   SELECT * FROM fahrzeuge
- *    WHERE sitzplaetze >= :personen [AND art = :art] [AND art = 'auto']
+ *    WHERE sitzplaetze >= :personen [AND art = :art] [AND art IN ('auto', 'transporter')]
  *    ORDER BY art, kennzeichen
  *   SELECT fahrzeug_id, start, ende, status FROM buchungen
  *    WHERE status IN ('offen', 'genehmigt', 'unterwegs')
@@ -30,7 +35,7 @@
  *
  * Beim Absenden dieselben Prüfungen noch einmal, dann:
  *   INSERT INTO buchungen (fahrzeug_id, antragsteller_id, fahrer_id, start,
- *     ende, zweck, personen, status, beantragt_am)
+ *     ende, zweck, personenanzahl, status, beantragt_am)
  *   VALUES (:fahrzeug, :ich, :fahrer, :beginn, :ende, :zweck, :personen,
  *     :status, NOW())
  */
@@ -43,17 +48,16 @@ nur_fuer_rolle('mitarbeiter');
 
 $pageTitle = 'Fahrzeug buchen';
 
-// Angemeldeter Nutzer. Kommt später aus der Session.
-$ich = 1;
+$ich = aktueller_nutzer();
 
-// Nutzer mit ihren Führerscheinklassen (nutzer.fuehrerscheine).
-$nutzer = [
-    1 => ['name' => 'Lucie Schneider', 'fuehrerscheine' => ['B', 'A1']],
-    2 => ['name' => 'Ella Luppold',    'fuehrerscheine' => ['B']],
-    3 => ['name' => 'Finn Clausen',    'fuehrerscheine' => ['B', 'A1']],
-    4 => ['name' => 'Kenneth Sander',  'fuehrerscheine' => ['B', 'C1']],
-    5 => ['name' => 'Larissa Wagner',  'fuehrerscheine' => ['B', 'C1']],
-];
+// Mitarbeiter mit ihren Führerscheinklassen; nur sie können Fahrer sein.
+$nutzer = [];
+
+foreach (beispiel_nutzer() as $id => $person) {
+    if ($person['rolle'] === 'mitarbeiter') {
+        $nutzer[$id] = ['name' => nutzer_name($id), 'fuehrerscheine' => $person['fuehrerscheine']];
+    }
+}
 
 // Feste Liste der Zwecke (siehe docs/user-stories.md).
 $zweckText = [
@@ -67,48 +71,40 @@ $zweckText = [
     'sonstiges'         => 'Sonstiges',
 ];
 
-// Zwecke, für die nur ein Auto in Frage kommt (Regel 1).
+// Zwecke, für die nur Autos und Transporter in Frage kommen (Regel 1). Wie
+// Zwecke und Fahrzeugarten zusammenhängen, wird noch besprochen.
 $nurAuto = ['montage', 'materialtransport'];
+$autoArten = ['auto', 'transporter'];
 
 // Fahrzeugart => Beschriftung.
 $artText = [
-    'auto'    => 'Auto',
-    'roller'  => 'Roller',
-    'fahrrad' => 'Fahrrad',
+    'auto'        => 'Auto',
+    'transporter' => 'Transporter',
+    'roller'      => 'Roller',
+    'fahrrad'     => 'Fahrrad',
 ];
 
-// Beispiel-Fuhrpark, dieselben Fahrzeuge wie in fahrzeug.php. Fahrräder
-// brauchen keinen Führerschein.
-$fahrzeuge = [
-    1 => ['kennzeichen' => 'M-HS 101',  'hersteller' => 'Volkswagen',     'modell' => 'Passat Variant', 'art' => 'auto',    'typ' => 'Kombi',       'sitzplaetze' => 5, 'fuehrerschein' => 'B',  'status' => 'verfuegbar'],
-    2 => ['kennzeichen' => 'M-HS 102',  'hersteller' => 'Škoda',          'modell' => 'Octavia Combi',  'art' => 'auto',    'typ' => 'Kombi',       'sitzplaetze' => 5, 'fuehrerschein' => 'B',  'status' => 'verfuegbar'],
-    3 => ['kennzeichen' => 'M-HS 201',  'hersteller' => 'Ford',           'modell' => 'Transit',        'art' => 'auto',    'typ' => 'Transporter', 'sitzplaetze' => 3, 'fuehrerschein' => 'B',  'status' => 'verfuegbar'],
-    4 => ['kennzeichen' => 'M-HS 202',  'hersteller' => 'Mercedes-Benz',  'modell' => 'Sprinter',       'art' => 'auto',    'typ' => 'Transporter', 'sitzplaetze' => 3, 'fuehrerschein' => 'C1', 'status' => 'wartung'],
-    5 => ['kennzeichen' => 'M-HS 301E', 'hersteller' => 'Volkswagen',     'modell' => 'ID.3',           'art' => 'auto',    'typ' => 'E-Auto',      'sitzplaetze' => 5, 'fuehrerschein' => 'B',  'status' => 'verfuegbar'],
-    6 => ['kennzeichen' => 'M-HS 302E', 'hersteller' => 'Tesla',          'modell' => 'Model 3',        'art' => 'auto',    'typ' => 'E-Auto',      'sitzplaetze' => 5, 'fuehrerschein' => 'B',  'status' => 'verfuegbar'],
-    7 => ['kennzeichen' => 'M-HS 401',  'hersteller' => 'Vespa',          'modell' => 'Primavera 125',  'art' => 'roller',  'typ' => 'Roller',      'sitzplaetze' => 2, 'fuehrerschein' => 'A1', 'status' => 'verfuegbar'],
-    8 => ['kennzeichen' => 'Rad 1',     'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'art' => 'fahrrad', 'typ' => 'E-Fahrrad',   'sitzplaetze' => 1, 'fuehrerschein' => null, 'status' => 'verfuegbar'],
-    9 => ['kennzeichen' => 'Rad 2',     'hersteller' => 'Riese & Müller', 'modell' => 'Charger4',       'art' => 'fahrrad', 'typ' => 'E-Fahrrad',   'sitzplaetze' => 1, 'fuehrerschein' => null, 'status' => 'verfuegbar'],
-];
-
-// Belegende Buchungen (offen, genehmigt, unterwegs), wie in kalender.php.
-// Tage relativ zu heute. Namen braucht die Seite nicht.
-$buchungen = [
-    ['fahrzeug_id' => 1, 'von' => 1,  'bis' => 1,  'status' => 'genehmigt'],
-    ['fahrzeug_id' => 1, 'von' => 4,  'bis' => 6,  'status' => 'genehmigt'],
-    ['fahrzeug_id' => 1, 'von' => 10, 'bis' => 11, 'status' => 'offen'],
-    ['fahrzeug_id' => 2, 'von' => 5,  'bis' => 6,  'status' => 'offen'],
-    ['fahrzeug_id' => 3, 'von' => 0,  'bis' => 2,  'status' => 'unterwegs'],
-    ['fahrzeug_id' => 3, 'von' => 7,  'bis' => 8,  'status' => 'genehmigt'],
-    ['fahrzeug_id' => 4, 'von' => 3,  'bis' => 4,  'status' => 'offen'],
-    ['fahrzeug_id' => 5, 'von' => 2,  'bis' => 2,  'status' => 'genehmigt'],
-    ['fahrzeug_id' => 6, 'von' => 8,  'bis' => 9,  'status' => 'offen'],
-    ['fahrzeug_id' => 7, 'von' => -2, 'bis' => -1, 'status' => 'unterwegs'],
-    ['fahrzeug_id' => 8, 'von' => 0,  'bis' => 0,  'status' => 'genehmigt'],
-    ['fahrzeug_id' => 9, 'von' => 3,  'bis' => 4,  'status' => 'genehmigt'],
-];
+$fahrzeuge = beispiel_fahrzeuge();
 
 $heute = new DateTimeImmutable('today');
+
+// Belegende Buchungen (offen, genehmigt, unterwegs) mit Tagen relativ zu
+// heute. Namen braucht die Seite nicht.
+$buchungen = [];
+
+foreach (beispiel_buchungen() as $b) {
+    if (in_array($b['status'], ['offen', 'genehmigt', 'unterwegs'], true)) {
+        $buchungen[] = [
+            'fahrzeug_id' => $b['fahrzeug_id'],
+            'von'         => (int) $heute->diff($b['start'])->format('%r%a'),
+            'bis'         => (int) $heute->diff($b['ende'])->format('%r%a'),
+        ];
+    }
+}
+
+// Wer selbst eine überfällige Rückgabe hat, bucht nichts.
+$meineSperre = sperre_buchen($ich);
+$meineUeberfaellige = array_filter(ueberfaellige_rueckgaben(), fn (array $b): bool => $b['fahrer_id'] === $ich);
 
 // --- Suche (GET) ------------------------------------------------------------
 // Fehlt ein Wert, gilt der Standard: ich selbst, morgen, 1 Person, alle
@@ -121,6 +117,9 @@ $fahrer = (int) (is_string($_GET['fahrer'] ?? null) ? $_GET['fahrer'] : $ich);
 if (!isset($nutzer[$fahrer])) {
     $fehler[] = 'Diesen Fahrer gibt es nicht.';
     $fahrer = $ich;
+} elseif ($fahrer !== $ich && sperre_buchen($fahrer) !== null) {
+    $fehler[] = 'Für ' . $nutzer[$fahrer]['name'] . ' kann derzeit nicht gebucht werden: '
+        . sperre_buchen($fahrer) . ' Bitte zuerst zurückgeben.';
 }
 
 $zeitraum = [];
@@ -162,7 +161,7 @@ $art   = is_string($_GET['art'] ?? null) && isset($artText[$_GET['art']]) ? $_GE
 $auswahl = (int) (is_string($_GET['fahrzeug'] ?? null) ? $_GET['fahrzeug'] : 0);
 
 // Die Suche als Parameter, für das Buchungsformular.
-$suche = $fehler === [] ? array_filter([
+$suche = $fehler === [] && $meineSperre === null ? array_filter([
     'fahrer'   => $fahrer !== $ich ? $fahrer : null,
     'beginn'   => $zeitraum['beginn']->format('Y-m-d'),
     'ende'     => $zeitraum['ende']->format('Y-m-d'),
@@ -172,13 +171,22 @@ $suche = $fehler === [] ? array_filter([
 ], fn ($wert): bool => $wert !== null && $wert !== '') : [];
 
 // --- Fahrzeugliste ----------------------------------------------------------
-// Personen, Fahrzeugart und Zweck schränken die Liste ein (WHERE). Wartung,
-// fehlender Führerschein und Belegung bleiben sichtbar, aber nicht wählbar.
-// Je Fahrzeug 'stand': frei, vergeben, wartung oder fuehrerschein.
+// Personen, Fahrzeugart und Zweck schränken die passenden Fahrzeuge ein
+// (WHERE). Je Fahrzeug 'stand': frei, vergeben, wartung, ueberfaellig oder
+// fuehrerschein. Angezeigt werden nur die freien ($liste); der Stand der
+// übrigen dient der Prüfung beim Absenden und dem Hinweis zur Vorauswahl.
 
-$liste = [];
+// Stand => Grund, warum das Fahrzeug nicht gebucht werden kann.
+$grundText = [
+    'vergeben'      => 'ist im gewählten Zeitraum bereits vergeben',
+    'wartung'       => 'ist im gewählten Zeitraum in Wartung',
+    'ueberfaellig'  => 'ist noch nicht zurückgegeben',
+    'fuehrerschein' => 'braucht einen Führerschein, den der Fahrer nicht hat',
+];
 
-if ($fehler === []) {
+$passende = [];
+
+if ($suche !== []) {
     // Tage relativ zu heute, wie in den Buchungen.
     $tagVon = (int) $heute->diff($zeitraum['beginn'])->days;
     $tagBis = (int) $heute->diff($zeitraum['ende'])->days;
@@ -186,33 +194,34 @@ if ($fehler === []) {
     foreach ($fahrzeuge as $id => $fahrzeug) {
         if ($fahrzeug['sitzplaetze'] < $personen
             || ($art !== '' && $fahrzeug['art'] !== $art)
-            || (in_array($zweck, $nurAuto, true) && $fahrzeug['art'] !== 'auto')) {
+            || (in_array($zweck, $nurAuto, true) && !in_array($fahrzeug['art'], $autoArten, true))) {
             continue;
         }
 
         $belegungen = array_filter($buchungen, fn (array $b): bool => $b['fahrzeug_id'] === $id);
-        $freiAb = frei_ab($belegungen, $tagVon, $tagBis);
+        $belegt = array_filter($belegungen, fn (array $b): bool => $b['von'] <= $tagBis && $b['bis'] >= $tagVon) !== [];
         $fehlt = $fahrzeug['fuehrerschein'] !== null
             && !in_array($fahrzeug['fuehrerschein'], $nutzer[$fahrer]['fuehrerscheine'], true);
 
         $fahrzeug['stand'] = match (true) {
-            $fahrzeug['status'] === 'wartung' => 'wartung',
-            $fehlt                            => 'fuehrerschein',
-            $freiAb !== $tagVon               => 'vergeben',
-            default                           => 'frei',
+            wartung_sperrt($fahrzeug, $zeitraum['beginn'], $zeitraum['ende']) => 'wartung',
+            fahrzeug_ueberfaellig($id) => 'ueberfaellig',
+            $fehlt                     => 'fuehrerschein',
+            $belegt                    => 'vergeben',
+            default                    => 'frei',
         };
 
-        // „frei ab“ nur bei belegten Fahrzeugen; null, wenn eine Rückgabe
-        // überfällig ist und niemand weiß, wann das Fahrzeug zurückkommt.
-        $fahrzeug['frei_ab'] = $fahrzeug['stand'] === 'vergeben' && $freiAb !== null
-            ? $heute->modify('+' . $freiAb . ' day')
-            : null;
-
-        $liste[$id] = $fahrzeug;
+        $passende[$id] = $fahrzeug;
     }
 }
 
-$anzahlFrei = count(array_filter($liste, fn (array $f): bool => $f['stand'] === 'frei'));
+$liste = array_filter($passende, fn (array $f): bool => $f['stand'] === 'frei');
+
+// Aus dem Steckbrief vorgewählt, aber im Zeitraum nicht buchbar: Hinweis
+// statt stillem Fehlen.
+$auswahlHinweis = isset($passende[$auswahl]) && $passende[$auswahl]['stand'] !== 'frei'
+    ? fahrzeug_name($auswahl) . ' ' . $grundText[$passende[$auswahl]['stand']] . '.'
+    : null;
 
 // --- Buchung absenden (POST) ------------------------------------------------
 // Läuft vor header.php, damit später eine Weiterleitung möglich ist. Die
@@ -224,20 +233,18 @@ $bestaetigung = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $auswahl = (int) (is_string($_POST['fahrzeug'] ?? null) ? $_POST['fahrzeug'] : 0);
 
-    if ($fehler === []) {
+    if ($meineSperre !== null) {
+        $fehler[] = 'Sie können derzeit nicht buchen. ' . $meineSperre;
+    } elseif ($fehler === []) {
         if ($zweck === '') {
             $fehler[] = 'Bitte wählen Sie oben den Zweck der Fahrt.';
         }
 
-        if (!isset($liste[$auswahl])) {
+        if (isset($passende[$auswahl]) && $passende[$auswahl]['stand'] !== 'frei') {
+            $fehler[] = 'Das Fahrzeug ' . $grundText[$passende[$auswahl]['stand']]
+                . ' und kann nicht gebucht werden.';
+        } elseif (!isset($liste[$auswahl])) {
             $fehler[] = 'Bitte wählen Sie ein Fahrzeug aus der Liste.';
-        } elseif ($liste[$auswahl]['stand'] === 'wartung') {
-            $fehler[] = 'Das Fahrzeug ist in Wartung und kann nicht gebucht werden.';
-        } elseif ($liste[$auswahl]['stand'] === 'fuehrerschein') {
-            $fehler[] = $nutzer[$fahrer]['name'] . ' fehlt der Führerschein '
-                . $liste[$auswahl]['fuehrerschein'] . ' für dieses Fahrzeug.';
-        } elseif ($liste[$auswahl]['stand'] === 'vergeben') {
-            $fehler[] = 'Das Fahrzeug ist im gewählten Zeitraum nicht mehr frei.';
         }
     }
 
@@ -245,46 +252,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Nur für diese Anzeige; gespeichert wird noch nicht.
         $bestaetigung = [
             'fahrzeug' => $liste[$auswahl],
-            'status'   => $liste[$auswahl]['art'] === 'auto' ? 'offen' : 'genehmigt',
+            'status'   => braucht_genehmigung($liste[$auswahl]['art']) ? 'offen' : 'genehmigt',
         ];
     }
 }
 
 /**
- * Erster Tag ab $von, an dem das Fahrzeug für die ganze Dauer bis $bis frei
- * ist (Tage relativ zu heute). Liegt eine Buchung im Weg, geht es am Tag nach
- * ihrem Ende weiter. null, wenn eine Rückgabe überfällig ist: Dann ist
- * unbekannt, wann das Fahrzeug zurückkommt.
+ * Zeitraum als Satzteil, eintägig ohne „bis“: „am 03.10.2026“ oder
+ * „vom 03.10.2026 bis 05.10.2026“.
  */
-function frei_ab(array $belegungen, int $von, int $bis): ?int
-{
-    foreach ($belegungen as $b) {
-        if ($b['status'] === 'unterwegs' && $b['bis'] < 0) {
-            return null;
-        }
-    }
-
-    $dauer = $bis - $von;
-    $tag = $von;
-
-    do {
-        $verschoben = false;
-
-        foreach ($belegungen as $b) {
-            if ($b['von'] <= $tag + $dauer && $b['bis'] >= $tag) {
-                $tag = $b['bis'] + 1;
-                $verschoben = true;
-            }
-        }
-    } while ($verschoben);
-
-    return $tag;
-}
-
-/**
- * Zeitraum als Text, eintägig ohne „bis“.
- */
-function zeitraum_text(DateTimeImmutable $von, DateTimeImmutable $bis): string
+function zeitraum_satz(DateTimeImmutable $von, DateTimeImmutable $bis): string
 {
     return $von == $bis
         ? 'am ' . $von->format('d.m.Y')
@@ -293,11 +270,6 @@ function zeitraum_text(DateTimeImmutable $von, DateTimeImmutable $bis): string
 
 require_once __DIR__ . '/includes/header.php';
 ?>
-
-<p class="note">
-    Prototyp &ndash; Beispieldaten. Die Buchung wird geprüft und bestätigt, aber noch nicht
-    gespeichert.
-</p>
 
 <?php if ($bestaetigung !== null): ?>
     <?php
@@ -315,7 +287,7 @@ require_once __DIR__ . '/includes/header.php';
         </p>
         <p class="alert__zeile">
             <?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell'] . ' (' . $fahrzeug['kennzeichen'] . ')') ?>
-            <?= e(zeitraum_text($zeitraum['beginn'], $zeitraum['ende'])) ?>,
+            <?= e(zeitraum_satz($zeitraum['beginn'], $zeitraum['ende'])) ?>,
             <?= e($zweckText[$zweck]) ?>, Fahrer: <?= e($nutzer[$fahrer]['name']) ?>.
         </p>
     </div>
@@ -324,6 +296,20 @@ require_once __DIR__ . '/includes/header.php';
         <a class="button" href="<?= url('meine-buchungen.php') ?>">Zu meinen Buchungen</a>
         <a class="button button--zweitrangig" href="<?= url('buchen.php') ?>">Weiteres Fahrzeug buchen</a>
     </p>
+
+<?php elseif ($meineSperre !== null): ?>
+
+    <?php foreach ($meineUeberfaellige as $buchung): ?>
+        <div class="banner">
+            <p class="banner__text">
+                <strong>Sie können derzeit nichts buchen.</strong>
+                Ihre Rückgabe von <?= e(fahrzeug_name($buchung['fahrzeug_id'])) ?> war am
+                <?= e($buchung['ende']->format('d.m.Y')) ?> fällig. Nach der Rückgabe ist Buchen
+                wieder möglich.
+            </p>
+            <a class="button button--klein banner__knopf" href="<?= url('rueckgabe.php?buchung=' . $buchung['id']) ?>">Jetzt zurückgeben</a>
+        </div>
+    <?php endforeach; ?>
 
 <?php else: ?>
 
@@ -342,6 +328,7 @@ require_once __DIR__ . '/includes/header.php';
                     <?php foreach ($nutzer as $id => $person): ?>
                         <option value="<?= e((string) $id) ?>"<?= $id === $fahrer ? ' selected' : '' ?>>
                             <?= e($id === $ich ? 'mich selbst (' . $person['name'] . ')' : $person['name']) ?>
+                            <?= sperre_buchen($id) !== null ? '(Rückgabe überfällig)' : '' ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -376,7 +363,7 @@ require_once __DIR__ . '/includes/header.php';
                         <option value="<?= e($wert) ?>"<?= $wert === $zweck ? ' selected' : '' ?>><?= e($text) ?></option>
                     <?php endforeach; ?>
                 </select>
-                <span class="form__hinweis">Montage und Materialtransport nur mit Auto</span>
+                <span class="form__hinweis">Montage und Materialtransport nur mit Auto oder Transporter</span>
             </div>
 
             <div class="form__row">
@@ -408,36 +395,34 @@ require_once __DIR__ . '/includes/header.php';
             <h2 class="form__titel">2. Fahrzeug auswählen</h2>
 
             <p class="lead">
-                <?= e(zeitraum_text($zeitraum['beginn'], $zeitraum['ende'])) ?>
+                <?= e(zeitraum_satz($zeitraum['beginn'], $zeitraum['ende'])) ?>
                 für <?= e((string) $personen) ?> <?= $personen === 1 ? 'Person' : 'Personen' ?>,
                 Fahrer: <?= e($nutzer[$fahrer]['name']) ?>.
-                <?= e((string) $anzahlFrei) ?> von <?= e((string) count($liste)) ?>
-                passenden Fahrzeugen <?= $anzahlFrei === 1 ? 'ist' : 'sind' ?> frei.
-                Autos werden beim Fuhrparkleiter beantragt, Roller und Fahrräder sind sofort bestätigt.
+                <?= e((string) count($liste)) ?> <?= count($liste) === 1 ? 'Fahrzeug ist' : 'Fahrzeuge sind' ?> frei.
+                Autos und Transporter werden beim Fuhrparkleiter beantragt, Roller und Fahrräder sind
+                sofort bestätigt.
             </p>
+
+            <?php if ($auswahlHinweis !== null): ?>
+                <p class="alert alert--hinweis"><?= e($auswahlHinweis) ?> Bitte wählen Sie ein anderes Fahrzeug oder einen anderen Zeitraum.</p>
+            <?php endif; ?>
 
             <div class="fahrzeugwahl">
                 <?php foreach ($liste as $id => $fahrzeug): ?>
-                    <?php $waehlbar = $fahrzeug['stand'] === 'frei'; ?>
-                    <label class="fahrzeugkarte<?= $waehlbar ? '' : ' fahrzeugkarte--gesperrt' ?>">
+                    <label class="fahrzeugkarte">
                         <input class="fahrzeugkarte__auswahl" type="radio" name="fahrzeug" required
                                value="<?= e((string) $id) ?>"
-                               <?= $waehlbar ? '' : 'disabled' ?>
-                               <?= $waehlbar && $id === $auswahl ? 'checked' : '' ?>>
+                               <?= $id === $auswahl ? 'checked' : '' ?>>
 
-                        <span class="fahrzeugkarte__bild"><?= e($fahrzeug['typ']) ?></span>
+                        <?php if ($fahrzeug['bild'] !== null && is_file(__DIR__ . '/assets/img/' . $fahrzeug['bild'])): ?>
+                            <img class="fahrzeugkarte__bild" src="<?= url('assets/img/' . $fahrzeug['bild']) ?>"
+                                 alt="" loading="lazy">
+                        <?php else: ?>
+                            <span class="fahrzeugkarte__bild fahrzeugkarte__bild--platzhalter"><?= e($fahrzeug['typ']) ?></span>
+                        <?php endif; ?>
 
                         <span class="fahrzeugkarte__kopf">
                             <strong><?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']) ?></strong>
-                            <?php if ($fahrzeug['stand'] === 'frei'): ?>
-                                <span class="badge badge--verfuegbar">frei</span>
-                            <?php elseif ($fahrzeug['stand'] === 'vergeben'): ?>
-                                <span class="badge badge--vergeben">vergeben</span>
-                            <?php elseif ($fahrzeug['stand'] === 'wartung'): ?>
-                                <span class="badge badge--wartung">in Wartung</span>
-                            <?php else: ?>
-                                <span class="badge badge--abgelehnt">Führerschein <?= e($fahrzeug['fuehrerschein']) ?> fehlt</span>
-                            <?php endif; ?>
                         </span>
 
                         <span class="fahrzeugkarte__daten">
@@ -450,15 +435,7 @@ require_once __DIR__ . '/includes/header.php';
                         </span>
 
                         <span class="fahrzeugkarte__fuss">
-                            <span>
-                                <?php if ($fahrzeug['stand'] === 'vergeben'): ?>
-                                    <?= $fahrzeug['frei_ab'] !== null
-                                        ? 'frei ab ' . e($fahrzeug['frei_ab']->format('d.m.'))
-                                        : 'Rückgabe noch offen' ?>
-                                <?php elseif ($fahrzeug['stand'] === 'frei'): ?>
-                                    <?= $fahrzeug['art'] === 'auto' ? 'Antrag nötig' : 'sofort bestätigt' ?>
-                                <?php endif; ?>
-                            </span>
+                            <span><?= braucht_genehmigung($fahrzeug['art']) ? 'Antrag nötig' : 'sofort bestätigt' ?></span>
                             <a href="<?= url('fahrzeug.php?id=' . $id) ?>">Steckbrief</a>
                         </span>
                     </label>
@@ -466,8 +443,11 @@ require_once __DIR__ . '/includes/header.php';
             </div>
 
             <?php if ($liste === []): ?>
-                <p class="note">Kein Fahrzeug passt zu dieser Suche. Weniger Personen oder eine andere Fahrzeugart?</p>
-            <?php elseif ($anzahlFrei > 0): ?>
+                <p class="note">
+                    Im gewählten Zeitraum ist kein passendes Fahrzeug frei. Ein anderer Zeitraum,
+                    weniger Personen oder eine andere Fahrzeugart?
+                </p>
+            <?php else: ?>
                 <h2 class="form__titel section">3. Absenden</h2>
 
                 <?php if ($zweck === ''): ?>

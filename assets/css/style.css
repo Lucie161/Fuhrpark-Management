@@ -19,6 +19,10 @@
     --farbe-gelb:      #8a6112;
     --farbe-rot:       #a32b2b;
 
+    /* Wartung: Kalender, Tagesleiste, Badge und Zeile im Fahrtenbuch */
+    --farbe-wartung:      #fbf2e0;
+    --farbe-wartung-rand: #e3c48a;
+
     --abstand:         1rem;
     --radius:          8px;
     --breite:          1100px;
@@ -286,6 +290,23 @@ h1, h2 {
     background: #e8eff7;
 }
 
+/* Wartung zwischen den Fahrten im Fahrtenbuch (fahrzeug.php, historie.php):
+   gleiche Spalten wie eine Fahrt, aber eigener Hintergrund und Rahmen, links
+   etwas kräftiger. */
+.table__zeile--wartung td {
+    background: var(--farbe-wartung);
+    border-top: 1px solid var(--farbe-wartung-rand);
+    border-bottom: 1px solid var(--farbe-wartung-rand);
+}
+
+.table__zeile--wartung td:first-child {
+    border-left: 4px solid var(--farbe-wartung-rand);
+}
+
+.table__zeile--wartung td:last-child {
+    border-right: 1px solid var(--farbe-wartung-rand);
+}
+
 .table__empty {
     text-align: center;
     color: var(--farbe-gedaempft);
@@ -302,7 +323,7 @@ h1, h2 {
 
 .badge--verfuegbar { background: #e6f4ec; color: var(--farbe-gruen); }
 .badge--unterwegs  { background: #e8eff7; color: var(--farbe-akzent); }
-.badge--wartung    { background: #fbf2e0; color: var(--farbe-gelb); }
+.badge--wartung    { background: var(--farbe-wartung); color: var(--farbe-gelb); }
 .badge--vergeben   { background: #fdf2f2; color: var(--farbe-rot); }
 
 /* Stand einer Buchung (meine-buchungen.php). storniert und abgeschlossen
@@ -465,12 +486,17 @@ a.button {
     left: 1.1rem;
 }
 
-/* Platzhalter, bis es echte Fahrzeugbilder gibt. */
 .fahrzeugkarte__bild {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: calc(var(--radius) - 2px);
+}
+
+/* Fahrzeug ohne Bild: Typ als Platzhalter. */
+.fahrzeugkarte__bild--platzhalter {
     display: grid;
     place-items: center;
-    aspect-ratio: 16 / 9;
-    border-radius: calc(var(--radius) - 2px);
     background: var(--farbe-hinter);
     color: var(--farbe-gedaempft);
     font-size: 0.9rem;
@@ -495,18 +521,6 @@ a.button {
     gap: 0.5rem;
     margin-top: auto;
     font-size: 0.875rem;
-}
-
-/* Vergeben, in Wartung oder ohne passenden Führerschein: sichtbar, aber
-   nicht wählbar. Der Link zum Steckbrief bleibt nutzbar. */
-.fahrzeugkarte--gesperrt {
-    background: var(--farbe-hinter);
-    cursor: not-allowed;
-}
-
-.fahrzeugkarte--gesperrt .fahrzeugkarte__bild,
-.fahrzeugkarte--gesperrt strong {
-    opacity: 0.55;
 }
 
 /* Aktionen in einer Tabellenzeile (genehmigungen.php, meine-buchungen.php). */
@@ -618,7 +632,7 @@ a.button {
 }
 
 /* Filterzeile über einer Tabelle: Auswahl und Button nebeneinander
-   (verlauf.php, fahrzeuge.php). */
+   (historie.php, fahrzeuge.php). */
 .filter {
     display: flex;
     flex-wrap: wrap;
@@ -634,6 +648,14 @@ a.button {
 /* Mehrere kurze Auswahlen nebeneinander (fahrzeuge.php). */
 .filter__feld--schmal {
     flex-basis: 200px;
+}
+
+/* Kästchen in der Filterzeile, z. B. „nur Fahrten“ (historie.php). */
+.filter__haken {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.5rem;
 }
 
 /* Vorschaubilder zu einer Schadensmeldung (schaeden.php). */
@@ -661,6 +683,24 @@ a.button {
     background: var(--farbe-hinter);
     color: var(--farbe-gedaempft);
     font-size: 0.75rem;
+}
+
+/* Offene Schäden eines Fahrzeugs im Steckbrief (fahrzeug.php). */
+.schadensliste {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Vor- und zurückblättern, z. B. wochenweise im Kalender (kalender.php). */
+.blaettern {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: var(--abstand);
 }
 
 /* Fahrzeug-Steckbrief (fahrzeug.php): Bild links, Stammdaten rechts. */
@@ -734,7 +774,7 @@ a.button {
 
 .belegung__tag--frei     { background: #e6f4ec; color: var(--farbe-gruen); }
 .belegung__tag--vergeben { background: #fdf2f2; color: var(--farbe-rot); }
-.belegung__tag--wartung  { background: #fbf2e0; color: var(--farbe-gelb); }
+.belegung__tag--wartung  { background: var(--farbe-wartung); color: var(--farbe-gelb); }
 
 .belegung__wochentag {
     font-weight: 600;
@@ -855,7 +895,7 @@ a.kalender__inhalt:focus-visible {
 
 .kalender__zelle--frei     { background: #e6f4ec; color: var(--farbe-gruen); }
 .kalender__zelle--vergeben { background: #f6dcdc; color: var(--farbe-rot); }
-.kalender__zelle--wartung  { background: #fbf2e0; color: var(--farbe-gelb); }
+.kalender__zelle--wartung  { background: var(--farbe-wartung); color: var(--farbe-gelb); }
 
 /* Mitarbeiter: Tag ohne eigene Buchung. Bewusst nicht „frei“, denn dort kann
    jemand anderes gebucht haben. */
