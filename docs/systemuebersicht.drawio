@@ -1,0 +1,616 @@
+<mxfile host="app.diagrams.net" pages="4">
+  <diagram id="architektur" name="Systemarchitektur">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="k1" value="Fuhrpark-Verwaltung – Systemarchitektur" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#1f2933;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="16" width="1400" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="k2" value="Reines PHP 8.2 und HTML, ohne Framework, Composer und Build-Schritt · XAMPP unter Windows · Stand 10.10.2026" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#4a5a70;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="48" width="1400" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k3" value="Mitarbeiter" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;fontSize=13;strokeWidth=1.5;fontColor=#1f2933;fillColor=#e8f5ee;strokeColor=#2e7d5b;" vertex="1" parent="1">
+          <mxGeometry x="245" y="90" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k4" value="Fuhrparkleiter" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;fontSize=13;strokeWidth=1.5;fontColor=#1f2933;fillColor=#edf3fa;strokeColor=#2f5d8a;" vertex="1" parent="1">
+          <mxGeometry x="1205" y="90" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k5" value="Zugriff über den Browser: HTML-Formulare (GET/POST), Session-Cookie" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontColor=#4a5a70;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="520" y="140" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c_ma" value="Seiten nur für Mitarbeiter" style="swimlane;startSize=30;rounded=1;arcSize=8;absoluteArcSize=1;collapsible=0;html=1;fontStyle=1;fontSize=13;fillColor=#2e7d5b;swimlaneFillColor=#e8f5ee;fontColor=#ffffff;strokeColor=#2e7d5b;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="210" width="440" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="k6" value="&lt;b&gt;buchen.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;AF 1, 2 · Fahrzeug suchen und buchen&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d5b;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_ma">
+          <mxGeometry x="16" y="46" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k7" value="&lt;b&gt;meine-buchungen.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;AF 3–5 · aktuelle Buchungen, Stornieren, Fahrt beginnen&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d5b;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_ma">
+          <mxGeometry x="224" y="46" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k8" value="&lt;b&gt;fruehere-buchungen.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;AF 3 · frühere und abgesagte Buchungen&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d5b;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_ma">
+          <mxGeometry x="16" y="118" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k9" value="&lt;b&gt;rueckgabe.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;AF 6 · Rückgabe, km-Stand, Schaden, Fotos&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d5b;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_ma">
+          <mxGeometry x="224" y="118" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k10" value="gesperrt per nur_fuer_rolle(&#39;mitarbeiter&#39;)" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#4a5a70;fontStyle=2;" vertex="1" parent="c_ma">
+          <mxGeometry x="16" y="190" width="408" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c_gem" value="Seiten für beide Rollen" style="swimlane;startSize=30;rounded=1;arcSize=8;absoluteArcSize=1;collapsible=0;html=1;fontStyle=1;fontSize=13;fillColor=#6b5b95;swimlaneFillColor=#f1eef8;fontColor=#ffffff;strokeColor=#6b5b95;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="210" width="440" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="k11" value="&lt;b&gt;index.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;AF 8 · Überblick, Banner, Zu erledigen&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b5b95;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_gem">
+          <mxGeometry x="16" y="46" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k12" value="&lt;b&gt;kalender.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;AF 7 · Belegung 14 Tage, wochenweise&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b5b95;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_gem">
+          <mxGeometry x="224" y="46" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k13" value="&lt;b&gt;fahrzeug.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;AF 2 · Steckbrief mit Fahrtenbuch&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b5b95;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_gem">
+          <mxGeometry x="16" y="118" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k14" value="&lt;b&gt;login.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;Anmeldung, Abmelden, password_verify&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b5b95;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_gem">
+          <mxGeometry x="224" y="118" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k15" value="&lt;b&gt;rolle.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;nur Prototyp · Testnutzer wechseln&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b5b95;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;dashed=1;dashPattern=6 4;" vertex="1" parent="c_gem">
+          <mxGeometry x="16" y="190" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k16" value="Inhalt je Rolle; Mitarbeiter sehen nur eigene Buchungen, keine fremden Fahrernamen" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#4a5a70;fontStyle=2;" vertex="1" parent="c_gem">
+          <mxGeometry x="224" y="190" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c_fpl" value="Seiten nur für Fuhrparkleiter" style="swimlane;startSize=30;rounded=1;arcSize=8;absoluteArcSize=1;collapsible=0;html=1;fontStyle=1;fontSize=13;fillColor=#2f5d8a;swimlaneFillColor=#edf3fa;fontColor=#ffffff;strokeColor=#2f5d8a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="210" width="440" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="k17" value="&lt;b&gt;fahrzeuge.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;AF 10 · Fahrzeugliste, Wartung, Freigeben&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2f5d8a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_fpl">
+          <mxGeometry x="16" y="46" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k18" value="&lt;b&gt;schaeden.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;AF 10 · Schäden, als behoben markieren&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2f5d8a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_fpl">
+          <mxGeometry x="224" y="46" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k19" value="&lt;b&gt;genehmigungen.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;AF 9 · Anträge genehmigen oder ablehnen&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2f5d8a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_fpl">
+          <mxGeometry x="16" y="118" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k20" value="&lt;b&gt;historie.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;AF 11 · Fahrtenbuch aller Fahrzeuge&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2f5d8a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_fpl">
+          <mxGeometry x="224" y="118" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k21" value="gesperrt per nur_fuer_rolle(&#39;fuhrparkleiter&#39;)" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#4a5a70;fontStyle=2;" vertex="1" parent="c_fpl">
+          <mxGeometry x="16" y="190" width="408" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;entryX=0.5;entryY=0;" edge="1" parent="1" source="k3" target="c_ma">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;entryX=0.5;entryY=0;" edge="1" parent="1" source="k4" target="c_fpl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0.4;entryY=0;" edge="1" parent="1" source="k3" target="c_gem">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0;exitY=0.5;entryX=0.6;entryY=0;" edge="1" parent="1" source="k4" target="c_gem">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="k26" value="&lt;b&gt;Jede Seite: Dreischritt&lt;/b&gt;&lt;br&gt;1. require_once includes/config.php&lt;br&gt;2. Logik und Daten – &lt;i&gt;vor&lt;/i&gt; header.php, sonst scheitert redirect()&lt;br&gt;3. header.php → HTML → footer.php&lt;br&gt;&lt;br&gt;&lt;b&gt;Rollenschutz&lt;/b&gt;&lt;br&gt;nur_fuer_rolle() direkt nach config.php, vor jeder Formularverarbeitung&lt;br&gt;&lt;br&gt;&lt;b&gt;Konventionen&lt;/b&gt;&lt;br&gt;e() für jede Ausgabe · url() für jeden Link · Eingaben nur über PDO-Platzhalter" style="shape=note;size=16;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6c27a;fontColor=#1f2933;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1480" y="210" width="300" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="c_inc" value="Bausteine (includes/)" style="swimlane;startSize=30;rounded=1;arcSize=8;absoluteArcSize=1;collapsible=0;html=1;fontStyle=1;fontSize=13;fillColor=#5f6b7a;swimlaneFillColor=#f3f5f8;fontColor=#ffffff;strokeColor=#5f6b7a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="1220" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="k27" value="&lt;b&gt;config.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;Bootstrap: APP_ENV, BASE_URL, DB_*, Session, lädt die übrigen Bausteine&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;strokeWidth=2.5;" vertex="1" parent="c_inc">
+          <mxGeometry x="20" y="50" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="k28" value="&lt;b&gt;functions.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;e(), url(), Rollen, Regeln (Ampel, Sperren), Meldungen, redirect()&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_inc">
+          <mxGeometry x="290" y="46" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k29" value="&lt;b&gt;beispieldaten.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;Prototyp · beispiel_*() – Datenquelle aller Seiten&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;dashed=1;dashPattern=6 4;" vertex="1" parent="c_inc">
+          <mxGeometry x="290" y="118" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k30" value="&lt;b&gt;db.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;db(): PDO, lazy, Exceptions, echte Prepared Statements&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_inc">
+          <mxGeometry x="290" y="190" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k31" value="&lt;b&gt;header.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;&amp;lt;head&amp;gt;, Navigation je Rolle, Meldung&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_inc">
+          <mxGeometry x="620" y="46" width="250" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k32" value="&lt;b&gt;footer.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;schließt &amp;lt;main&amp;gt;, lädt main.js&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_inc">
+          <mxGeometry x="620" y="118" width="250" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k33" value="&lt;b&gt;antrag-entscheidung.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;Genehmigen/Ablehnen · in genehmigungen.php und index.php&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_inc">
+          <mxGeometry x="920" y="46" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k34" value="&lt;b&gt;fahrt-beginnen.php&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;Fahrt beginnen · in meine-buchungen.php und index.php&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_inc">
+          <mxGeometry x="920" y="118" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k35" value="Bausteine laufen im Scope der einbindenden Seite – eigene Variablen sprechend benennen" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#4a5a70;fontStyle=2;" vertex="1" parent="c_inc">
+          <mxGeometry x="620" y="196" width="580" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="k27" target="k28">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e37" value="lädt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="k27" target="k29">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e38" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="k27" target="k30">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e39" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=1;entryX=0.18;entryY=0;" edge="1" parent="1" source="c_ma" target="c_inc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e40" value="require_once" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=1;entryX=0.574;entryY=0;" edge="1" parent="1" source="c_gem" target="c_inc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e41" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=1;entryX=0.967;entryY=0;" edge="1" parent="1" source="c_fpl" target="c_inc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c_ass" value="Oberfläche (assets/)" style="swimlane;startSize=30;rounded=1;arcSize=8;absoluteArcSize=1;collapsible=0;html=1;fontStyle=1;fontSize=13;fillColor=#5f6b7a;swimlaneFillColor=#f3f5f8;fontColor=#ffffff;strokeColor=#5f6b7a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="560" width="480" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="k42" value="&lt;b&gt;css/style.css&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;Farben und Abstände als Variablen auf :root, BEM-Klassen&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_ass">
+          <mxGeometry x="16" y="46" width="448" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k43" value="&lt;b&gt;js/main.js&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;Menü auf schmalen Bildschirmen, Schadensfelder der Rückgabe, Personenauswahl&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_ass">
+          <mxGeometry x="16" y="118" width="448" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k44" value="&lt;b&gt;img/&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;feste Fahrzeugbilder (fahrzeuge.bild), kein Upload, sonst Platzhalter&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_ass">
+          <mxGeometry x="16" y="190" width="448" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c_dat" value="Daten" style="swimlane;startSize=30;rounded=1;arcSize=8;absoluteArcSize=1;collapsible=0;html=1;fontStyle=1;fontSize=13;fillColor=#b7791f;swimlaneFillColor=#fdf6e7;fontColor=#ffffff;strokeColor=#b7791f;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="900" width="1220" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="k45" value="&lt;b&gt;PHP-Session&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;nutzer_id, rolle, Meldung über eine Weiterleitung hinweg&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b7791f;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_dat">
+          <mxGeometry x="20" y="50" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="k46" value="&lt;b&gt;datenbank/*.sql&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;schema.sql · stammdaten.sql · beispielbuchungen.sql&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b7791f;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_dat">
+          <mxGeometry x="330" y="50" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="k47" value="&lt;b&gt;MySQL „fuhrpark“&lt;/b&gt; (utf8mb4)&lt;br&gt;&lt;span style=&quot;font-size:11px;&quot;&gt;nutzer · nutzer_fuehrerscheine&lt;br&gt;fahrzeuge · buchungen · wartungen&lt;br&gt;schaeden · schadensfotos&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#4a5a70;&quot;&gt;Details: Reiter „ER-Modell“&lt;/span&gt;" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b7791f;fontColor=#1f2933;fontSize=12;" vertex="1" parent="c_dat">
+          <mxGeometry x="720" y="36" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="k48" value="&lt;b&gt;uploads/schaeden/&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;Schadensfotos, zufällige Namen, .htaccess – geplant&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b7791f;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;dashed=1;dashPattern=6 4;" vertex="1" parent="c_dat">
+          <mxGeometry x="1010" y="50" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="k49" value="Stand Prototyp: Die Seiten lesen ausschließlich aus beispieldaten.php, einem genauen Abbild der SQL-Dateien (gleiche IDs, Tage relativ zu heute). Kein Formular speichert etwas. Beim Umstieg ersetzen Queries über db() die beispiel_*()-Aufrufe; die vorgesehene Query steht jeweils im Kopf der Seite." style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#4a5a70;fontStyle=2;" vertex="1" parent="c_dat">
+          <mxGeometry x="20" y="170" width="1180" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="e50" value="session_start()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=1;entryX=0.45;entryY=0;" edge="1" parent="1" source="k27" target="k45">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e51" value="PDO – noch ungenutzt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="k30" target="k47">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="470" y="862" />
+              <mxPoint x="890" y="862" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e52" value="Abbild" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0;exitY=0.5;entryX=0.17;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="k29" target="k46">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="310" y="708" />
+              <mxPoint x="310" y="880" />
+              <mxPoint x="421" y="880" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e53" value="einspielen" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="k46" target="k47">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c_leg" value="Legende" style="swimlane;startSize=30;rounded=1;arcSize=8;absoluteArcSize=1;collapsible=0;html=1;fontStyle=1;fontSize=13;fillColor=#5f6b7a;swimlaneFillColor=#f3f5f8;fontColor=#ffffff;strokeColor=#5f6b7a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="900" width="480" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="k54" value="" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#e8f5ee;strokeColor=#2e7d5b;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_leg">
+          <mxGeometry x="20" y="46" width="36" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k55" value="Mitarbeiter" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#1f2933;fontStyle=0;" vertex="1" parent="c_leg">
+          <mxGeometry x="66" y="46" width="160" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k56" value="" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#edf3fa;strokeColor=#2f5d8a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_leg">
+          <mxGeometry x="20" y="80" width="36" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k57" value="Fuhrparkleiter" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#1f2933;fontStyle=0;" vertex="1" parent="c_leg">
+          <mxGeometry x="66" y="80" width="160" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k58" value="" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#f1eef8;strokeColor=#6b5b95;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_leg">
+          <mxGeometry x="20" y="114" width="36" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k59" value="beide Rollen" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#1f2933;fontStyle=0;" vertex="1" parent="c_leg">
+          <mxGeometry x="66" y="114" width="160" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k60" value="" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#f3f5f8;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_leg">
+          <mxGeometry x="20" y="148" width="36" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k61" value="Baustein / Oberfläche" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#1f2933;fontStyle=0;" vertex="1" parent="c_leg">
+          <mxGeometry x="66" y="148" width="160" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k62" value="" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#fdf6e7;strokeColor=#b7791f;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="c_leg">
+          <mxGeometry x="20" y="182" width="36" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k63" value="Daten" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#1f2933;fontStyle=0;" vertex="1" parent="c_leg">
+          <mxGeometry x="66" y="182" width="160" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k64" value="" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;dashed=1;dashPattern=6 4;" vertex="1" parent="c_leg">
+          <mxGeometry x="250" y="46" width="36" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k65" value="Prototyp oder geplant" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#1f2933;fontStyle=0;" vertex="1" parent="c_leg">
+          <mxGeometry x="296" y="46" width="170" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k66" value="" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;strokeWidth=2.5;" vertex="1" parent="c_leg">
+          <mxGeometry x="250" y="80" width="36" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k67" value="Einstiegspunkt" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#1f2933;fontStyle=0;" vertex="1" parent="c_leg">
+          <mxGeometry x="296" y="80" width="170" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k68" value="AF n = Anwendungsfall aus docs/user-stories.md" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#4a5a70;fontStyle=2;" vertex="1" parent="c_leg">
+          <mxGeometry x="250" y="114" width="216" height="56" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="ablauf" name="Buchungsablauf">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="k1" value="Buchungsablauf – vom Buchen bis zum Fahrtenbuch" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#1f2933;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="16" width="1400" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="k2" value="Wer macht was, und welche Regeln prüft das System dazwischen · Zustände der Buchung als abgerundete Felder" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#4a5a70;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="48" width="1400" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k3" value="Mitarbeiter" style="swimlane;horizontal=0;startSize=36;html=1;collapsible=0;fontStyle=1;fontSize=13;fillColor=#2e7d5b;swimlaneFillColor=#e8f5ee;fontColor=#ffffff;strokeColor=#2e7d5b;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1900" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="k4" value="System (Regeln)" style="swimlane;horizontal=0;startSize=36;html=1;collapsible=0;fontStyle=1;fontSize=13;fillColor=#5f6b7a;swimlaneFillColor=#f7f8fa;fontColor=#ffffff;strokeColor=#5f6b7a;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="1900" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="k5" value="Fuhrparkleiter" style="swimlane;horizontal=0;startSize=36;html=1;collapsible=0;fontStyle=1;fontSize=13;fillColor=#2f5d8a;swimlaneFillColor=#edf3fa;fontColor=#ffffff;strokeColor=#2f5d8a;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="1900" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="k6" value="" style="ellipse;html=1;fillColor=#1f2933;strokeColor=#1f2933;" vertex="1" parent="1">
+          <mxGeometry x="80" y="165" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="k7" value="&lt;b&gt;Fahrzeug buchen&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;buchen.php · Zeitraum, Personen, Zweck, Fahrer&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d5b;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="150" y="145" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="k8" value="&lt;b&gt;Fahrt beginnen&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;offene Schäden sehen, weitere notieren · index.php oder meine-buchungen.php&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d5b;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="140" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="k9" value="&lt;b&gt;Zurückgeben&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;rueckgabe.php · km-Stand, neuer Schaden?, Fotos, Bemerkung&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d5b;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="140" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="k10" value="&lt;b&gt;Prüfung beim Absenden&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;Zeitraum frei, Führerschein passt, keine überfällige Rückgabe, Start ≥ heute&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="150" y="360" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="k11" value="&lt;b&gt;Ampel&lt;/b&gt;&lt;br&gt;Auto oder&lt;br&gt;Transporter?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f7f8fa;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="400" y="360" width="150" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="k12" value="offen" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#f7f8fa;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="620" y="380" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k13" value="abgelehnt" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#f7f8fa;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="740" y="470" width="120" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="k14" value="genehmigt" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#f7f8fa;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="880" y="380" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k15" value="unterwegs" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#f7f8fa;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="1155" y="380" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k16" value="&lt;b&gt;abgeschlossen&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-weight:normal;font-size:11px;&quot;&gt;= Fahrtenbucheintrag&lt;/span&gt;" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#f7f8fa;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="1650" y="300" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k17" value="&lt;b&gt;Schaden mit Wartung&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;neue Wartung mit offenem Ende; Schaden bleibt offen&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1650" y="420" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="k18" value="&lt;b&gt;Antrag prüfen&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;genehmigungen.php oder „Zu erledigen“ in index.php&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2f5d8a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="600" y="600" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="k19" value="&lt;b&gt;Historie auswerten&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;historie.php · Fahrtenbuch, Kennzahlen, Filter&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2f5d8a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="600" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="k20" value="&lt;b&gt;Schaden bearbeiten&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#4a5a70;&quot;&gt;schaeden.php: behoben markieren oder Fahrzeug freigeben&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2f5d8a;fontColor=#1f2933;fontSize=12;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1650" y="600" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;" edge="1" parent="1" source="k6" target="k7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" value="Absenden" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;" edge="1" parent="1" source="k7" target="k10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" value="ok" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;" edge="1" parent="1" source="k10" target="k11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e24" value="ja" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="k11" target="k12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e25" value="nein (Roller, Fahrrad): sofort genehmigt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=0;entryX=0;entryY=0.5;" edge="1" parent="1" source="k11" target="k14">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="325" />
+              <mxPoint x="840" y="325" />
+              <mxPoint x="840" y="405" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="k12" target="k18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e27" value="ablehnen&lt;br&gt;(Kommentar Pflicht)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.9;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="k18" target="k13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e28" value="genehmigen, wenn frei und&lt;br&gt;nicht in Wartung" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0.5;entryY=1;" edge="1" parent="1" source="k18" target="k14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e29" value="am Starttag (nur der Fahrer)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=0;entryX=0;entryY=0.5;" edge="1" parent="1" source="k14" target="k8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e30" value="km_start, begonnen_am" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="k8" target="k15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e31" value="bis zum Endtag" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0.5;entryY=1;" edge="1" parent="1" source="k15" target="k9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e32" value="eine Transaktion" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="k9" target="k16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e33" value="bei Schaden mit Wartung" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="k16" target="k17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e34" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="k17" target="k20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="k16" target="k19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="k36" value="&lt;b&gt;Überfällige Rückgabe&lt;/b&gt; (unterwegs und ende &amp;lt; heute)&lt;br&gt;rotes Banner auf index.php für Fahrer und Fuhrparkleiter · der Fahrer kann nichts buchen, nicht als Fahrer eingetragen werden und keine weitere Fahrt beginnen · das Fahrzeug kann nicht genehmigt werden" style="shape=note;size=16;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6c27a;fontColor=#1f2933;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="770" width="600" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="k37" value="&lt;b&gt;Fahrt beginnen ist gesperrt&lt;/b&gt; (sperre_fahrtbeginn()), solange&lt;br&gt;• der Fahrer selbst eine überfällige Rückgabe hat&lt;br&gt;• das Fahrzeug von der vorigen Fahrt noch nicht zurück ist&lt;br&gt;• das Fahrzeug in Wartung steht" style="shape=note;size=16;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6c27a;fontColor=#1f2933;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="680" y="770" width="420" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="k38" value="&lt;b&gt;Stornieren&lt;/b&gt; – siehe Reiter „Status“&lt;br&gt;durch Antragsteller oder Fahrer, solange offen oder genehmigt; automatisch, wenn der Fuhrparkleiter das Fahrzeug im Zeitraum in Wartung setzt" style="shape=note;size=16;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6c27a;fontColor=#1f2933;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="770" width="420" height="100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="status" name="Status">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="k1" value="Zustände von Buchung, Fahrzeug und Schaden" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#1f2933;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="16" width="1400" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="k2" value="Dicker Rand = Endzustand · gestrichelte Pfeile = automatisch · Buchung und Schaden speichern ihren Zustand, der Zustand des Fahrzeugs wird aus wartungen berechnet" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#4a5a70;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="48" width="1400" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k3" value="Buchung (buchungen.status)" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=15;fontColor=#1f2933;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="600" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="k4" value="" style="ellipse;html=1;fillColor=#1f2933;strokeColor=#1f2933;" vertex="1" parent="1">
+          <mxGeometry x="60" y="265" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="k5" value="offen" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#f7f8fa;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="190" y="140" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k6" value="abgelehnt" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#f7f8fa;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="560" y="140" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k7" value="genehmigt" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#f7f8fa;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="560" y="255" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k8" value="storniert" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#f7f8fa;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="560" y="420" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k9" value="unterwegs" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#f7f8fa;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="900" y="255" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k10" value="abgeschlossen" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#f7f8fa;strokeColor=#5f6b7a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="255" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="Auto, Transporter:&lt;br&gt;Antrag" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=0;entryX=0;entryY=0.5;" edge="1" parent="1" source="k4" target="k5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="Roller, Fahrrad: sofort (Ampel)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="k4" target="k7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="Fuhrparkleiter lehnt ab&lt;br&gt;(Kommentar Pflicht)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="k5" target="k6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="Fuhrparkleiter genehmigt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="k5" target="k7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="295" y="220" />
+              <mxPoint x="630" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" value="Antragsteller oder Fahrer storniert" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.25;exitY=1;entryX=0;entryY=0.5;" edge="1" parent="1" source="k5" target="k8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="storniert, oder automatisch&lt;br&gt;bei Wartung im Zeitraum" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="k7" target="k8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" value="Fahrt beginnen&lt;br&gt;(Fahrer, ab Starttag)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="k7" target="k9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" value="Rückgabe&lt;br&gt;(km_ende ≥ km_start)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="k9" target="k10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="k19" value="&lt;b&gt;überfällig&lt;/b&gt; wird berechnet:&lt;br&gt;unterwegs und ende &amp;lt; heute" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontColor=#4a5a70;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="880" y="330" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k20" value="Die abgeschlossene Buchung &lt;i&gt;ist&lt;/i&gt; der Fahrtenbucheintrag –&lt;br&gt;es gibt keine eigene Fahrtenbuch-Tabelle." style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontColor=#4a5a70;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="330" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k21" value="Fahrzeug (berechnet aus wartungen)" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=15;fontColor=#1f2933;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="600" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="k22" value="verfuegbar&lt;br&gt;&lt;span style=&quot;font-weight:normal;font-size:11px;&quot;&gt;keine laufende Wartung&lt;/span&gt;" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#edf3fa;strokeColor=#2f5d8a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="120" y="610" width="160" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="k23" value="wartung&lt;br&gt;&lt;span style=&quot;font-weight:normal;font-size:11px;&quot;&gt;bis voraussichtlich_bis&lt;/span&gt;" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#edf3fa;strokeColor=#2f5d8a;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="620" y="610" width="160" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="e24" value="In Wartung setzen (Fuhrparkleiter, Ende Pflicht)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.25;entryX=0;entryY=0.25;" edge="1" parent="1" source="k22" target="k23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e25" value="Rückgabe mit Schaden mit Wartung (Ende offen)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=1;exitY=0.75;entryX=0;entryY=0.75;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="k22" target="k23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e26" value="Freigeben (Fuhrparkleiter): freigegeben_am, auslösender Schaden behoben" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.5;exitY=1;entryX=0.5;entryY=1;" edge="1" parent="1" source="k23" target="k22">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="730" />
+              <mxPoint x="200" y="730" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e27" value="Ende ändern" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;exitX=0.75;exitY=0;entryX=1;entryY=0.25;" edge="1" parent="1" source="k23" target="k23">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="740" y="580" />
+              <mxPoint x="820" y="580" />
+              <mxPoint x="820" y="624" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="k28" value="&lt;b&gt;Berechnet, nicht gespeichert&lt;/b&gt;&lt;br&gt;• &lt;b&gt;wartung&lt;/b&gt;: das Fahrzeug hat eine Zeile in wartungen ohne freigegeben_am (höchstens eine); „In Wartung setzen“ und die Rückgabe legen sie an, „Freigeben“ schließt sie ab&lt;br&gt;• &lt;b&gt;vergeben&lt;/b&gt;: eine Buchung offen, genehmigt oder unterwegs überschneidet den Zeitraum (start &amp;lt;= :ende AND ende &amp;gt;= :start)&lt;br&gt;• &lt;b&gt;unterwegs&lt;/b&gt;: eine Buchung des Fahrzeugs ist unterwegs&lt;br&gt;• &lt;b&gt;Ende offen&lt;/b&gt;: voraussichtlich_bis fehlt oder ist überschritten – gesperrt für jeden Zeitraum, „Wartung: Ende festlegen“ unter „Zu erledigen“" style="shape=note;size=16;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6c27a;fontColor=#1f2933;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="900" y="560" width="580" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="k29" value="Schaden (schaeden.behoben_am)" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=15;fontColor=#1f2933;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="790" width="600" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="k30" value="" style="ellipse;html=1;fillColor=#1f2933;strokeColor=#1f2933;" vertex="1" parent="1">
+          <mxGeometry x="60" y="885" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="k31" value="offen&lt;br&gt;&lt;span style=&quot;font-weight:normal;font-size:11px;&quot;&gt;behoben_am = NULL&lt;/span&gt;" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#fdf6e7;strokeColor=#b7791f;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="300" y="870" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="k32" value="behoben&lt;br&gt;&lt;span style=&quot;font-weight:normal;font-size:11px;&quot;&gt;behoben_am, behoben_von&lt;/span&gt;" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fillColor=#fdf6e7;strokeColor=#b7791f;fontColor=#1f2933;fontSize=13;fontStyle=1;align=center;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="760" y="870" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e33" value="gemeldet bei Rückgabe&lt;br&gt;oder Fahrtbeginn (Übernahme)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;" edge="1" parent="1" source="k30" target="k31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e34" value="behoben markieren (schaeden.php)&lt;br&gt;oder Fahrzeug freigeben" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7a8ca3;strokeWidth=1.5;endArrow=block;endFill=1;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontColor=#4a5a70;" edge="1" parent="1" source="k31" target="k32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="k35" value="Schwere: &lt;b&gt;klein&lt;/b&gt; (Fahrzeug bleibt fahrbereit) oder &lt;b&gt;wartung&lt;/b&gt; (sperrt das Fahrzeug).&lt;br&gt;Meldungen „bei Übernahme“ sind immer klein und zählen nicht zu den offenen Schäden der Übersicht." style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#4a5a70;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="865" width="480" height="70" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="datenmodell" name="ER-Modell">
+    <mxGraphModel dx="1644" dy="864" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="nutzer" value="nutzer" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" vertex="1" parent="1"><mxGeometry x="100" y="380" width="220" height="150" as="geometry"/></mxCell>
+<mxCell id="nutzer_0" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="nutzer"><mxGeometry y="30" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="nutzer_1" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;vorname" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="nutzer"><mxGeometry y="54" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="nutzer_2" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;nachname" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="nutzer"><mxGeometry y="78" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="nutzer_3" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;rolle" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="nutzer"><mxGeometry y="102" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="nutzer_4" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;passwort_hash" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="nutzer"><mxGeometry y="126" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="nutzer_fuehrerscheine" value="nutzer_fuehrerscheine" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="220" height="78" as="geometry"/></mxCell>
+<mxCell id="nutzer_fuehrerscheine_0" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK, FK&lt;/span&gt;&lt;u&gt;&lt;b&gt;nutzer_id&lt;/b&gt;&lt;/u&gt;" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="nutzer_fuehrerscheine"><mxGeometry y="30" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="nutzer_fuehrerscheine_1" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;klasse&lt;/b&gt;&lt;/u&gt;" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="nutzer_fuehrerscheine"><mxGeometry y="54" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen" value="buchungen" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" vertex="1" parent="1"><mxGeometry x="560" y="200" width="220" height="462" as="geometry"/></mxCell>
+<mxCell id="buchungen_0" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen"><mxGeometry y="30" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_1" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;fahrzeug_id" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen"><mxGeometry y="54" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_2" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;antragsteller_id" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen"><mxGeometry y="78" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_3" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;fahrer_id" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen"><mxGeometry y="102" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_4" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;start" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen"><mxGeometry y="126" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_5" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;ende" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen"><mxGeometry y="150" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_6" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;zweck" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen"><mxGeometry y="174" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_7" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;personenanzahl" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen"><mxGeometry y="198" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_8" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;status" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen"><mxGeometry y="222" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_9" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;beantragt_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen"><mxGeometry y="246" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_10" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;entscheidung_von" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen"><mxGeometry y="270" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_11" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;entscheidung_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen"><mxGeometry y="294" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_12" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;entscheidung_kommentar" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen"><mxGeometry y="318" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_13" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;begonnen_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen"><mxGeometry y="342" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_14" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;km_start" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen"><mxGeometry y="366" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_15" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;zurueckgegeben_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen"><mxGeometry y="390" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_16" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;km_ende" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen"><mxGeometry y="414" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="buchungen_17" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;bemerkung" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen"><mxGeometry y="438" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="schaeden" value="schaeden" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" vertex="1" parent="1"><mxGeometry x="1000" y="40" width="220" height="222" as="geometry"/></mxCell>
+<mxCell id="schaeden_0" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="schaeden"><mxGeometry y="30" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="schaeden_1" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;buchung_id" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="schaeden"><mxGeometry y="54" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="schaeden_2" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;anlass" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="schaeden"><mxGeometry y="78" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="schaeden_3" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;schwere" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="schaeden"><mxGeometry y="102" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="schaeden_4" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;beschreibung" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="schaeden"><mxGeometry y="126" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="schaeden_5" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;gemeldet_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="schaeden"><mxGeometry y="150" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="schaeden_6" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;behoben_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="schaeden"><mxGeometry y="174" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="schaeden_7" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;behoben_von" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="schaeden"><mxGeometry y="198" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="schadensfotos" value="schadensfotos" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" vertex="1" parent="1"><mxGeometry x="1400" y="40" width="220" height="102" as="geometry"/></mxCell>
+<mxCell id="schadensfotos_0" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="schadensfotos"><mxGeometry y="30" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="schadensfotos_1" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;schaden_id" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="schadensfotos"><mxGeometry y="54" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="schadensfotos_2" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;datei" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="schadensfotos"><mxGeometry y="78" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge" value="fahrzeuge" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" vertex="1" parent="1"><mxGeometry x="1000" y="330" width="220" height="342" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_0" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="fahrzeuge"><mxGeometry y="30" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_1" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;kennzeichen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="fahrzeuge"><mxGeometry y="54" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_2" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;art" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="fahrzeuge"><mxGeometry y="78" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_3" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;typ" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="fahrzeuge"><mxGeometry y="102" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_4" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;hersteller" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="fahrzeuge"><mxGeometry y="126" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_5" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;modell" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="fahrzeuge"><mxGeometry y="150" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_6" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;baujahr" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="fahrzeuge"><mxGeometry y="174" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_7" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;bild" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="fahrzeuge"><mxGeometry y="198" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_8" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;sitzplaetze" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="fahrzeuge"><mxGeometry y="222" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_9" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;antrieb" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="fahrzeuge"><mxGeometry y="246" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_10" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;kmstand" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="fahrzeuge"><mxGeometry y="270" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_11" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;fuehrerschein" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="fahrzeuge"><mxGeometry y="294" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="fahrzeuge_12" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;hu_au" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="fahrzeuge"><mxGeometry y="318" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="b_fs" value="besitzt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="nutzer_0" target="nutzer_fuehrerscheine_0"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="40" y="422"/><mxPoint x="40" y="142"/></Array></mxGeometry></mxCell>
+<mxCell id="b_fs_ea66" value="1" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_fs"><mxGeometry x="-1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_fs_c825" value="n" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_fs"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_behebt" value="behebt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="nutzer_0" target="schaeden_7"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="40" y="422"/><mxPoint x="40" y="770"/><mxPoint x="960" y="770"/><mxPoint x="960" y="250"/></Array></mxGeometry></mxCell>
+<mxCell id="b_behebt_ea66" value="1" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_behebt"><mxGeometry x="-1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_behebt_c825" value="n" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_behebt"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_antrag" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="nutzer_0" target="buchungen_2"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="350" y="422"/><mxPoint x="350" y="290"/></Array></mxGeometry></mxCell>
+<mxCell id="b_antrag_ea66" value="1" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=left;spacingLeft=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_antrag"><mxGeometry x="-1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_antrag_c825" value="n" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_antrag"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_antrag_ce5a" value="beantragt" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;verticalAlign=top;spacingTop=2;" vertex="1" connectable="0" parent="b_antrag"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="-110" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_fahrer" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="nutzer_0" target="buchungen_3"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="380" y="422"/><mxPoint x="380" y="314"/></Array></mxGeometry></mxCell>
+<mxCell id="b_fahrer_ea66" value="1" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=left;spacingLeft=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_fahrer"><mxGeometry x="-1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_fahrer_c825" value="n" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_fahrer"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_fahrer_094f" value="fährt" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;verticalAlign=top;spacingTop=2;" vertex="1" connectable="0" parent="b_fahrer"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="-110" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_entsch" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="nutzer_0" target="buchungen_10"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="350" y="422"/><mxPoint x="350" y="482"/></Array></mxGeometry></mxCell>
+<mxCell id="b_entsch_ea66" value="1" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=left;spacingLeft=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_entsch"><mxGeometry x="-1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_entsch_c825" value="n" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_entsch"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_entsch_af5f" value="entscheidet" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;verticalAlign=top;spacingTop=2;" vertex="1" connectable="0" parent="b_entsch"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="-110" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_fz" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="fahrzeuge_0" target="buchungen_1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="900" y="372"/><mxPoint x="900" y="266"/></Array></mxGeometry></mxCell>
+<mxCell id="b_fz_ea66" value="1" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_fz"><mxGeometry x="-1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_fz_c825" value="n" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=left;spacingLeft=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_fz"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_fz_3456" value="gebucht in" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;verticalAlign=top;spacingTop=2;" vertex="1" connectable="0" parent="b_fz"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="60" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_schaden" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="buchungen_0" target="schaeden_1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="860" y="242"/><mxPoint x="860" y="106"/></Array></mxGeometry></mxCell>
+<mxCell id="b_schaden_ea66" value="1" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=left;spacingLeft=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_schaden"><mxGeometry x="-1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_schaden_c825" value="n" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_schaden"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_schaden_987f" value="gemeldet bei" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;verticalAlign=top;spacingTop=2;" vertex="1" connectable="0" parent="b_schaden"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="-70" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_fotos" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="schaeden_0" target="schadensfotos_1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1290" y="82"/><mxPoint x="1290" y="106"/></Array></mxGeometry></mxCell>
+<mxCell id="b_fotos_ea66" value="1" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=left;spacingLeft=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_fotos"><mxGeometry x="-1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_fotos_c825" value="n" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" vertex="1" connectable="0" parent="b_fotos"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_fotos_d861" value="belegt durch" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;verticalAlign=top;spacingTop=2;" vertex="1" connectable="0" parent="b_fotos"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="-90" y="0" as="offset"/></mxGeometry></mxCell>
+
+<mxCell id="wartungen" value="wartungen" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" vertex="1" parent="1"><mxGeometry x="1400" y="330" width="220" height="246" as="geometry"/></mxCell>
+<mxCell id="wartungen_0" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="wartungen"><mxGeometry y="30" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="wartungen_1" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;fahrzeug_id" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="wartungen"><mxGeometry y="54" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="wartungen_2" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;schaden_id" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="wartungen"><mxGeometry y="78" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="wartungen_3" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;grund" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="wartungen"><mxGeometry y="102" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="wartungen_4" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;begonnen_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="wartungen"><mxGeometry y="126" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="wartungen_5" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;voraussichtlich_bis" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="wartungen"><mxGeometry y="150" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="wartungen_6" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;angelegt_von" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="wartungen"><mxGeometry y="174" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="wartungen_7" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;freigegeben_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="wartungen"><mxGeometry y="198" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="wartungen_8" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;freigegeben_von" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="wartungen"><mxGeometry y="222" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="b_wartung" value="gewartet in" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="fahrzeuge_0" target="wartungen_1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1310" y="372"/><mxPoint x="1310" y="396"/></Array></mxGeometry></mxCell>
+<mxCell id="b_wartung_1" value="1" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=left;spacingLeft=6;" vertex="1" connectable="0" parent="b_wartung"><mxGeometry x="-1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_wartung_n" value="n" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=right;spacingRight=6;" vertex="1" connectable="0" parent="b_wartung"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_ausloeser" value="löst aus" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="schaeden_0" target="wartungen_2"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1350" y="82"/><mxPoint x="1350" y="420"/></Array></mxGeometry></mxCell>
+<mxCell id="b_ausloeser_1" value="1" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=left;spacingLeft=6;" vertex="1" connectable="0" parent="b_ausloeser"><mxGeometry x="-1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_ausloeser_n" value="n" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=right;spacingRight=6;" vertex="1" connectable="0" parent="b_ausloeser"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_angelegt" value="legt an" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="nutzer_0" target="wartungen_6"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="25" y="422"/><mxPoint x="25" y="785"/><mxPoint x="1370" y="785"/><mxPoint x="1370" y="516"/></Array></mxGeometry></mxCell>
+<mxCell id="b_angelegt_1" value="1" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=right;spacingRight=6;" vertex="1" connectable="0" parent="b_angelegt"><mxGeometry x="-1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_angelegt_n" value="n" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=right;spacingRight=6;" vertex="1" connectable="0" parent="b_angelegt"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_freigabe" value="gibt frei" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="nutzer_0" target="wartungen_8"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="10" y="422"/><mxPoint x="10" y="800"/><mxPoint x="1380" y="800"/><mxPoint x="1380" y="564"/></Array></mxGeometry></mxCell>
+<mxCell id="b_freigabe_1" value="1" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=right;spacingRight=6;" vertex="1" connectable="0" parent="b_freigabe"><mxGeometry x="-1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell>
+<mxCell id="b_freigabe_n" value="n" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=right;spacingRight=6;" vertex="1" connectable="0" parent="b_freigabe"><mxGeometry x="1" relative="1" as="geometry"><mxPoint x="0" y="0" as="offset"/></mxGeometry></mxCell></root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

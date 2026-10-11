@@ -1,0 +1,532 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="datenmodell" name="ER-Modell">
+    <mxGraphModel dx="1738" dy="1084" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="nutzer" parent="1" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" value="nutzer" vertex="1">
+          <mxGeometry height="150" width="220" x="100" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="nutzer_0" parent="nutzer" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" vertex="1">
+          <mxGeometry height="24" width="220" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nutzer_1" parent="nutzer" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;vorname" vertex="1">
+          <mxGeometry height="24" width="220" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="nutzer_2" parent="nutzer" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;nachname" vertex="1">
+          <mxGeometry height="24" width="220" y="78" as="geometry" />
+        </mxCell>
+        <mxCell id="nutzer_3" parent="nutzer" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;rolle" vertex="1">
+          <mxGeometry height="24" width="220" y="102" as="geometry" />
+        </mxCell>
+        <mxCell id="nutzer_4" parent="nutzer" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;passwort_hash" vertex="1">
+          <mxGeometry height="24" width="220" y="126" as="geometry" />
+        </mxCell>
+        <mxCell id="nutzer_fuehrerscheine" parent="1" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" value="nutzer_fuehrerscheine" vertex="1">
+          <mxGeometry height="78" width="220" x="100" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="nutzer_fuehrerscheine_0" parent="nutzer_fuehrerscheine" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK, FK&lt;/span&gt;&lt;u&gt;&lt;b&gt;nutzer_id&lt;/b&gt;&lt;/u&gt;" vertex="1">
+          <mxGeometry height="24" width="220" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nutzer_fuehrerscheine_1" parent="nutzer_fuehrerscheine" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;klasse&lt;/b&gt;&lt;/u&gt;" vertex="1">
+          <mxGeometry height="24" width="220" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen" parent="1" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" value="buchungen" vertex="1">
+          <mxGeometry height="462" width="220" x="560" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_0" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" vertex="1">
+          <mxGeometry height="24" width="220" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_1" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;fahrzeug_id" vertex="1">
+          <mxGeometry height="24" width="220" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_2" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;antragsteller_id" vertex="1">
+          <mxGeometry height="24" width="220" y="78" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_3" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;fahrer_id" vertex="1">
+          <mxGeometry height="24" width="220" y="102" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_4" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;start" vertex="1">
+          <mxGeometry height="24" width="220" y="126" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_5" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;ende" vertex="1">
+          <mxGeometry height="24" width="220" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_6" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;zweck" vertex="1">
+          <mxGeometry height="24" width="220" y="174" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_7" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;personenanzahl" vertex="1">
+          <mxGeometry height="24" width="220" y="198" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_8" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;status" vertex="1">
+          <mxGeometry height="24" width="220" y="222" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_9" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;beantragt_am" vertex="1">
+          <mxGeometry height="24" width="220" y="246" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_10" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;entscheidung_von" vertex="1">
+          <mxGeometry height="24" width="220" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_11" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;entscheidung_am" vertex="1">
+          <mxGeometry height="24" width="220" y="294" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_12" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;entscheidung_kommentar" vertex="1">
+          <mxGeometry height="24" width="220" y="318" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_13" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;begonnen_am" vertex="1">
+          <mxGeometry height="24" width="220" y="342" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_14" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;km_start" vertex="1">
+          <mxGeometry height="24" width="220" y="366" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_15" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;zurueckgegeben_am" vertex="1">
+          <mxGeometry height="24" width="220" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_16" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;km_ende" vertex="1">
+          <mxGeometry height="24" width="220" y="414" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_17" parent="buchungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;bemerkung" vertex="1">
+          <mxGeometry height="24" width="220" y="438" as="geometry" />
+        </mxCell>
+        <mxCell id="schaeden" parent="1" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" value="schaeden" vertex="1">
+          <mxGeometry height="222" width="220" x="1000" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="schaeden_0" parent="schaeden" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" vertex="1">
+          <mxGeometry height="24" width="220" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="schaeden_1" parent="schaeden" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;buchung_id" vertex="1">
+          <mxGeometry height="24" width="220" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="schaeden_2" parent="schaeden" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;anlass" vertex="1">
+          <mxGeometry height="24" width="220" y="78" as="geometry" />
+        </mxCell>
+        <mxCell id="schaeden_3" parent="schaeden" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;schwere" vertex="1">
+          <mxGeometry height="24" width="220" y="102" as="geometry" />
+        </mxCell>
+        <mxCell id="schaeden_4" parent="schaeden" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;beschreibung" vertex="1">
+          <mxGeometry height="24" width="220" y="126" as="geometry" />
+        </mxCell>
+        <mxCell id="schaeden_5" parent="schaeden" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;gemeldet_am" vertex="1">
+          <mxGeometry height="24" width="220" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="schaeden_6" parent="schaeden" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;behoben_am" vertex="1">
+          <mxGeometry height="24" width="220" y="174" as="geometry" />
+        </mxCell>
+        <mxCell id="schaeden_7" parent="schaeden" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;behoben_von" vertex="1">
+          <mxGeometry height="24" width="220" y="198" as="geometry" />
+        </mxCell>
+        <mxCell id="schadensfotos" parent="1" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" value="schadensfotos" vertex="1">
+          <mxGeometry height="102" width="220" x="1400" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="schadensfotos_0" parent="schadensfotos" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" vertex="1">
+          <mxGeometry height="24" width="220" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="schadensfotos_1" parent="schadensfotos" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;schaden_id" vertex="1">
+          <mxGeometry height="24" width="220" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="schadensfotos_2" parent="schadensfotos" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;datei" vertex="1">
+          <mxGeometry height="24" width="220" y="78" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge" parent="1" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" value="fahrzeuge" vertex="1">
+          <mxGeometry height="342" width="220" x="1000" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_0" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" vertex="1">
+          <mxGeometry height="24" width="220" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_1" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;kennzeichen" vertex="1">
+          <mxGeometry height="24" width="220" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_2" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;art" vertex="1">
+          <mxGeometry height="24" width="220" y="78" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_3" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;typ" vertex="1">
+          <mxGeometry height="24" width="220" y="102" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_4" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;hersteller" vertex="1">
+          <mxGeometry height="24" width="220" y="126" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_5" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;modell" vertex="1">
+          <mxGeometry height="24" width="220" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_6" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;baujahr" vertex="1">
+          <mxGeometry height="24" width="220" y="174" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_7" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;bild" vertex="1">
+          <mxGeometry height="24" width="220" y="198" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_8" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;sitzplaetze" vertex="1">
+          <mxGeometry height="24" width="220" y="222" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_9" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;antrieb" vertex="1">
+          <mxGeometry height="24" width="220" y="246" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_10" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;kmstand" vertex="1">
+          <mxGeometry height="24" width="220" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_11" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;fuehrerschein" vertex="1">
+          <mxGeometry height="24" width="220" y="294" as="geometry" />
+        </mxCell>
+        <mxCell id="fahrzeuge_12" parent="fahrzeuge" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;hu_au" vertex="1">
+          <mxGeometry height="24" width="220" y="318" as="geometry" />
+        </mxCell>
+        <mxCell id="b_fs" edge="1" parent="1" source="nutzer_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="nutzer_fuehrerscheine_0" value="besitzt">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="40" y="422" />
+              <mxPoint x="40" y="142" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fs_ea66" connectable="0" parent="b_fs" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fs_c825" connectable="0" parent="b_fs" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" value="n" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_behebt" edge="1" parent="1" source="nutzer_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="schaeden_7" value="behebt">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="40" y="422" />
+              <mxPoint x="40" y="770" />
+              <mxPoint x="960" y="770" />
+              <mxPoint x="960" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_behebt_ea66" connectable="0" parent="b_behebt" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_behebt_c825" connectable="0" parent="b_behebt" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" value="n" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_antrag" edge="1" parent="1" source="nutzer_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="buchungen_2" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="422" />
+              <mxPoint x="350" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_antrag_ea66" connectable="0" parent="b_antrag" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=left;spacingLeft=6;verticalAlign=bottom;spacingBottom=1;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_antrag_c825" connectable="0" parent="b_antrag" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" value="n" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_antrag_ce5a" connectable="0" parent="b_antrag" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;verticalAlign=top;spacingTop=2;" value="beantragt" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint x="-110" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fahrer" edge="1" parent="1" source="nutzer_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="buchungen_3" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="422" />
+              <mxPoint x="380" y="314" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fahrer_ea66" connectable="0" parent="b_fahrer" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=left;spacingLeft=6;verticalAlign=bottom;spacingBottom=1;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fahrer_c825" connectable="0" parent="b_fahrer" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" value="n" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fahrer_094f" connectable="0" parent="b_fahrer" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;verticalAlign=top;spacingTop=2;" value="fährt" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint x="-110" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_entsch" edge="1" parent="1" source="nutzer_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="buchungen_10" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="422" />
+              <mxPoint x="350" y="482" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_entsch_ea66" connectable="0" parent="b_entsch" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=left;spacingLeft=6;verticalAlign=bottom;spacingBottom=1;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_entsch_c825" connectable="0" parent="b_entsch" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" value="n" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_entsch_af5f" connectable="0" parent="b_entsch" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;verticalAlign=top;spacingTop=2;" value="entscheidet" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint x="-110" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fz" edge="1" parent="1" source="fahrzeuge_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="buchungen_1" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="900" y="372" />
+              <mxPoint x="900" y="266" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fz_ea66" connectable="0" parent="b_fz" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fz_c825" connectable="0" parent="b_fz" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=left;spacingLeft=6;verticalAlign=bottom;spacingBottom=1;" value="n" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fz_3456" connectable="0" parent="b_fz" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;verticalAlign=top;spacingTop=2;" value="gebucht in" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint x="60" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_schaden" edge="1" parent="1" source="buchungen_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="schaeden_1" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="860" y="242" />
+              <mxPoint x="860" y="106" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_schaden_ea66" connectable="0" parent="b_schaden" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=left;spacingLeft=6;verticalAlign=bottom;spacingBottom=1;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_schaden_c825" connectable="0" parent="b_schaden" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" value="n" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_schaden_987f" connectable="0" parent="b_schaden" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;verticalAlign=top;spacingTop=2;" value="gemeldet bei" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint x="-70" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fotos" edge="1" parent="1" source="schaeden_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="schadensfotos_1" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1290" y="82" />
+              <mxPoint x="1290" y="106" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fotos_ea66" connectable="0" parent="b_fotos" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=left;spacingLeft=6;verticalAlign=bottom;spacingBottom=1;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fotos_c825" connectable="0" parent="b_fotos" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;align=right;spacingRight=6;verticalAlign=bottom;spacingBottom=1;" value="n" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_fotos_d861" connectable="0" parent="b_fotos" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;verticalAlign=top;spacingTop=2;" value="belegt durch" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint x="-90" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wartungen" parent="1" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" value="wartungen" vertex="1">
+          <mxGeometry height="246" width="220" x="1400" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="wartungen_0" parent="wartungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" vertex="1">
+          <mxGeometry height="24" width="220" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="wartungen_1" parent="wartungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;fahrzeug_id" vertex="1">
+          <mxGeometry height="24" width="220" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="wartungen_2" parent="wartungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;schaden_id" vertex="1">
+          <mxGeometry height="24" width="220" y="78" as="geometry" />
+        </mxCell>
+        <mxCell id="wartungen_3" parent="wartungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;grund" vertex="1">
+          <mxGeometry height="24" width="220" y="102" as="geometry" />
+        </mxCell>
+        <mxCell id="wartungen_4" parent="wartungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;begonnen_am" vertex="1">
+          <mxGeometry height="24" width="220" y="126" as="geometry" />
+        </mxCell>
+        <mxCell id="wartungen_5" parent="wartungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;voraussichtlich_bis" vertex="1">
+          <mxGeometry height="24" width="220" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="wartungen_6" parent="wartungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;angelegt_von" vertex="1">
+          <mxGeometry height="24" width="220" y="174" as="geometry" />
+        </mxCell>
+        <mxCell id="wartungen_7" parent="wartungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;freigegeben_am" vertex="1">
+          <mxGeometry height="24" width="220" y="198" as="geometry" />
+        </mxCell>
+        <mxCell id="wartungen_8" parent="wartungen" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;FK&lt;/span&gt;freigegeben_von" vertex="1">
+          <mxGeometry height="24" width="220" y="222" as="geometry" />
+        </mxCell>
+        <mxCell id="b_wartung" edge="1" parent="1" source="fahrzeuge_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="wartungen_1" value="gewartet in">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1310" y="372" />
+              <mxPoint x="1310" y="396" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_wartung_1" connectable="0" parent="b_wartung" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=left;spacingLeft=6;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_wartung_n" connectable="0" parent="b_wartung" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=right;spacingRight=6;" value="n" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_ausloeser" edge="1" parent="1" source="schaeden_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="wartungen_2" value="löst aus">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1350" y="82" />
+              <mxPoint x="1350" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_ausloeser_1" connectable="0" parent="b_ausloeser" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=left;spacingLeft=6;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_ausloeser_n" connectable="0" parent="b_ausloeser" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=right;spacingRight=6;" value="n" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_angelegt" edge="1" parent="1" source="nutzer_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="wartungen_6" value="legt an">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="25" y="422" />
+              <mxPoint x="25" y="785" />
+              <mxPoint x="1370" y="785" />
+              <mxPoint x="1370" y="516" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_angelegt_1" connectable="0" parent="b_angelegt" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=right;spacingRight=6;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_angelegt_n" connectable="0" parent="b_angelegt" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=right;spacingRight=6;" value="n" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_freigabe" edge="1" parent="1" source="nutzer_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#7a8ca3;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;labelBackgroundColor=#ffffff;fontSize=11;fontStyle=2;fontColor=#4a5a70;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="wartungen_8" value="gibt frei">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="10" y="422" />
+              <mxPoint x="10" y="800" />
+              <mxPoint x="1380" y="800" />
+              <mxPoint x="1380" y="564" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_freigabe_1" connectable="0" parent="b_freigabe" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=right;spacingRight=6;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b_freigabe_n" connectable="0" parent="b_freigabe" style="edgeLabel;resizable=0;html=1;labelBackgroundColor=#ffffff;fontSize=12;fontStyle=1;fontColor=#2f5d8a;verticalAlign=bottom;spacingBottom=1;align=right;spacingRight=6;" value="n" vertex="1">
+          <mxGeometry relative="1" x="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legende" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#ffffff;strokeColor=#7a8ca3;" value="&lt;b&gt;Legende&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;span style=&quot;color:#c9a227;&quot;&gt;■&lt;/span&gt; &lt;b&gt;Datenbank&lt;/b&gt; prüft selbst (CHECK, UNIQUE)&lt;br&gt;&lt;span style=&quot;color:#8e5cc4;&quot;&gt;■&lt;/span&gt; &lt;b&gt;Nur PHP-Code&lt;/b&gt; prüft, die DB nicht&lt;br&gt;&lt;br&gt;&lt;b&gt;Fremdschlüssel&lt;/b&gt;&lt;br&gt;ON UPDATE CASCADE überall&lt;br&gt;ON DELETE RESTRICT, außer&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;nutzer_fuehrerscheine&lt;/span&gt;: CASCADE&lt;br&gt;&lt;i&gt;(Nutzer mit Buchungen sind nicht löschbar,&lt;/i&gt;&lt;br&gt;&lt;i&gt;Fahrzeuge mit Fahrtenbuch auch nicht)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="196" width="320" x="-360" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="chk_fz" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#fff8e1;strokeColor=#c9a227;" value="&lt;b&gt;CHECK / UNIQUE&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;uq_fahrzeuge_kennzeichen&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;UNIQUE (kennzeichen)&lt;/span&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;chk_fahrzeuge_sitzplaetze&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;sitzplaetze &amp;gt;= 1&lt;/span&gt;&lt;br&gt;&lt;br&gt;&lt;i&gt;Status und Ende der Wartung stehen nicht&lt;/i&gt;&lt;br&gt;&lt;i&gt;in fahrzeuge, sie kommen aus wartungen (R5).&lt;/i&gt;" vertex="1">
+          <mxGeometry height="180" width="290" x="1250" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="chk_fz_e" edge="1" parent="1" source="chk_fz" style="endArrow=none;dashed=1;html=1;strokeColor=#c9a227;strokeWidth=1.5;" target="fahrzeuge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="chk_b" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#fff8e1;strokeColor=#c9a227;" value="&lt;b&gt;CHECK&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;chk_buchungen_zeitraum&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;ende &amp;gt;= start&lt;/span&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;chk_buchungen_personenanzahl&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;personenanzahl &amp;gt;= 1&lt;/span&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;chk_buchungen_km&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;km_ende &amp;gt;= km_start&lt;/span&gt;&lt;br&gt;&lt;i&gt;NULL besteht die Prüfung&lt;/i&gt;" vertex="1">
+          <mxGeometry height="196" width="250" x="545" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="chk_b_e" edge="1" parent="1" source="chk_b" style="endArrow=none;dashed=1;html=1;strokeColor=#c9a227;strokeWidth=1.5;" target="buchungen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="chk_s" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#fff8e1;strokeColor=#c9a227;" value="&lt;b&gt;CHECK&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;chk_schaeden_behoben&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;(behoben_am IS NULL)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;= (behoben_von IS NULL)&lt;/span&gt;&lt;br&gt;&lt;i&gt;behoben: Zeitpunkt und Person,&lt;/i&gt;&lt;br&gt;&lt;i&gt;sonst keins von beiden&lt;/i&gt;" vertex="1">
+          <mxGeometry height="132" width="250" x="1680" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="chk_s_e" edge="1" parent="1" source="chk_s" style="endArrow=none;dashed=1;html=1;strokeColor=#c9a227;strokeWidth=1.5;" target="schaeden">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="chk_sf" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#fff8e1;strokeColor=#c9a227;" value="&lt;b&gt;UNIQUE&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;uq_schadensfotos_datei&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;UNIQUE (datei)&lt;/span&gt;" vertex="1">
+          <mxGeometry height="84" width="220" x="1680" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="chk_sf_e" edge="1" parent="1" source="chk_sf" style="endArrow=none;dashed=1;html=1;strokeColor=#c9a227;strokeWidth=1.5;" target="schadensfotos">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="chk_w" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#fff8e1;strokeColor=#c9a227;" value="&lt;b&gt;CHECK&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;chk_wartungen_bis&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;voraussichtlich_bis &amp;gt;= begonnen_am&lt;/span&gt;&lt;br&gt;&lt;i&gt;NULL (Ende offen) besteht die Prüfung&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;chk_wartungen_freigegeben&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;(freigegeben_am IS NULL)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;= (freigegeben_von IS NULL)&lt;/span&gt;&lt;br&gt;&lt;i&gt;Freigabe: Tag und Person, sonst keins&lt;/i&gt;" vertex="1">
+          <mxGeometry height="180" width="280" x="1680" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="chk_w_e" edge="1" parent="1" source="chk_w" style="endArrow=none;dashed=1;html=1;strokeColor=#c9a227;strokeWidth=1.5;" target="wartungen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="php_beleg" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#f3ebfb;strokeColor=#8e5cc4;" value="&lt;b&gt;R1 Keine Doppelbelegung&lt;/b&gt; (PHP)&lt;br&gt;&lt;br&gt;Zwei Buchungen desselben Fahrzeugs dürfen&lt;br&gt;sich nicht überschneiden:&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;b1.fahrzeug_id = b2.fahrzeug_id&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;AND b1.start &amp;lt;= b2.ende&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;AND b2.start &amp;lt;= b1.ende&lt;/span&gt;&lt;br&gt;&lt;br&gt;zählt beim &lt;b&gt;Buchen&lt;/b&gt;: offen, genehmigt, unterwegs&lt;br&gt;zählt beim &lt;b&gt;Genehmigen&lt;/b&gt;: genehmigt, unterwegs&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;genehmigung_hindernis()&lt;/span&gt;&lt;br&gt;&lt;i&gt;Gerechnet wird in ganzen Tagen. Die DB kann das&lt;/i&gt;&lt;br&gt;&lt;i&gt;nicht prüfen: CHECK sieht nur eine Zeile.&lt;/i&gt;" vertex="1">
+          <mxGeometry height="228" width="380" x="830" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="php_beleg_e" edge="1" parent="1" source="php_beleg" style="endArrow=none;dashed=1;html=1;strokeColor=#8e5cc4;strokeWidth=1.5;" target="buchungen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="php_buchen" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#f3ebfb;strokeColor=#8e5cc4;" value="&lt;b&gt;R2 Buchen&lt;/b&gt; (PHP, serverseitig erneut geprüft)&lt;br&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;start &amp;gt;= heute&lt;/span&gt;, &lt;span style=&quot;font-family:monospace;&quot;&gt;zweck&lt;/span&gt; Pflicht&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;personenanzahl &amp;lt;= fahrzeuge.sitzplaetze&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;fahrzeuge.fuehrerschein&lt;/span&gt; muss in&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;nutzer_fuehrerscheine&lt;/span&gt; des Fahrers stehen&lt;br&gt;&lt;i&gt;(NULL = kein Führerschein nötig)&lt;/i&gt;&lt;br&gt;Zweck montage, materialtransport ⇒&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;art IN (&#39;auto&#39;, &#39;transporter&#39;)&lt;/span&gt;&lt;br&gt;Fahrzeug nicht in Wartung (R5), Rückgabe&lt;br&gt;nicht überfällig, Fahrer nicht gesperrt (R4)" vertex="1">
+          <mxGeometry height="196" width="380" x="830" y="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="php_buchen_e" edge="1" parent="1" source="php_buchen" style="endArrow=none;dashed=1;html=1;strokeColor=#8e5cc4;strokeWidth=1.5;exitX=0;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;" target="buchungen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="php_status" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#f3ebfb;strokeColor=#8e5cc4;" value="&lt;b&gt;R3 Statusübergänge&lt;/b&gt; &lt;span style=&quot;font-family:monospace;&quot;&gt;buchungen.status&lt;/span&gt; (PHP)&lt;br&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;offen → genehmigt | abgelehnt&lt;/span&gt; (Fuhrparkleiter)&lt;br&gt;&lt;i&gt;abgelehnt: entscheidung_kommentar Pflicht&lt;/i&gt;&lt;br&gt;Roller, Fahrrad: sofort &lt;span style=&quot;font-family:monospace;&quot;&gt;genehmigt&lt;/span&gt;,&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;entscheidung_von&lt;/span&gt; bleibt NULL &lt;span style=&quot;font-family:monospace;&quot;&gt;(braucht_genehmigung())&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;offen | genehmigt → storniert&lt;/span&gt;&lt;br&gt;&lt;i&gt;durch Antragsteller oder Fahrer, oder automatisch (R5)&lt;/i&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;genehmigt → unterwegs&lt;/span&gt; nur der Fahrer,&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;start &amp;lt;= heute &amp;lt;= ende&lt;/span&gt;, &lt;span style=&quot;font-family:monospace;&quot;&gt;sperre_fahrtbeginn()&lt;/span&gt;&lt;br&gt;&lt;i&gt;setzt begonnen_am, km_start = fahrzeuge.kmstand&lt;/i&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;unterwegs → abgeschlossen&lt;/span&gt; (Rückgabe)&lt;br&gt;&lt;i&gt;setzt zurueckgegeben_am, km_ende; kmstand = km_ende&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;überfällig:&lt;/b&gt; &lt;span style=&quot;font-family:monospace;&quot;&gt;status = &#39;unterwegs&#39; AND ende &amp;lt; heute&lt;/span&gt;" vertex="1">
+          <mxGeometry height="260" width="440" x="60" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="php_status_e" edge="1" parent="1" source="php_status" style="endArrow=none;dashed=1;html=1;strokeColor=#8e5cc4;strokeWidth=1.5;" target="buchungen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="php_rolle" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#f3ebfb;strokeColor=#8e5cc4;" value="&lt;b&gt;R4 Rollen und Sperren&lt;/b&gt; (PHP)&lt;br&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;rolle = fuhrparkleiter&lt;/span&gt; für&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;entscheidung_von&lt;/span&gt;, &lt;span style=&quot;font-family:monospace;&quot;&gt;behoben_von&lt;/span&gt;,&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;angelegt_von&lt;/span&gt;, &lt;span style=&quot;font-family:monospace;&quot;&gt;freigegeben_von&lt;/span&gt;&lt;br&gt;Fuhrparkleiter bucht nicht selbst&lt;br&gt;&lt;br&gt;Wer eine überfällige Rückgabe hat, bucht&lt;br&gt;nichts und ist nicht als Fahrer wählbar&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;sperre_buchen()&lt;/span&gt;" vertex="1">
+          <mxGeometry height="180" width="320" x="-360" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="php_rolle_e" edge="1" parent="1" source="php_rolle" style="endArrow=none;dashed=1;html=1;strokeColor=#8e5cc4;strokeWidth=1.5;" target="nutzer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="php_w" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#f3ebfb;strokeColor=#8e5cc4;" value="&lt;b&gt;R5 Wartung&lt;/b&gt; (PHP)&lt;br&gt;&lt;br&gt;&lt;b&gt;laufend&lt;/b&gt; = &lt;span style=&quot;font-family:monospace;&quot;&gt;freigegeben_am IS NULL&lt;/span&gt;,&lt;br&gt;höchstens eine laufende je Fahrzeug&lt;br&gt;Fahrzeug gesperrt bis einschließlich&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;voraussichtlich_bis&lt;/span&gt; &lt;span style=&quot;font-family:monospace;&quot;&gt;(wartung_sperrt())&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;voraussichtlich_bis&lt;/span&gt; NULL oder vorbei ⇒&lt;br&gt;Ende offen, für jeden Zeitraum gesperrt&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;(wartung_ende_offen())&lt;/span&gt;&lt;br&gt;Anlegen: &lt;span style=&quot;font-family:monospace;&quot;&gt;voraussichtlich_bis &amp;gt;= heute&lt;/span&gt; Pflicht,&lt;br&gt;storniert offene und genehmigte Buchungen&lt;br&gt;im Zeitraum&lt;br&gt;Freigeben: markiert den auslösenden Schaden&lt;br&gt;als behoben&lt;br&gt;&lt;i&gt;status und wartung_bis eines Fahrzeugs werden&lt;/i&gt;&lt;br&gt;&lt;i&gt;aus der laufenden Wartung berechnet (LEFT JOIN).&lt;/i&gt;" vertex="1">
+          <mxGeometry height="276" width="370" x="1680" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="php_w_e" edge="1" parent="1" source="php_w" style="endArrow=none;dashed=1;html=1;strokeColor=#8e5cc4;strokeWidth=1.5;" target="wartungen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="php_s" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#f3ebfb;strokeColor=#8e5cc4;" value="&lt;b&gt;R6 Schäden&lt;/b&gt; (PHP)&lt;br&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;beschreibung&lt;/span&gt; Pflicht&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;anlass = &#39;uebernahme&#39;&lt;/span&gt; ⇒ &lt;span style=&quot;font-family:monospace;&quot;&gt;schwere = &#39;klein&#39;&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;schwere = &#39;wartung&#39;&lt;/span&gt; ⇒ neue Zeile in&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;wartungen&lt;/span&gt; mit &lt;span style=&quot;font-family:monospace;&quot;&gt;schaden_id&lt;/span&gt;, Ende offen,&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;angelegt_von = NULL&lt;/span&gt;&lt;br&gt;behoben markieren nur der Fuhrparkleiter;&lt;br&gt;bei Wartungsschaden stattdessen „freigeben“" vertex="1">
+          <mxGeometry height="164" width="340" x="1000" y="-200" as="geometry" />
+        </mxCell>
+        <mxCell id="php_s_e" edge="1" parent="1" source="php_s" style="endArrow=none;dashed=1;html=1;strokeColor=#8e5cc4;strokeWidth=1.5;" target="schaeden">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="php_sf" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#f3ebfb;strokeColor=#8e5cc4;" value="&lt;b&gt;R7 Fotos&lt;/b&gt; (PHP)&lt;br&gt;&lt;br&gt;höchstens 3 je Schaden, je 5 MB&lt;br&gt;JPEG, PNG, WebP, geprüft mit &lt;span style=&quot;font-family:monospace;&quot;&gt;finfo&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;datei = bin2hex(random_bytes(16))&lt;/span&gt; + Endung&lt;br&gt;sieht nur der Fuhrparkleiter" vertex="1">
+          <mxGeometry height="116" width="300" x="1400" y="-170" as="geometry" />
+        </mxCell>
+        <mxCell id="php_sf_e" edge="1" parent="1" source="php_sf" style="endArrow=none;dashed=1;html=1;strokeColor=#8e5cc4;strokeWidth=1.5;" target="schadensfotos">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
