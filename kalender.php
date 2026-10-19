@@ -6,7 +6,7 @@
  * Belegung über 14 Tage: Zeilen sind Fahrzeuge, Spalten Tage. Wochenweise
  * blättern, höchstens 4 Wochen über die heutige Ansicht hinaus, nicht in die
  * Vergangenheit: kalender.php?woche=0 bis 4. Reine Anzeige ohne JavaScript
- * und ohne Verschieben (siehe docs/technisches-konzept.md, Regel 7).
+ * und ohne Verschieben (siehe docs/konzept/technisches-konzept.md, Regel 7).
  * Gerechnet wird in ganzen Tagen.
  *
  * Fuhrparkleiter: alle Fahrzeuge und alle Buchungen mit Fahrer und Zweck.
@@ -22,14 +22,15 @@
  *
  * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Mit Datenbank:
  *
- *   SELECT id, kennzeichen, hersteller, modell, art, status
- *     FROM fahrzeuge ORDER BY art, kennzeichen
- *   SELECT b.fahrzeug_id, b.start, b.ende, b.zweck, b.status,
+ *   SELECT id, kennzeichen, hersteller, modell, art_id
+ *     FROM fahrzeuge WHERE geloescht_am IS NULL ORDER BY art_id, kennzeichen
+ *   (dazu die laufenden Wartungen wie in includes/beispieldaten.php)
+ *   SELECT b.fahrzeug_id, b.start, b.ende, b.zweck_id, b.status_id,
  *          b.fahrer_id, b.antragsteller_id
  *     FROM buchungen b
- *    WHERE b.status IN ('offen', 'genehmigt', 'unterwegs')
+ *    WHERE b.status_id <= STATUS_UNTERWEGS
  *      AND b.start <= :bis
- *      AND (b.ende >= :von OR b.status = 'unterwegs')
+ *      AND (b.ende >= :von OR b.status_id = STATUS_UNTERWEGS)
  *      [AND (b.antragsteller_id = :ich OR b.fahrer_id = :ich)]  -- Mitarbeiter
  *
  * Die vorletzte Bedingung holt auch überfällige Fahrten: begonnen, Ende
@@ -49,32 +50,13 @@ $ich = aktueller_nutzer();
 $anzahlTage = 14;
 $maxWochen  = 4;
 
-// Fahrzeugart => Überschrift der Gruppe, in Anzeigereihenfolge.
-$artText = [
-    'auto'        => 'Autos',
-    'transporter' => 'Transporter',
-    'roller'      => 'Roller',
-    'fahrrad'     => 'Fahrräder',
-];
-
-// Feste Liste der Zwecke (siehe docs/user-stories.md).
-$zweckText = [
-    'montage'           => 'Montage',
-    'service'           => 'Wartung/Service',
-    'kundentermin'      => 'Kundentermin',
-    'aufmass'           => 'Aufmaß',
-    'materialtransport' => 'Materialtransport',
-    'lieferant'         => 'Lieferantenbesuch',
-    'schulung'          => 'Schulung',
-    'sonstiges'         => 'Sonstiges',
-];
-
 // Stand einer belegenden Buchung => [Zustand der Zelle, Beschriftung]. Der
 // Zustand dient zugleich als CSS-Modifier (.kalender__zelle--beantragt).
+// Gruppenüberschriften: FAHRZEUGARTEN_MEHRZAHL, in der Reihenfolge der IDs.
 $standText = [
-    'offen'     => ['beantragt', 'beantragt'],
-    'genehmigt' => ['vergeben',  'vergeben'],
-    'unterwegs' => ['vergeben',  'unterwegs'],
+    STATUS_OFFEN     => ['beantragt', 'beantragt'],
+    STATUS_GENEHMIGT => ['vergeben',  'vergeben'],
+    STATUS_UNTERWEGS => ['vergeben',  'unterwegs'],
 ];
 
 // --- Woche (GET) ------------------------------------------------------------
@@ -87,14 +69,14 @@ $woche = $woche === false ? 0 : max(0, min($maxWochen, $woche));
 $ersterTag = $woche * 7;
 
 $heute = new DateTimeImmutable('today');
-$fahrzeuge = beispiel_fahrzeuge();
+$fahrzeuge = fahrzeuge_im_bestand();
 
 // Belegende Buchungen (offen, genehmigt, unterwegs) mit Tagen relativ zu
 // heute.
 $buchungen = [];
 
 foreach (beispiel_buchungen() as $b) {
-    if (isset($standText[$b['status']])) {
+    if (isset($standText[$b['status_id']])) {
         $b['von'] = (int) $heute->diff($b['start'])->format('%r%a');
         $b['bis'] = (int) $heute->diff($b['ende'])->format('%r%a');
         $buchungen[] = $b;
@@ -111,7 +93,7 @@ if (!$fuhrparkleiter) {
         $buchungen,
         fn (array $b): bool => ($b['fahrer_id'] === $ich || $b['antragsteller_id'] === $ich)
             && $b['von'] < $ersterTag + $anzahlTage
-            && ($b['bis'] >= $ersterTag || ($b['status'] === 'unterwegs' && $woche === 0)),
+            && ($b['bis'] >= $ersterTag || ($b['status_id'] === STATUS_UNTERWEGS && $woche === 0)),
     ));
 
     $fahrzeuge = array_intersect_key($fahrzeuge, array_flip(array_column($buchungen, 'fahrzeug_id')));
@@ -154,7 +136,7 @@ $zellen = [];
 foreach ($fahrzeuge as $id => $fahrzeug) {
     $wartungBis = null;
 
-    if ($fahrzeug['status'] === 'wartung') {
+    if ($fahrzeug['in_wartung']) {
         $wartungBis = wartung_ende_offen($fahrzeug)
             ? PHP_INT_MAX
             : (int) $heute->diff($fahrzeug['wartung_bis'])->format('%r%a');
@@ -189,7 +171,7 @@ foreach ($buchungen as $buchung) {
 
     // Eine begonnene Fahrt, deren Ende vorbei ist, blockiert das Fahrzeug bis
     // zur Rückgabe. Wann die kommt, ist unbekannt, daher nur heute.
-    $ueberfaellig = $buchung['status'] === 'unterwegs' && $buchung['bis'] < 0;
+    $ueberfaellig = $buchung['status_id'] === STATUS_UNTERWEGS && $buchung['bis'] < 0;
 
     $von = $ueberfaellig ? 0 : max($buchung['von'], $ersterTag);
     $bis = $ueberfaellig ? 0 : min($buchung['bis'], $ersterTag + $anzahlTage - 1);
@@ -198,8 +180,8 @@ foreach ($buchungen as $buchung) {
         continue;
     }
 
-    [$zustand, $stand] = $standText[$buchung['status']];
-    $zweck = $zweckText[$buchung['zweck']] ?? $buchung['zweck'];
+    [$zustand, $stand] = $standText[$buchung['status_id']];
+    $zweck = ZWECKE[$buchung['zweck_id']];
 
     // Hier entscheidet sich, was die Rolle sieht.
     if ($fuhrparkleiter) {
@@ -208,11 +190,11 @@ foreach ($buchungen as $buchung) {
             . ($buchung['antragsteller_id'] !== $buchung['fahrer_id'] ? ' (gebucht von ' . nutzer_name($buchung['antragsteller_id']) . ')' : '')
             . ', ' . $zweck;
         $text = beispiel_nutzer()[$buchung['fahrer_id']]['vorname'];
-        $link = $buchung['status'] === 'offen' ? 'genehmigungen.php' : null;
+        $link = $buchung['status_id'] === STATUS_OFFEN ? 'genehmigungen.php' : null;
     } else {
         // Eigene Buchung: andere Namen nur, wenn ich nicht selbst fahre oder
         // nicht selbst gebucht habe.
-        $hinweis = ($buchung['status'] === 'genehmigt' ? 'genehmigt' : $stand) . ': ' . $zweck
+        $hinweis = ($buchung['status_id'] === STATUS_GENEHMIGT ? 'genehmigt' : $stand) . ': ' . $zweck
             . ($buchung['fahrer_id'] !== $ich ? ', Fahrer: ' . nutzer_name($buchung['fahrer_id']) : '')
             . ($buchung['antragsteller_id'] !== $ich ? ', gebucht von ' . nutzer_name($buchung['antragsteller_id']) : '');
         $text = '';
@@ -256,7 +238,7 @@ foreach ($zellen as $id => $zeile) {
 
 $gruppen = [];
 foreach ($fahrzeuge as $id => $fahrzeug) {
-    $gruppen[$fahrzeug['art']][$id] = $fahrzeug;
+    $gruppen[$fahrzeug['art_id']][$id] = $fahrzeug;
 }
 
 // Nur für den Fuhrparkleiter und nur in der Ansicht ab heute: Mitarbeiter
@@ -348,7 +330,7 @@ require_once __DIR__ . '/includes/header.php';
                 </tr>
             </thead>
 
-            <?php foreach ($artText as $art => $artBeschriftung): ?>
+            <?php foreach (FAHRZEUGARTEN_MEHRZAHL as $art => $artBeschriftung): ?>
                 <?php if (isset($gruppen[$art])): ?>
                     <tbody>
                         <tr class="kalender__gruppe">

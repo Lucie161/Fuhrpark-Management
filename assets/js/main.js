@@ -6,14 +6,14 @@
 
 document.addEventListener('DOMContentLoaded', function () {
     // Rückgabe (rueckgabe.php): Beschreibung und Fotos nur zeigen, wenn ein
-    // Schaden gewählt ist. Ohne JavaScript bleiben sie sichtbar; der Server
-    // ignoriert sie bei „Nein“.
+    // Schaden gewählt ist (Wert 0 = „Nein“). Ohne JavaScript bleiben sie
+    // sichtbar; der Server ignoriert sie bei „Nein“.
     var schadenWahl = document.querySelectorAll('input[name="schaden"]');
     var schadenFelder = document.querySelectorAll('[data-nur-bei-schaden]');
 
     function schadenFelderZeigen() {
         var gewaehlt = document.querySelector('input[name="schaden"]:checked');
-        var mitSchaden = gewaehlt !== null && gewaehlt.value !== 'nein';
+        var mitSchaden = gewaehlt !== null && gewaehlt.value !== '0';
 
         schadenFelder.forEach(function (feld) {
             feld.hidden = !mitSchaden;

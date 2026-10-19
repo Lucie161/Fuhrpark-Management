@@ -12,15 +12,18 @@
  * entschieden am 06.10.2026). Fahrzeuge ohne km-Stand (Fahrrad) zeigen im
  * Fahrtenbuch keine km-Spalten.
  *
+ * Ausgemusterte Fahrzeuge (geloescht_am gesetzt) sind über das Fahrtenbuch
+ * weiter erreichbar, aber ohne Belegung und Buchen.
+ *
  * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Mit Datenbank:
  *
  *   SELECT * FROM fahrzeuge WHERE id = :id
  *   SELECT ... FROM buchungen
- *    WHERE fahrzeug_id = :id AND status IN ('offen', 'genehmigt', 'unterwegs')
- *      AND start <= :bis AND (ende >= :von OR status = 'unterwegs')
+ *    WHERE fahrzeug_id = :id AND status_id <= STATUS_UNTERWEGS
+ *      AND start <= :bis AND (ende >= :von OR status_id = STATUS_UNTERWEGS)
  *   SELECT b.*, n.vorname, n.nachname
  *     FROM buchungen b JOIN nutzer n ON n.id = b.fahrer_id
- *    WHERE b.fahrzeug_id = :id AND b.status = 'abgeschlossen'
+ *    WHERE b.fahrzeug_id = :id AND b.status_id = STATUS_ABGESCHLOSSEN
  *    ORDER BY b.zurueckgegeben_am DESC
  *   SELECT s.* FROM schaeden s JOIN buchungen b ON b.id = s.buchung_id
  *    WHERE b.fahrzeug_id = :id
@@ -35,43 +38,13 @@ require_once __DIR__ . '/includes/config.php';
 
 $fuhrparkleiter = ist_fuhrparkleiter();
 
-// Feste Liste der Zwecke (siehe docs/user-stories.md).
-$zweckText = [
-    'montage'           => 'Montage',
-    'service'           => 'Wartung/Service',
-    'kundentermin'      => 'Kundentermin',
-    'aufmass'           => 'Aufmaß',
-    'materialtransport' => 'Materialtransport',
-    'lieferant'         => 'Lieferantenbesuch',
-    'schulung'          => 'Schulung',
-    'sonstiges'         => 'Sonstiges',
-];
-
-// Angezeigter Fahrzeugstatus => Beschriftung (wie in fahrzeuge.php).
+// Angezeigter Fahrzeugstatus => Beschriftung (wie in fahrzeuge.php); zugleich
+// CSS-Klasse (.badge--wartung usw.).
 $statusText = [
-    'verfuegbar' => 'verfügbar',
-    'unterwegs'  => 'unterwegs',
-    'wartung'    => 'in Wartung',
-];
-
-// Kürzel aus der Datenbank => Beschriftung.
-$artText = [
-    'auto'        => 'Auto',
-    'transporter' => 'Transporter',
-    'roller'      => 'Roller',
-    'fahrrad'     => 'Fahrrad',
-];
-
-$antriebText = [
-    'benzin'  => 'Benzin',
-    'diesel'  => 'Diesel',
-    'elektro' => 'Elektro',
-];
-
-// Schwere eines Schadens => Beschriftung (schaeden.schwere).
-$schwereText = [
-    'klein'   => 'Kleinschaden',
-    'wartung' => 'Schaden',
+    'verfuegbar'   => 'verfügbar',
+    'unterwegs'    => 'unterwegs',
+    'wartung'      => 'in Wartung',
+    'ausgemustert' => 'ausgemustert',
 ];
 
 // Typabhängige Merkmale (F-01): Feld => Beschriftung, in Anzeigereihenfolge.
@@ -79,11 +52,11 @@ $schwereText = [
 // keine HU/AU und keinen km-Stand beim Fahrrad.
 $merkmalText = [
     'kennzeichen'   => 'Kennzeichen',
-    'art'           => 'Fahrzeugart',
+    'art_id'        => 'Fahrzeugart',
     'typ'           => 'Typ',
     'baujahr'       => 'Baujahr',
     'sitzplaetze'   => 'Sitzplätze',
-    'antrieb'       => 'Antrieb',
+    'antrieb_id'    => 'Antrieb',
     'kmstand'       => 'km-Stand',
     'fuehrerschein' => 'Führerschein',
     'hu_au'         => 'Nächste HU/AU',
@@ -115,11 +88,17 @@ if (!$fuhrparkleiter) {
     unset($buchung);
 }
 
-// Angezeigter Status: Wartung vor unterwegs vor verfügbar.
-$stand = $fahrzeug['status'] ?? 'verfuegbar';
+$ausgemustert = $fahrzeug !== null && $fahrzeug['geloescht_am'] !== null;
+
+// Angezeigter Status: ausgemustert vor Wartung vor unterwegs vor verfügbar.
+$stand = match (true) {
+    $ausgemustert                                => 'ausgemustert',
+    $fahrzeug !== null && $fahrzeug['in_wartung'] => 'wartung',
+    default                                      => 'verfuegbar',
+};
 
 foreach ($buchungen as $buchung) {
-    if ($stand === 'verfuegbar' && $buchung['status'] === 'unterwegs') {
+    if ($stand === 'verfuegbar' && $buchung['status_id'] === STATUS_UNTERWEGS) {
         $stand = 'unterwegs';
     }
 }
@@ -133,12 +112,12 @@ foreach ($buchungen as $buchung) {
 
 $belegung = [];
 
-if ($fahrzeug !== null) {
+if ($fahrzeug !== null && !$ausgemustert) {
     $wartungEndeOffen = wartung_ende_offen($fahrzeug);
 
     for ($tag = 0; $tag < 14; $tag++) {
         $datum = $heute->modify("+$tag day");
-        $inWartung = $fahrzeug['status'] === 'wartung'
+        $inWartung = $fahrzeug['in_wartung']
             && ($wartungEndeOffen || $datum <= $fahrzeug['wartung_bis']);
         $eintrag = [
             'datum'   => $datum,
@@ -148,14 +127,14 @@ if ($fahrzeug !== null) {
 
         if ($eintrag['zustand'] === 'frei') {
             foreach ($buchungen as $buchung) {
-                $belegt = in_array($buchung['status'], ['offen', 'genehmigt', 'unterwegs'], true)
+                $belegt = belegt_fahrzeug($buchung)
                     && $buchung['start'] <= $datum
-                    && ($datum <= $buchung['ende'] || ($buchung['status'] === 'unterwegs' && $tag === 0));
+                    && ($datum <= $buchung['ende'] || ($buchung['status_id'] === STATUS_UNTERWEGS && $tag === 0));
 
                 if ($belegt) {
                     $eintrag['zustand'] = 'vergeben';
                     $eintrag['hinweis'] = $fuhrparkleiter
-                        ? nutzer_name($buchung['fahrer_id']) . ': ' . ($zweckText[$buchung['zweck']] ?? $buchung['zweck'])
+                        ? nutzer_name($buchung['fahrer_id']) . ': ' . ZWECKE[$buchung['zweck_id']]
                         : 'vergeben';
                     break;
                 }
@@ -183,7 +162,7 @@ $offeneSchaeden = $fahrzeug !== null ? offene_schaeden($id) : [];
 $schadenJeBuchung = [];
 
 foreach (beispiel_schaeden() as $schaden) {
-    if ($schaden['anlass'] === 'rueckgabe') {
+    if ($schaden['anlass_id'] === ANLASS_RUECKGABE) {
         $schadenJeBuchung[$schaden['buchung_id']] = $schaden;
     }
 }
@@ -191,7 +170,7 @@ foreach (beispiel_schaeden() as $schaden) {
 // --- Fahrtenbuch des Fahrzeugs ----------------------------------------------
 // Ersetzt die Summen „Je Fahrzeug“ der früheren Auswertung.
 
-$fahrtenbuch = array_filter($buchungen, fn (array $b): bool => $b['status'] === 'abgeschlossen');
+$fahrtenbuch = array_filter($buchungen, fn (array $b): bool => $b['status_id'] === STATUS_ABGESCHLOSSEN);
 usort($fahrtenbuch, fn (array $a, array $b): int => $b['zurueckgegeben_am'] <=> $a['zurueckgegeben_am']);
 
 // Ohne km-Stand (Fahrrad) entfallen die km-Spalten und die Summe.
@@ -223,7 +202,7 @@ usort($eintraege, fn (array $a, array $b): int => $b['datum'] <=> $a['datum']);
 // Fuhrparkleiter) und zwei km-Spalten.
 $anzahlSpalten = 3 + ($fuhrparkleiter ? 1 : 0) + ($mitKm ? 2 : 0);
 
-// Bild aus assets/img/, sonst Platzhalter (siehe docs/technisches-konzept.md).
+// Bild aus assets/img/, sonst Platzhalter (siehe docs/konzept/technisches-konzept.md).
 $bildDatei = $fahrzeug['bild'] ?? null;
 $hatBild = $bildDatei !== null && is_file(__DIR__ . '/assets/img/' . $bildDatei);
 
@@ -264,7 +243,7 @@ require_once __DIR__ . '/includes/header.php';
         <div class="steckbrief__daten">
             <p>
                 <span class="badge badge--<?= e($stand) ?>">
-                    <?= e($statusText[$stand] ?? $stand) ?>
+                    <?= e($statusText[$stand]) ?>
                 </span>
                 <?php if (fahrzeug_ueberfaellig($id)): ?>
                     <span class="badge badge--abgelehnt">Rückgabe überfällig</span>
@@ -282,10 +261,10 @@ require_once __DIR__ . '/includes/header.php';
                                 Klasse <?= e($fahrzeug['fuehrerschein']) ?>
                             <?php elseif ($feld === 'hu_au'): ?>
                                 <?= e((new DateTimeImmutable($fahrzeug['hu_au']))->format('m/Y')) ?>
-                            <?php elseif ($feld === 'art'): ?>
-                                <?= e($artText[$fahrzeug['art']] ?? $fahrzeug['art']) ?>
-                            <?php elseif ($feld === 'antrieb'): ?>
-                                <?= e($antriebText[$fahrzeug['antrieb']] ?? $fahrzeug['antrieb']) ?>
+                            <?php elseif ($feld === 'art_id'): ?>
+                                <?= e(FAHRZEUGARTEN[$fahrzeug['art_id']]) ?>
+                            <?php elseif ($feld === 'antrieb_id'): ?>
+                                <?= e(ANTRIEBE[$fahrzeug['antrieb_id']]) ?>
                             <?php else: ?>
                                 <?= e((string) $fahrzeug[$feld]) ?>
                             <?php endif; ?>
@@ -294,12 +273,28 @@ require_once __DIR__ . '/includes/header.php';
                 <?php endforeach; ?>
             </dl>
 
-            <?php if (wartung_ende_offen($fahrzeug)): ?>
+            <?php if ($fahrzeug['art_id'] === ART_LUXUS && !$ausgemustert): ?>
+                <p class="note">
+                    Luxusauto: Fahren dürfen es nur freigegebene Mitarbeiter, und schon ein
+                    Kleinschaden sperrt es bis zur Reparatur.
+                    <?php if (!$fuhrparkleiter && fehlt_luxusfreigabe(aktueller_nutzer(), $fahrzeug)): ?>
+                        Sie sind dafür nicht freigegeben, können es aber für einen freigegebenen
+                        Kollegen buchen.
+                    <?php endif; ?>
+                </p>
+            <?php endif; ?>
+
+            <?php if ($ausgemustert): ?>
+                <p class="note">
+                    Ausgemustert am <?= e($fahrzeug['geloescht_am']->format('d.m.Y')) ?>. Das Fahrzeug kann
+                    nicht mehr gebucht werden; das Fahrtenbuch bleibt erhalten.
+                </p>
+            <?php elseif (wartung_ende_offen($fahrzeug)): ?>
                 <p class="note">
                     Das Fahrzeug ist in Wartung. Wann es wieder gebucht werden kann, steht noch nicht
                     fest.
                 </p>
-            <?php elseif ($fahrzeug['status'] === 'wartung'): ?>
+            <?php elseif ($fahrzeug['in_wartung']): ?>
                 <?php $buchbarAb = $fahrzeug['wartung_bis']->modify('+1 day'); ?>
                 <p class="note">
                     Das Fahrzeug ist in Wartung, voraussichtlich bis
@@ -323,13 +318,13 @@ require_once __DIR__ . '/includes/header.php';
             <ul class="schadensliste">
                 <?php foreach ($offeneSchaeden as $schaden): ?>
                     <li>
-                        <span class="badge<?= $schaden['schwere'] === 'wartung' ? ' badge--abgelehnt' : '' ?>">
-                            <?= e($schwereText[$schaden['schwere']]) ?>
+                        <span class="badge<?= $schaden['schwere_id'] === SCHWERE_WARTUNG ? ' badge--abgelehnt' : '' ?>">
+                            <?= e(SCHWEREGRADE[$schaden['schwere_id']]) ?>
                         </span>
                         <?= e($schaden['beschreibung']) ?>
                         <span class="table__zusatz">
                             gemeldet am <?= e($schaden['gemeldet_am']->format('d.m.Y')) ?>
-                            <?= $schaden['anlass'] === 'uebernahme' ? 'bei Übernahme' : 'bei Rückgabe' ?>
+                            <?= e(SCHADENSANLAESSE[$schaden['anlass_id']]) ?>
                         </span>
                     </li>
                 <?php endforeach; ?>
@@ -337,6 +332,7 @@ require_once __DIR__ . '/includes/header.php';
         <?php endif; ?>
     </section>
 
+    <?php if (!$ausgemustert): ?>
     <section class="section">
         <h2>Belegung der nächsten 14 Tage</h2>
 
@@ -351,6 +347,7 @@ require_once __DIR__ . '/includes/header.php';
             <?php endforeach; ?>
         </ol>
     </section>
+    <?php endif; ?>
 
     <section class="section" id="fahrtenbuch">
         <h2>Fahrtenbuch</h2>
@@ -418,14 +415,14 @@ require_once __DIR__ . '/includes/header.php';
                         <?php if ($fuhrparkleiter): ?>
                             <td><?= e(nutzer_name($fahrt['fahrer_id'])) ?></td>
                         <?php endif; ?>
-                        <td><?= e($zweckText[$fahrt['zweck']] ?? $fahrt['zweck']) ?></td>
+                        <td><?= e(ZWECKE[$fahrt['zweck_id']]) ?></td>
                         <?php if ($mitKm): ?>
                             <td class="table__num"><?= e(km_text($fahrt['km_start'])) ?></td>
                             <td class="table__num"><?= e(km_text($fahrt['km_ende'])) ?></td>
                         <?php endif; ?>
                         <td>
                             <?php if ($schaden !== null): ?>
-                                <span class="badge<?= $schaden['schwere'] === 'wartung' ? ' badge--abgelehnt' : '' ?>"><?= e($schwereText[$schaden['schwere']]) ?></span>
+                                <span class="badge<?= $schaden['schwere_id'] === SCHWERE_WARTUNG ? ' badge--abgelehnt' : '' ?>"><?= e(SCHWEREGRADE[$schaden['schwere_id']]) ?></span>
                                 <span class="table__zusatz"><?= e($schaden['beschreibung']) ?></span>
                             <?php elseif ($fahrt['bemerkung'] !== ''): ?>
                                 <span class="badge">Bemerkung</span>

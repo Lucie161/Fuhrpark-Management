@@ -6,46 +6,34 @@
  * nicht selbst beantragt hat („Buchen für“). Genehmigen geht nur, wenn das
  * Fahrzeug im Zeitraum noch frei, nicht in Wartung und nicht überfällig ist
  * (genehmigung_hindernis()); eine Ablehnung braucht eine Begründung, die der
- * Antragsteller liest (siehe docs/technisches-konzept.md, Regel 9).
+ * Antragsteller liest (siehe docs/konzept/technisches-konzept.md, Regel 9).
  *
  * Prototyp: Die Anträge kommen aus includes/beispieldaten.php. Eine
  * Entscheidung wird geprüft und angezeigt, aber noch nicht gespeichert. Mit
  * Datenbank:
  *
- *   SELECT * FROM buchungen WHERE status = 'offen' ORDER BY beantragt_am
+ *   SELECT * FROM buchungen WHERE status_id = STATUS_OFFEN ORDER BY beantragt_am
  *
  * Beim Speichern:
- *   UPDATE buchungen SET status = 'genehmigt' | 'abgelehnt',
+ *   UPDATE buchungen SET status_id = STATUS_GENEHMIGT | STATUS_ABGELEHNT,
  *          entscheidung_von = :ich, entscheidung_am = NOW(),
  *          entscheidung_kommentar = :kommentar
- *    WHERE id = :id AND status = 'offen'
+ *    WHERE id = :id AND status_id = STATUS_OFFEN
  */
 
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/config.php';
 
-nur_fuer_rolle('fuhrparkleiter');
+nur_fuer_rolle(ROLLE_FUHRPARKLEITER);
 
 $pageTitle = 'Anträge genehmigen';
-
-// Feste Liste der Zwecke (siehe docs/user-stories.md).
-$zweckText = [
-    'montage'           => 'Montage',
-    'service'           => 'Wartung/Service',
-    'kundentermin'      => 'Kundentermin',
-    'aufmass'           => 'Aufmaß',
-    'materialtransport' => 'Materialtransport',
-    'lieferant'         => 'Lieferantenbesuch',
-    'schulung'          => 'Schulung',
-    'sonstiges'         => 'Sonstiges',
-];
 
 // --- Anträge aufbereiten ----------------------------------------------------
 // Offene Anträge, älteste zuerst. 'hindernis': warum Genehmigen nicht geht,
 // sonst null.
 
-$antraege = array_filter(beispiel_buchungen(), fn (array $b): bool => $b['status'] === 'offen');
+$antraege = array_filter(beispiel_buchungen(), fn (array $b): bool => $b['status_id'] === STATUS_OFFEN);
 uasort($antraege, fn (array $a, array $b): int => $a['beantragt_am'] <=> $b['beantragt_am']);
 
 foreach ($antraege as &$antrag) {
@@ -171,7 +159,7 @@ require_once __DIR__ . '/includes/header.php';
                     <a href="<?= url('fahrzeug.php?id=' . $antrag['fahrzeug_id']) ?>"><?= e(fahrzeug_name($antrag['fahrzeug_id'])) ?></a>
                 </td>
                 <td><?= e(zeitraum_text($antrag['start'], $antrag['ende'])) ?></td>
-                <td><?= e($zweckText[$antrag['zweck']] ?? $antrag['zweck']) ?></td>
+                <td><?= e(ZWECKE[$antrag['zweck_id']]) ?></td>
                 <td class="table__num"><?= e((string) $antrag['personenanzahl']) ?></td>
                 <td>
                     <?php require __DIR__ . '/includes/antrag-entscheidung.php'; ?>

@@ -4,7 +4,7 @@
  * Fuhrparkleiter. Bis 06.10.2026 auswertung.php, bis 10.10.2026 verlauf.php.
  *
  * Aufruf: historie.php, mit Zeitraum historie.php?von=2026-09-01&bis=2026-09-30,
- * die Fahrtenliste gefiltert mit &auswahl=art:auto (Kategorie) oder &auswahl=id:3
+ * die Fahrtenliste gefiltert mit &auswahl=art:1 (Kategorie, ID der Fahrzeugart) oder &auswahl=id:3
  * (ein Fahrzeug) und mit &fahrer=2 (ein Mitarbeiter); beides lässt sich
  * kombinieren. Wartungen stehen als eigene Zeilen zwischen den Fahrten, wenn
  * sie den Zeitraum berühren; &nur_fahrten=1 blendet sie aus, ebenso der
@@ -13,21 +13,24 @@
  *
  * Es gibt kein eigenes Fahrtenbuch: Jede Buchung im Status „abgeschlossen“ ist
  * ein Eintrag. Er entsteht automatisch bei der Rückgabe (entschieden am
- * 05.10.2026, siehe docs/vorlesung-notizen.md, Frage C). Eine Fahrt zählt zu
+ * 05.10.2026, siehe docs/besprechungen/vorlesung-notizen.md, Frage C). Eine Fahrt zählt zu
  * dem Tag, an dem sie zurückgegeben wurde.
  *
  * Die Summen je Fahrzeug stehen nicht hier, sondern im Fahrtenbuch des
  * Steckbriefs (fahrzeug.php); jedes Fahrzeug in der Liste verlinkt dorthin.
  *
+ * Ausgeschiedene Mitarbeiter und ausgemusterte Fahrzeuge bleiben in Liste und
+ * Filter, mit einem Zusatz im Namen: Die Fahrten haben stattgefunden.
+ *
  * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Mit Datenbank
- * (siehe docs/technisches-konzept.md, Regel 11):
+ * (siehe docs/konzept/technisches-konzept.md, Regel 11):
  *
  *   SELECT b.*, n.vorname, n.nachname, b.km_ende - b.km_start AS km,
- *          s.schwere, s.beschreibung
+ *          s.schwere_id, s.beschreibung
  *     FROM buchungen b
  *     JOIN nutzer n ON n.id = b.fahrer_id
- *     LEFT JOIN schaeden s ON s.buchung_id = b.id AND s.anlass = 'rueckgabe'
- *    WHERE b.status = 'abgeschlossen'
+ *     LEFT JOIN schaeden s ON s.buchung_id = b.id AND s.anlass_id = ANLASS_RUECKGABE
+ *    WHERE b.status_id = STATUS_ABGESCHLOSSEN
  *      AND DATE(b.zurueckgegeben_am) BETWEEN :von AND :bis
  *    ORDER BY b.zurueckgegeben_am DESC
  *   SELECT * FROM wartungen
@@ -42,44 +45,21 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/config.php';
 
-nur_fuer_rolle('fuhrparkleiter');
+nur_fuer_rolle(ROLLE_FUHRPARKLEITER);
 
 $pageTitle = 'Historie';
 
-// Feste Liste der Zwecke (siehe docs/user-stories.md).
-$zweckText = [
-    'montage'           => 'Montage',
-    'service'           => 'Wartung/Service',
-    'kundentermin'      => 'Kundentermin',
-    'aufmass'           => 'Aufmaß',
-    'materialtransport' => 'Materialtransport',
-    'lieferant'         => 'Lieferantenbesuch',
-    'schulung'          => 'Schulung',
-    'sonstiges'         => 'Sonstiges',
-];
-
-// Fahrzeugart => Beschriftung als Kategorie im Filter der Fahrtenliste.
-$artText = [
-    'auto'        => 'Autos',
-    'transporter' => 'Transporter',
-    'roller'      => 'Roller',
-    'fahrrad'     => 'Fahrräder',
-];
-
-// Schwere eines Schadens => Beschriftung (schaeden.schwere).
-$schwereText = [
-    'klein'   => 'Kleinschaden',
-    'wartung' => 'Schaden',
-];
-
+// Alle Fahrzeuge, auch ausgemusterte: Ihre Fahrten gehören zur Historie.
 $fahrzeuge = beispiel_fahrzeuge();
 
-// Mitarbeiter für den Filter „Mitarbeiter“, nach Nachname.
+// Mitarbeiter für den Filter „Mitarbeiter“, nach Nachname, auch
+// ausgeschiedene.
 $mitarbeiter = [];
 
 foreach (beispiel_nutzer() as $id => $person) {
-    if ($person['rolle'] === 'mitarbeiter') {
-        $mitarbeiter[$id] = $person['nachname'] . ', ' . $person['vorname'];
+    if ($person['rolle_id'] === ROLLE_MITARBEITER) {
+        $mitarbeiter[$id] = $person['nachname'] . ', ' . $person['vorname']
+            . ($person['geloescht_am'] !== null ? ' (ausgeschieden)' : '');
     }
 }
 
@@ -89,7 +69,7 @@ asort($mitarbeiter);
 $schadenJeBuchung = [];
 
 foreach (beispiel_schaeden() as $schaden) {
-    if ($schaden['anlass'] === 'rueckgabe') {
+    if ($schaden['anlass_id'] === ANLASS_RUECKGABE) {
         $schadenJeBuchung[$schaden['buchung_id']] = $schaden;
     }
 }
@@ -135,20 +115,20 @@ if ($eingabe['bis'] === '' && $bis !== null) {
 }
 
 // --- Filter der Fahrtenliste ------------------------------------------------
-// Fahrzeug: entweder eine Kategorie ('art:auto') oder ein Fahrzeug ('id:3'),
+// Fahrzeug: entweder eine Kategorie ('art:1') oder ein Fahrzeug ('id:3'),
 // leer für alle. Mitarbeiter: eine Nutzer-ID, leer für alle. Beide wirken nur
 // auf die Fahrtenliste, die Kennzahlen zeigen weiter den ganzen Fuhrpark.
 
 $auswahlKategorien = [];
 
-foreach ($artText as $art => $text) {
+foreach (FAHRZEUGARTEN_MEHRZAHL as $art => $text) {
     $auswahlKategorien['art:' . $art] = $text;
 }
 
 $auswahlFahrzeuge = [];
 
 foreach ($fahrzeuge as $id => $fahrzeug) {
-    $auswahlFahrzeuge['id:' . $id] = fahrzeug_name($id);
+    $auswahlFahrzeuge['id:' . $id] = fahrzeug_name($id) . ($fahrzeug['geloescht_am'] !== null ? ', ausgemustert' : '');
 }
 
 $wert = $_GET['auswahl'] ?? '';
@@ -179,7 +159,7 @@ $summe = ['fahrten' => 0, 'km' => 0, 'schaeden' => 0, 'bemerkungen' => 0];
 
 if ($fehler === []) {
     foreach (beispiel_buchungen() as $fahrt) {
-        if ($fahrt['status'] !== 'abgeschlossen'
+        if ($fahrt['status_id'] !== STATUS_ABGESCHLOSSEN
             || $fahrt['zurueckgegeben_am'] < $von || $fahrt['zurueckgegeben_am'] > $bis) {
             continue;
         }
@@ -281,7 +261,7 @@ function passt_zur_auswahl(array $fahrt, string $auswahl, array $fahrzeuge): boo
     [$feld, $wert] = explode(':', $auswahl, 2);
 
     return $feld === 'art'
-        ? $fahrzeuge[$fahrt['fahrzeug_id']]['art'] === $wert
+        ? (string) $fahrzeuge[$fahrt['fahrzeug_id']]['art_id'] === $wert
         : (string) $fahrt['fahrzeug_id'] === $wert;
 }
 
@@ -460,12 +440,12 @@ require_once __DIR__ . '/includes/header.php';
                             <a href="<?= url('fahrzeug.php?id=' . $fahrt['fahrzeug_id']) ?>#fahrtenbuch"><?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']) ?></a>
                             <span class="table__zusatz"><?= e($fahrzeug['kennzeichen']) ?></span>
                         </td>
-                        <td><?= e($zweckText[$fahrt['zweck']] ?? $fahrt['zweck']) ?></td>
+                        <td><?= e(ZWECKE[$fahrt['zweck_id']]) ?></td>
                         <td class="table__num"><?= e(km_text($fahrt['km_start'])) ?></td>
                         <td class="table__num"><?= e(km_text($fahrt['km_ende'])) ?></td>
                         <td>
                             <?php if ($fahrt['schaden'] !== null): ?>
-                                <span class="badge<?= $fahrt['schaden']['schwere'] === 'wartung' ? ' badge--abgelehnt' : '' ?>"><?= e($schwereText[$fahrt['schaden']['schwere']]) ?></span>
+                                <span class="badge<?= $fahrt['schaden']['schwere_id'] === SCHWERE_WARTUNG ? ' badge--abgelehnt' : '' ?>"><?= e(SCHWEREGRADE[$fahrt['schaden']['schwere_id']]) ?></span>
                                 <span class="table__zusatz"><?= e($fahrt['schaden']['beschreibung']) ?></span>
                             <?php elseif ($fahrt['bemerkung'] !== ''): ?>
                                 <span class="badge">Bemerkung</span>

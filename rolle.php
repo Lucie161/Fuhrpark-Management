@@ -5,7 +5,8 @@
  * Solange die Anmeldung keine Zugangsdaten prüft, wird die Person über die
  * Auswahl unter der Navigation gewählt (includes/header.php). Gesetzt werden
  * dieselben Werte wie später in login.php: $_SESSION['user_id'] und
- * $_SESSION['rolle'] aus nutzer.rolle. Mit der Anmeldung entfallen diese
+ * $_SESSION['rolle_id'] aus nutzer.rolle_id. Ausgeschiedene Nutzer stehen
+ * nicht zur Wahl (nutzer_auswahl()). Mit der Anmeldung entfallen diese
  * Datei und die Auswahl.
  *
  * Eigene Datei statt Verarbeitung auf jeder Seite: Ein POST an die aktuelle
@@ -18,9 +19,9 @@ require_once __DIR__ . '/includes/config.php';
 
 $nutzerId = (int) (is_string($_POST['nutzer'] ?? null) ? $_POST['nutzer'] : 0);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset(beispiel_nutzer()[$nutzerId])) {
-    $_SESSION['user_id'] = $nutzerId;
-    $_SESSION['rolle']   = beispiel_nutzer()[$nutzerId]['rolle'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset(nutzer_auswahl()[$nutzerId])) {
+    $_SESSION['user_id']  = $nutzerId;
+    $_SESSION['rolle_id'] = beispiel_nutzer()[$nutzerId]['rolle_id'];
 }
 
 // Zurück zur aufrufenden Seite, z. B. 'historie.php?von=2026-09-01'. Nur

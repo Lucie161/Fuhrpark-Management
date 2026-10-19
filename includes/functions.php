@@ -53,41 +53,41 @@ function is_logged_in(): bool
  */
 function aktueller_nutzer(): int
 {
-    return (int) ($_SESSION['user_id'] ?? (aktuelle_rolle() === 'fuhrparkleiter' ? 6 : 1));
+    return (int) ($_SESSION['user_id'] ?? (aktuelle_rolle() === ROLLE_FUHRPARKLEITER ? 6 : 1));
 }
 
 /**
- * Rolle des Nutzers: 'mitarbeiter' oder 'fuhrparkleiter'.
+ * Rolle des Nutzers: ROLLE_MITARBEITER oder ROLLE_FUHRPARKLEITER.
  *
  * Prototyp: gesetzt über die Auswahl unter der Navigation (rolle.php).
- * Später setzt login.php $_SESSION['rolle'] aus nutzer.rolle. Ohne Angabe
- * gilt 'mitarbeiter'.
+ * Später setzt login.php $_SESSION['rolle_id'] aus nutzer.rolle_id. Ohne
+ * Angabe gilt ROLLE_MITARBEITER.
  */
-function aktuelle_rolle(): string
+function aktuelle_rolle(): int
 {
-    return ($_SESSION['rolle'] ?? '') === 'fuhrparkleiter' ? 'fuhrparkleiter' : 'mitarbeiter';
+    return ($_SESSION['rolle_id'] ?? null) === ROLLE_FUHRPARKLEITER ? ROLLE_FUHRPARKLEITER : ROLLE_MITARBEITER;
 }
 
 /**
  * Ist der Nutzer Fuhrparkleiter? Er bucht nicht selbst, sondern genehmigt,
- * verwaltet die Fahrzeuge und wertet aus (siehe docs/user-stories.md, „Rollen“).
+ * verwaltet die Fahrzeuge und wertet aus (siehe docs/konzept/user-stories.md, „Rollen“).
  */
 function ist_fuhrparkleiter(): bool
 {
-    return aktuelle_rolle() === 'fuhrparkleiter';
+    return aktuelle_rolle() === ROLLE_FUHRPARKLEITER;
 }
 
 /**
  * Sperrt eine Seite für die andere Rolle: Wer nicht die angegebene Rolle hat,
  * landet auf der Übersicht. Steht direkt nach config.php, vor jeder
- * Formularverarbeitung der Seite (siehe docs/technisches-konzept.md, „Rollen
+ * Formularverarbeitung der Seite (siehe docs/konzept/technisches-konzept.md, „Rollen
  * je Seite“).
- *   nur_fuer_rolle('fuhrparkleiter');
+ *   nur_fuer_rolle(ROLLE_FUHRPARKLEITER);
  *
  * Weiterleitung statt Fehlerseite: Wechselt man im Prototyp die Rolle, kehrt
  * rolle.php auf die aktuelle Seite zurück und landet so auf der Übersicht.
  */
-function nur_fuer_rolle(string $rolle): void
+function nur_fuer_rolle(int $rolle): void
 {
     if (aktuelle_rolle() !== $rolle) {
         redirect('index.php');
@@ -98,17 +98,49 @@ function nur_fuer_rolle(string $rolle): void
  * Ampel: Muss eine Buchung dieser Fahrzeugart genehmigt werden? Autos und
  * Transporter ja („gelb“, Status „offen“), Roller und Fahrräder nein
  * („grün“, sofort „genehmigt“). Wie Transporter eingeordnet werden, wird
- * noch besprochen (docs/aenderungen-todo2.md); bis dahin wie Autos.
+ * noch besprochen (docs/aenderungen/aenderungen-todo2.md); bis dahin wie Autos.
  */
-function braucht_genehmigung(string $art): bool
+function braucht_genehmigung(int $artId): bool
 {
-    return !in_array($art, ['roller', 'fahrrad'], true);
+    return !in_array($artId, [ART_ROLLER, ART_FAHRRAD], true);
+}
+
+/**
+ * Fehlt dem Fahrer die Freigabe für dieses Fahrzeug? Luxusautos dürfen nur
+ * Nutzer mit darf_luxus fahren (entschieden am 19.10.2026); wie ein fehlender
+ * Führerschein ist das „rot“ in der Ampel.
+ */
+function fehlt_luxusfreigabe(int $fahrerId, array $fahrzeug): bool
+{
+    return $fahrzeug['art_id'] === ART_LUXUS && !(beispiel_nutzer()[$fahrerId]['darf_luxus'] ?? false);
+}
+
+/**
+ * Sperrt ein Schaden das Fahrzeug? Ein Schaden mit Wartung immer, bei einem
+ * Luxusauto auch ein Kleinschaden (entschieden am 19.10.2026). Dann entsteht
+ * bei der Rückgabe eine Wartung mit offenem Ende, bis der Fuhrparkleiter das
+ * Fahrzeug freigibt. Ein bei Fahrtbeginn notierter Schaden hält die Fahrt
+ * nicht auf; das Luxusauto wird erst bei der Rückgabe dieser Fahrt gesperrt.
+ */
+function schaden_sperrt(int $schwereId, int $artId): bool
+{
+    return $schwereId === SCHWERE_WARTUNG || $artId === ART_LUXUS;
+}
+
+/**
+ * Belegt die Buchung ihr Fahrzeug? Ja, solange sie beantragt, genehmigt oder
+ * unterwegs ist. Die Status-IDs sind nach dem Ablauf geordnet, daher genügt
+ * ein Vergleich (siehe includes/konstanten.php).
+ */
+function belegt_fahrzeug(array $buchung): bool
+{
+    return $buchung['status_id'] <= STATUS_UNTERWEGS;
 }
 
 /**
  * Warum der Nutzer nicht buchen darf, sonst null: Wer eine überfällige
  * Rückgabe hat, bucht nichts Neues und wird auch von Kollegen nicht als
- * Fahrer eingetragen (docs/aenderungen-todo2.md, Punkt 12).
+ * Fahrer eingetragen (docs/aenderungen/aenderungen-todo2.md, Punkt 12).
  */
 function sperre_buchen(int $nutzerId): ?string
 {
@@ -126,7 +158,7 @@ function sperre_buchen(int $nutzerId): ?string
  */
 function wartung_ende_offen(array $fahrzeug): bool
 {
-    return $fahrzeug['status'] === 'wartung'
+    return $fahrzeug['in_wartung']
         && ($fahrzeug['wartung_bis'] === null || $fahrzeug['wartung_bis'] < new DateTimeImmutable('today'));
 }
 
@@ -150,7 +182,7 @@ function wartung_text(array $fahrzeug): string
  */
 function wartung_sperrt(array $fahrzeug, DateTimeImmutable $von, DateTimeImmutable $bis): bool
 {
-    if ($fahrzeug['status'] !== 'wartung') {
+    if (!$fahrzeug['in_wartung']) {
         return false;
     }
 
@@ -167,19 +199,26 @@ function sperre_fahrtbeginn(int $fahrerId, int $fahrzeugId): ?string
     return match (true) {
         hat_ueberfaellige_rueckgabe($fahrerId) => 'Bitte geben Sie zuerst Ihr überfälliges Fahrzeug zurück.',
         fahrzeug_ueberfaellig($fahrzeugId)     => 'Das Fahrzeug ist vom vorigen Fahrer noch nicht zurückgegeben.',
-        beispiel_fahrzeuge()[$fahrzeugId]['status'] === 'wartung'
+        beispiel_fahrzeuge()[$fahrzeugId]['in_wartung']
                                                => 'Das Fahrzeug ist noch in Wartung.',
+        fehlt_luxusfreigabe($fahrerId, beispiel_fahrzeuge()[$fahrzeugId])
+                                               => 'Sie sind für Luxusautos nicht freigegeben.',
         default                                => null,
     };
 }
 
 /**
  * Warum ein Antrag nicht genehmigt werden kann, sonst null (Regel 9): Das
- * Fahrzeug ist im Zeitraum in Wartung, seine Rückgabe ist überfällig, oder es
- * ist im Zeitraum schon vergeben (genehmigt oder unterwegs).
+ * Fahrzeug ist ein Luxusauto und der Fahrer nicht freigegeben, es ist im
+ * Zeitraum in Wartung, seine Rückgabe ist überfällig, oder es ist im Zeitraum
+ * schon vergeben (genehmigt oder unterwegs).
  */
 function genehmigung_hindernis(array $antrag): ?string
 {
+    if (fehlt_luxusfreigabe($antrag['fahrer_id'], beispiel_fahrzeuge()[$antrag['fahrzeug_id']])) {
+        return 'Der Fahrer ist für Luxusautos nicht freigegeben.';
+    }
+
     if (wartung_sperrt(beispiel_fahrzeuge()[$antrag['fahrzeug_id']], $antrag['start'], $antrag['ende'])) {
         return 'Das Fahrzeug ist im Zeitraum in Wartung.';
     }
@@ -190,13 +229,65 @@ function genehmigung_hindernis(array $antrag): ?string
 
     foreach (beispiel_buchungen() as $b) {
         if ($b['fahrzeug_id'] === $antrag['fahrzeug_id'] && $b['id'] !== $antrag['id']
-            && in_array($b['status'], ['genehmigt', 'unterwegs'], true)
+            && in_array($b['status_id'], [STATUS_GENEHMIGT, STATUS_UNTERWEGS], true)
             && $b['start'] <= $antrag['ende'] && $b['ende'] >= $antrag['start']) {
             return 'Das Fahrzeug ist im Zeitraum bereits vergeben.';
         }
     }
 
     return null;
+}
+
+// Schadensfotos (Rückgabe): höchstens 3 Stück zu je 5 MB, nur JPEG, PNG oder
+// WebP. Die Grenzen liegen unter post_max_size (XAMPP: 40 MB).
+const FOTOS_MAX       = 3;
+const FOTO_MAX_BYTES  = 5 * 1024 * 1024;
+const FOTO_TYPEN      = ['image/jpeg', 'image/png', 'image/webp'];
+
+/**
+ * Prüft die hochgeladenen Schadensfotos aus <input type="file" name="fotos[]" multiple>.
+ *
+ * Der Dateityp wird am Inhalt erkannt, nicht an Endung oder Browserangabe,
+ * beides lässt sich fälschen. Liefert [gültige Fotos, Fehlermeldungen].
+ */
+function pruefe_fotos(array $dateien): array
+{
+    $fotos  = [];
+    $fehler = [];
+
+    foreach ($dateien['error'] ?? [] as $i => $code) {
+        $name = (string) $dateien['name'][$i];
+
+        if ($code === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+
+        if ($code === UPLOAD_ERR_INI_SIZE || $code === UPLOAD_ERR_FORM_SIZE
+            || $dateien['size'][$i] > FOTO_MAX_BYTES) {
+            $fehler[] = '„' . $name . '“ ist größer als ' . intdiv(FOTO_MAX_BYTES, 1024 * 1024) . ' MB.';
+            continue;
+        }
+
+        if ($code !== UPLOAD_ERR_OK || !is_uploaded_file($dateien['tmp_name'][$i])) {
+            $fehler[] = '„' . $name . '“ konnte nicht hochgeladen werden.';
+            continue;
+        }
+
+        $typ = (new finfo(FILEINFO_MIME_TYPE))->file($dateien['tmp_name'][$i]);
+
+        if (!in_array($typ, FOTO_TYPEN, true)) {
+            $fehler[] = '„' . $name . '“ ist kein Foto im Format JPEG, PNG oder WebP.';
+            continue;
+        }
+
+        $fotos[] = ['tmp_name' => $dateien['tmp_name'][$i], 'typ' => $typ];
+    }
+
+    if (count($fotos) > FOTOS_MAX) {
+        $fehler[] = 'Bitte höchstens ' . FOTOS_MAX . ' Fotos anhängen.';
+    }
+
+    return [$fotos, $fehler];
 }
 
 /**

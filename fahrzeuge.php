@@ -9,22 +9,24 @@
  * Mitarbeiter finden die Fahrzeuge in buchen.php und im Steckbrief.
  *
  * Statuspflege, keine Stammdatenpflege: Fahrzeuge werden hier weder angelegt
- * noch gelöscht (siehe docs/aenderungen-fachkonzept.md, A14).
+ * noch gelöscht (siehe docs/aenderungen/aenderungen-fachkonzept.md, A14). Ausgemusterte
+ * Fahrzeuge (geloescht_am gesetzt) stehen nicht in der Liste.
  *
  * Filter und Sortierung kommen per GET, ohne JavaScript, z. B.
- * fahrzeuge.php?art=auto&sortierung=hu_au&richtung=auf. Übernommen werden nur
+ * fahrzeuge.php?art=1&sortierung=hu_au&richtung=auf. Übernommen werden nur
  * Werte aus den festen Listen unten, alles andere fällt auf den Standard
  * zurück.
  *
  * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Eine
  * Statusänderung wird geprüft und auf dieser Seite angezeigt, aber noch nicht
- * gespeichert. Mit Datenbank (siehe docs/technisches-konzept.md, Regel 10):
+ * gespeichert. Mit Datenbank (siehe docs/konzept/technisches-konzept.md, Regel 10):
  *
- *   SELECT * FROM fahrzeuge [WHERE art = :art] ORDER BY <spalte> ASC|DESC
+ *   SELECT * FROM fahrzeuge WHERE geloescht_am IS NULL [AND art_id = :art]
+ *    ORDER BY <spalte> ASC|DESC
  *   SELECT ... FROM buchungen
- *    WHERE status IN ('offen', 'genehmigt', 'unterwegs') AND ende >= CURDATE()
- *   SELECT DISTINCT b.fahrzeug_id FROM schaeden s JOIN buchungen b ON b.id = s.buchung_id
- *    WHERE s.schwere = 'wartung' AND s.behoben_am IS NULL
+ *    WHERE status_id <= STATUS_UNTERWEGS AND ende >= CURDATE()
+ *   SELECT fahrzeug_id, schaden_id FROM wartungen
+ *    WHERE freigegeben_am IS NULL AND schaden_id IS NOT NULL
  *
  * <spalte> und die Richtung nur aus $sortierungen bzw. 'ASC'/'DESC', denn
  * ORDER BY lässt sich nicht als Platzhalter binden. Status und HU/AU filtert
@@ -43,89 +45,65 @@
  *   VALUES (:id, :grund, CURDATE(), :bis, :ich)                       -- In Wartung setzen
  *   UPDATE wartungen SET voraussichtlich_bis = :bis
  *    WHERE fahrzeug_id = :id AND freigegeben_am IS NULL               -- Ende ändern
- *   UPDATE buchungen SET status = 'storniert',
+ *   UPDATE buchungen SET status_id = STATUS_STORNIERT,
  *          entscheidung_kommentar = 'Automatisch storniert: …'
- *    WHERE fahrzeug_id = :id AND status IN ('offen', 'genehmigt')
+ *    WHERE fahrzeug_id = :id AND status_id IN (STATUS_OFFEN, STATUS_GENEHMIGT)
  *      AND start <= :bis AND ende >= CURDATE()
  * beim Freigeben:
  *   UPDATE wartungen SET freigegeben_am = CURDATE(), freigegeben_von = :ich
  *    WHERE fahrzeug_id = :id AND freigegeben_am IS NULL
- * und der Schaden, der die Wartung ausgelöst hat, gilt als behoben:
- *   UPDATE schaeden s JOIN buchungen b ON b.id = s.buchung_id
- *      SET s.behoben_am = NOW(), s.behoben_von = :ich
- *    WHERE b.fahrzeug_id = :id AND s.schwere = 'wartung' AND s.behoben_am IS NULL
+ * und der Schaden, der die Wartung ausgelöst hat (wartungen.schaden_id; bei
+ * einem Luxusauto auch ein Kleinschaden), gilt als behoben:
+ *   UPDATE schaeden SET behoben_am = NOW(), behoben_von = :ich
+ *    WHERE id = :schaden_der_wartung AND behoben_am IS NULL
  */
 
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/config.php';
 
-nur_fuer_rolle('fuhrparkleiter');
+nur_fuer_rolle(ROLLE_FUHRPARKLEITER);
 
 $pageTitle = 'Fahrzeuge';
 
-// Status => Beschriftung. Das Kürzel dient zugleich als CSS-Klasse
-// (.badge--wartung usw.). Gespeichert werden nur „verfuegbar“ und „wartung“;
-// „unterwegs“ wird aus den laufenden Fahrten abgeleitet.
+// Angezeigter Status => Beschriftung, zugleich Wert im Filter und CSS-Klasse
+// (.badge--wartung usw.). Gespeichert wird keiner davon: „in Wartung“ ergibt
+// sich aus der Tabelle wartungen, „unterwegs“ aus den laufenden Fahrten.
 $statusText = [
     'verfuegbar' => 'verfügbar',
     'unterwegs'  => 'unterwegs',
     'wartung'    => 'in Wartung',
 ];
 
-// Fahrzeugart => Beschriftung im Filter (wie in historie.php).
-$artText = [
-    'auto'        => 'Autos',
-    'transporter' => 'Transporter',
-    'roller'      => 'Roller',
-    'fahrrad'     => 'Fahrräder',
-];
-
 // Erlaubte Sortierungen, zugleich die Spalten in ORDER BY. „Fahrzeug“ wird
 // nach dem Kennzeichen sortiert.
 $sortierungen = ['kennzeichen', 'kmstand', 'hu_au', 'baujahr'];
 
-// Aktion => [erlaubt bei Status, neuer Status]. „verlaengern“ ändert nur das
-// voraussichtliche Ende einer laufenden Wartung (auch auf früher).
+// Aktion => [erlaubt, wenn in Wartung?, danach in Wartung?]. „verlaengern“
+// ändert nur das voraussichtliche Ende einer laufenden Wartung (auch auf
+// früher).
 $aktionen = [
-    'wartung'     => ['verfuegbar', 'wartung'],
-    'verlaengern' => ['wartung',    'wartung'],
-    'freigeben'   => ['wartung',    'verfuegbar'],
+    'wartung'     => [false, true],
+    'verlaengern' => [true,  true],
+    'freigeben'   => [true,  false],
 ];
 
 // Grund in entscheidung_kommentar, den der Fahrer unter „Frühere Buchungen“
 // liest.
 $stornoGrund = 'Automatisch storniert: Das Fahrzeug ist in diesem Zeitraum in Wartung.';
 
-// Stand einer Buchung => Beschriftung (wie in meine-buchungen.php).
-$buchungText = [
-    'offen'     => 'beantragt',
-    'genehmigt' => 'genehmigt',
-    'unterwegs' => 'unterwegs',
-];
-
-// Feste Liste der Zwecke (siehe docs/user-stories.md).
-$zweckText = [
-    'montage'           => 'Montage',
-    'service'           => 'Wartung/Service',
-    'kundentermin'      => 'Kundentermin',
-    'aufmass'           => 'Aufmaß',
-    'materialtransport' => 'Materialtransport',
-    'lieferant'         => 'Lieferantenbesuch',
-    'schulung'          => 'Schulung',
-    'sonstiges'         => 'Sonstiges',
-];
-
-$fahrzeuge = beispiel_fahrzeuge();
+$fahrzeuge = fahrzeuge_im_bestand();
 
 $heute = new DateTimeImmutable('today');
 
-// Fahrzeuge mit offenem Schaden, der die Wartung ausgelöst hat (wie in
-// schaeden.php). Mit dem Freigeben gilt er als behoben.
+// Fahrzeuge mit offenem Schaden, der sie sperrt, also die Wartung ausgelöst
+// hat (wie in schaeden.php; bei Luxusautos auch ein Kleinschaden). Mit dem
+// Freigeben gilt er als behoben.
 $mitSchaden = [];
 
 foreach (beispiel_schaeden() as $schaden) {
-    if ($schaden['schwere'] === 'wartung' && $schaden['behoben_am'] === null) {
+    if ($schaden['behoben_am'] === null
+        && schaden_sperrt($schaden['schwere_id'], $fahrzeuge[$schaden['fahrzeug_id']]['art_id'])) {
         $mitSchaden[] = $schaden['fahrzeug_id'];
     }
 }
@@ -133,7 +111,7 @@ foreach (beispiel_schaeden() as $schaden) {
 // --- Filter und Sortierung (GET) --------------------------------------------
 
 $filter = [
-    'art'    => erlaubter_wert('art', array_keys($artText)),
+    'art'    => erlaubter_wert('art', array_map('strval', array_keys(FAHRZEUGARTEN_MEHRZAHL))),
     'status' => erlaubter_wert('status', array_keys($statusText)),
     'hu_au'  => erlaubter_wert('hu_au', ['faellig']),
 ];
@@ -158,8 +136,8 @@ $seite = 'fahrzeuge.php' . ($ansicht !== [] ? '?' . http_build_query($ansicht) :
 $buchungenJeFahrzeug = [];
 
 foreach (beispiel_buchungen() as $buchung) {
-    if (isset($buchungText[$buchung['status']])
-        && ($buchung['ende'] >= $heute || $buchung['status'] === 'unterwegs')) {
+    if (belegt_fahrzeug($buchung)
+        && ($buchung['ende'] >= $heute || $buchung['status_id'] === STATUS_UNTERWEGS)) {
         $buchungenJeFahrzeug[$buchung['fahrzeug_id']][] = $buchung;
     }
 }
@@ -188,11 +166,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!isset($aktionen[$aktion])) {
         $fehler[] = 'Diese Aktion gibt es nicht.';
     } else {
-        [$erlaubtBei, $neuerStatus] = $aktionen[$aktion];
-        $alterStatus = $fahrzeuge[$id]['status'];
+        [$erlaubtInWartung, $danachInWartung] = $aktionen[$aktion];
 
-        if ($alterStatus !== $erlaubtBei) {
-            $fehler[] = 'Das Fahrzeug ist bereits „' . ($statusText[$alterStatus] ?? $alterStatus)
+        if ($fahrzeuge[$id]['in_wartung'] !== $erlaubtInWartung) {
+            $fehler[] = 'Das Fahrzeug ist bereits „' . ($fahrzeuge[$id]['in_wartung'] ? 'in Wartung' : 'verfügbar')
                 . '“. Die Aktion ist dafür nicht möglich.';
         } else {
             $wartungBis = null;
@@ -204,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $offenesFormular = $id;
             }
 
-            if ($neuerStatus === 'wartung') {
+            if ($danachInWartung) {
                 $wert = is_string($_POST['wartung_bis'] ?? null) ? $_POST['wartung_bis'] : '';
                 $datum = DateTimeImmutable::createFromFormat('!Y-m-d', $wert);
 
@@ -227,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         continue;
                     }
 
-                    if ($buchung['status'] === 'unterwegs') {
+                    if ($buchung['status_id'] === STATUS_UNTERWEGS) {
                         $laufend[] = $buchung;
                     } else {
                         $storniert[] = $buchung;
@@ -235,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Nur für diese Anzeige; gespeichert wird noch nicht.
-                $fahrzeuge[$id]['status'] = $neuerStatus;
+                $fahrzeuge[$id]['in_wartung'] = $danachInWartung;
                 $fahrzeuge[$id]['wartung_bis'] = $wartungBis;
                 $buchungenJeFahrzeug[$id] = array_values(array_filter(
                     $buchungenJeFahrzeug[$id] ?? [],
@@ -248,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'bis'       => $wartungBis,
                     'storniert' => $storniert,
                     'laufend'   => $laufend,
-                    'behoben'   => $neuerStatus === 'verfuegbar' && in_array($id, $mitSchaden, true),
+                    'behoben'   => !$danachInWartung && in_array($id, $mitSchaden, true),
                 ];
             }
         }
@@ -277,24 +254,26 @@ foreach ($fahrzeuge as $id => &$fahrzeug) {
     $fahrzeug['unterwegs'] = false;
 
     foreach ($buchungenJeFahrzeug[$id] ?? [] as $buchung) {
-        if ($buchung['status'] === 'unterwegs') {
+        if ($buchung['status_id'] === STATUS_UNTERWEGS) {
             $fahrzeug['unterwegs'] = true;
         }
     }
 
     // Angezeigter Status: Wartung vor unterwegs vor verfügbar.
-    $fahrzeug['stand'] = $fahrzeug['status'] === 'verfuegbar' && $fahrzeug['unterwegs']
-        ? 'unterwegs'
-        : $fahrzeug['status'];
+    $fahrzeug['stand'] = match (true) {
+        $fahrzeug['in_wartung'] => 'wartung',
+        $fahrzeug['unterwegs']  => 'unterwegs',
+        default                 => 'verfuegbar',
+    };
 
-    $fahrzeug['schaden'] = $fahrzeug['status'] === 'wartung' && in_array($id, $mitSchaden, true);
+    $fahrzeug['schaden'] = $fahrzeug['in_wartung'] && in_array($id, $mitSchaden, true);
 }
 unset($fahrzeug);
 
 // --- Filtern und sortieren --------------------------------------------------
 
 $liste = array_filter($fahrzeuge, fn (array $f): bool =>
-    ($filter['art'] === '' || $f['art'] === $filter['art'])
+    ($filter['art'] === '' || (string) $f['art_id'] === $filter['art'])
     && match ($filter['status']) {
         ''          => true,
         'unterwegs' => $f['unterwegs'],
@@ -417,8 +396,8 @@ require_once __DIR__ . '/includes/header.php';
             <label class="form__label" for="art">Fahrzeugart</label>
             <select class="form__input" id="art" name="art">
                 <option value="">Alle</option>
-                <?php foreach ($artText as $wert => $text): ?>
-                    <option value="<?= e($wert) ?>"<?= $wert === $filter['art'] ? ' selected' : '' ?>><?= e($text) ?></option>
+                <?php foreach (FAHRZEUGARTEN_MEHRZAHL as $wert => $text): ?>
+                    <option value="<?= e((string) $wert) ?>"<?= (string) $wert === $filter['art'] ? ' selected' : '' ?>><?= e($text) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
@@ -496,7 +475,7 @@ require_once __DIR__ . '/includes/header.php';
                         <?php if (wartung_ende_offen($fahrzeug)): ?>
                             <span class="badge badge--abgelehnt">Ende festlegen</span>
                         <?php endif; ?>
-                        <?php if ($fahrzeug['status'] === 'wartung'): ?>
+                        <?php if ($fahrzeug['in_wartung']): ?>
                             <span class="table__zusatz"><?= e(wartung_text($fahrzeug)) ?></span>
                         <?php endif; ?>
                         <?php if (fahrzeug_ueberfaellig($id)): ?>
@@ -524,8 +503,8 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="aktionen">
                             <?php
                             // Dasselbe Formular zum Sperren und zum Ändern des Endes.
-                            $wartungAktion = $fahrzeug['status'] === 'verfuegbar' ? 'wartung' : 'verlaengern';
-                            $wartungWert = $fahrzeug['status'] === 'wartung' && !wartung_ende_offen($fahrzeug)
+                            $wartungAktion = $fahrzeug['in_wartung'] ? 'verlaengern' : 'wartung';
+                            $wartungWert = $fahrzeug['in_wartung'] && !wartung_ende_offen($fahrzeug)
                                 ? $fahrzeug['wartung_bis']->format('Y-m-d')
                                 : '';
                             ?>
@@ -557,8 +536,8 @@ require_once __DIR__ . '/includes/header.php';
                                                 <li>
                                                     <?= e(zeitraum_text($buchung['start'], $buchung['ende'])) ?>,
                                                     <?= e(nutzer_name($buchung['fahrer_id'])) ?>,
-                                                    <?= e($zweckText[$buchung['zweck']] ?? $buchung['zweck']) ?>
-                                                    (<?= e($buchungText[$buchung['status']] ?? $buchung['status']) ?>)
+                                                    <?= e(ZWECKE[$buchung['zweck_id']]) ?>
+                                                    (<?= e(BUCHUNGSSTATUS[$buchung['status_id']]) ?>)
                                                 </li>
                                             <?php endforeach; ?>
                                         </ul>
@@ -572,7 +551,7 @@ require_once __DIR__ . '/includes/header.php';
                                 </form>
                             </details>
 
-                            <?php if ($fahrzeug['status'] === 'wartung'): ?>
+                            <?php if ($fahrzeug['in_wartung']): ?>
                                 <form method="post" action="<?= e(url($seite)) ?>">
                                     <input type="hidden" name="fahrzeug" value="<?= e((string) $id) ?>">
                                     <input type="hidden" name="aktion" value="freigeben">

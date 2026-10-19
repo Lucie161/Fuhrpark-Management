@@ -232,10 +232,10 @@ VALUES
     -- offen; sieht Lucie heute bei Fahrtbeginn mit Rad 1 (Buchung 11)
     (7, 48, 2, 1, 'Schutzblech hinten leicht verbogen, schleift nicht.',
         TIMESTAMP(@heute - INTERVAL 5 DAY, '15:10'), NULL, NULL),
-    -- offen; Kleinschaden am Tesla (Luxusauto): steht beim Fuhrparkleiter
-    -- unter „Zu erledigen“
+    -- Kleinschaden am Tesla: Bei einem Luxusauto sperrt er, daher Wartung 4;
+    -- mit der Freigabe behoben
     (8, 41, 2, 1, 'Felge hinten rechts zerkratzt, Bordstein.',
-        TIMESTAMP(@heute - INTERVAL 25 DAY, '18:10'), NULL, NULL);
+        TIMESTAMP(@heute - INTERVAL 25 DAY, '18:10'), TIMESTAMP(@heute - INTERVAL 23 DAY, '15:00'), 6);
 
 
 -- Wartungen. Laufend ist eine Wartung ohne freigegeben_am; die übrigen stehen
@@ -253,4 +253,7 @@ VALUES
         @heute - INTERVAL 50 DAY, @heute - INTERVAL 47 DAY, NULL, @heute - INTERVAL 47 DAY, 6),
     -- Passat, abgeschlossen: Inspektion ohne Schaden
     (3, 1, NULL, 'Inspektion',
-        @heute - INTERVAL 35 DAY, @heute - INTERVAL 34 DAY, 6,    @heute - INTERVAL 34 DAY, 6);
+        @heute - INTERVAL 35 DAY, @heute - INTERVAL 34 DAY, 6,    @heute - INTERVAL 34 DAY, 6),
+    -- Tesla, abgeschlossen: Kleinschaden 8 an einem Luxusauto sperrt
+    (4, 6, 8,    'Felge hinten rechts zerkratzt, Bordstein.',
+        @heute - INTERVAL 25 DAY, @heute - INTERVAL 23 DAY, NULL, @heute - INTERVAL 23 DAY, 6);

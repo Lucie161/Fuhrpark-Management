@@ -6,36 +6,40 @@
  * Fahrzeugart) als GET-Formular, darunter alle passenden Fahrzeuge mit Bild,
  * darunter das Absenden. Angezeigt werden nur Fahrzeuge, die im Zeitraum
  * gebucht werden können; belegte, in Wartung, mit überfälliger Rückgabe und
- * solche, für die dem Fahrer der Führerschein fehlt (Ampel „rot“), sind
+ * solche, für die dem Fahrer der Führerschein oder die Freigabe für
+ * Luxusautos (nutzer.darf_luxus) fehlt (Ampel „rot“), sind
  * ausgeblendet (entschieden am 10.10.2026). Jedes Fahrzeug verlinkt auf seinen
  * Steckbrief; eine eigene Fahrzeugliste haben Mitarbeiter nicht (siehe
- * docs/technisches-konzept.md, Regel 1).
+ * docs/konzept/technisches-konzept.md, Regel 1).
  *
  * Ampel: Autos und Transporter werden beantragt (Status „offen“), Roller und
  * Fahrräder sind sofort bestätigt („genehmigt“), siehe braucht_genehmigung().
  *
- * Überfällige Rückgabe (docs/aenderungen-todo2.md, Punkt 12): Wer selbst eine
+ * Überfällige Rückgabe (docs/aenderungen/aenderungen-todo2.md, Punkt 12): Wer selbst eine
  * hat, kann nichts buchen; wer eine hat, kann nicht als Fahrer eingetragen
  * werden; ein Fahrzeug mit überfälliger Rückgabe ist nicht wählbar.
  *
  * Aufruf mit Vorauswahl aus dem Steckbrief: buchen.php?fahrzeug=1. Die Suche
- * steht in der Adresse, z. B. buchen.php?beginn=2026-10-07&ende=2026-10-08&zweck=montage.
+ * steht in der Adresse, z. B. buchen.php?beginn=2026-10-07&ende=2026-10-08&zweck=1
+ * (Zweck und Fahrzeugart als ID aus includes/konstanten.php).
  *
  * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Eine Buchung
  * wird geprüft und bestätigt, aber noch nicht gespeichert. Mit Datenbank:
  *
- *   SELECT id, vorname, nachname FROM nutzer WHERE rolle = 'mitarbeiter'
+ *   SELECT id, vorname, nachname FROM nutzer
+ *    WHERE rolle_id = ROLLE_MITARBEITER AND geloescht_am IS NULL
  *   SELECT nutzer_id, klasse FROM nutzer_fuehrerscheine
  *   SELECT * FROM fahrzeuge
- *    WHERE sitzplaetze >= :personen [AND art = :art] [AND art IN ('auto', 'transporter')]
- *    ORDER BY art, kennzeichen
- *   SELECT fahrzeug_id, start, ende, status FROM buchungen
- *    WHERE status IN ('offen', 'genehmigt', 'unterwegs')
- *      AND (ende >= :beginn OR status = 'unterwegs')
+ *    WHERE geloescht_am IS NULL AND sitzplaetze >= :personen
+ *      [AND art_id = :art] [AND art_id IN (ART_AUTO, ART_TRANSPORTER)]
+ *    ORDER BY art_id, kennzeichen
+ *   SELECT fahrzeug_id, start, ende, status_id FROM buchungen
+ *    WHERE status_id <= STATUS_UNTERWEGS
+ *      AND (ende >= :beginn OR status_id = STATUS_UNTERWEGS)
  *
  * Beim Absenden dieselben Prüfungen noch einmal, dann:
  *   INSERT INTO buchungen (fahrzeug_id, antragsteller_id, fahrer_id, start,
- *     ende, zweck, personenanzahl, status, beantragt_am)
+ *     ende, zweck_id, personenanzahl, status_id, beantragt_am)
  *   VALUES (:fahrzeug, :ich, :fahrer, :beginn, :ende, :zweck, :personen,
  *     :status, NOW())
  */
@@ -44,47 +48,28 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/config.php';
 
-nur_fuer_rolle('mitarbeiter');
+nur_fuer_rolle(ROLLE_MITARBEITER);
 
 $pageTitle = 'Fahrzeug buchen';
 
 $ich = aktueller_nutzer();
 
-// Mitarbeiter mit ihren Führerscheinklassen; nur sie können Fahrer sein.
+// Aktive Mitarbeiter mit ihren Führerscheinklassen; nur sie können Fahrer
+// sein. Ausgeschiedene fehlen.
 $nutzer = [];
 
 foreach (beispiel_nutzer() as $id => $person) {
-    if ($person['rolle'] === 'mitarbeiter') {
+    if ($person['rolle_id'] === ROLLE_MITARBEITER && $person['geloescht_am'] === null) {
         $nutzer[$id] = ['name' => nutzer_name($id), 'fuehrerscheine' => $person['fuehrerscheine']];
     }
 }
 
-// Feste Liste der Zwecke (siehe docs/user-stories.md).
-$zweckText = [
-    'montage'           => 'Montage',
-    'service'           => 'Wartung/Service',
-    'kundentermin'      => 'Kundentermin',
-    'aufmass'           => 'Aufmaß',
-    'materialtransport' => 'Materialtransport',
-    'lieferant'         => 'Lieferantenbesuch',
-    'schulung'          => 'Schulung',
-    'sonstiges'         => 'Sonstiges',
-];
-
 // Zwecke, für die nur Autos und Transporter in Frage kommen (Regel 1). Wie
 // Zwecke und Fahrzeugarten zusammenhängen, wird noch besprochen.
-$nurAuto = ['montage', 'materialtransport'];
-$autoArten = ['auto', 'transporter'];
+$nurAuto = [ZWECK_MONTAGE, ZWECK_MATERIALTRANSPORT];
+$autoArten = [ART_AUTO, ART_TRANSPORTER];
 
-// Fahrzeugart => Beschriftung.
-$artText = [
-    'auto'        => 'Auto',
-    'transporter' => 'Transporter',
-    'roller'      => 'Roller',
-    'fahrrad'     => 'Fahrrad',
-];
-
-$fahrzeuge = beispiel_fahrzeuge();
+$fahrzeuge = fahrzeuge_im_bestand();
 
 $heute = new DateTimeImmutable('today');
 
@@ -93,7 +78,7 @@ $heute = new DateTimeImmutable('today');
 $buchungen = [];
 
 foreach (beispiel_buchungen() as $b) {
-    if (in_array($b['status'], ['offen', 'genehmigt', 'unterwegs'], true)) {
+    if (belegt_fahrzeug($b)) {
         $buchungen[] = [
             'fahrzeug_id' => $b['fahrzeug_id'],
             'von'         => (int) $heute->diff($b['start'])->format('%r%a'),
@@ -154,8 +139,11 @@ if ($personen === false) {
     $personen = 1;
 }
 
-$zweck = is_string($_GET['zweck'] ?? null) && isset($zweckText[$_GET['zweck']]) ? $_GET['zweck'] : '';
-$art   = is_string($_GET['art'] ?? null) && isset($artText[$_GET['art']]) ? $_GET['art'] : '';
+// Zweck und Fahrzeugart als ID, 0 = nicht gewählt.
+$zweck = (int) (is_string($_GET['zweck'] ?? null) ? $_GET['zweck'] : 0);
+$zweck = isset(ZWECKE[$zweck]) ? $zweck : 0;
+$art   = (int) (is_string($_GET['art'] ?? null) ? $_GET['art'] : 0);
+$art   = isset(FAHRZEUGARTEN[$art]) ? $art : 0;
 
 // Aus dem Steckbrief vorgewähltes Fahrzeug (fahrzeug.php → buchen.php?fahrzeug=1).
 $auswahl = (int) (is_string($_GET['fahrzeug'] ?? null) ? $_GET['fahrzeug'] : 0);
@@ -168,12 +156,12 @@ $suche = $fehler === [] && $meineSperre === null ? array_filter([
     'personen' => $personen !== 1 ? $personen : null,
     'zweck'    => $zweck,
     'art'      => $art,
-], fn ($wert): bool => $wert !== null && $wert !== '') : [];
+], fn ($wert): bool => $wert !== null && $wert !== 0) : [];
 
 // --- Fahrzeugliste ----------------------------------------------------------
 // Personen, Fahrzeugart und Zweck schränken die passenden Fahrzeuge ein
-// (WHERE). Je Fahrzeug 'stand': frei, vergeben, wartung, ueberfaellig oder
-// fuehrerschein. Angezeigt werden nur die freien ($liste); der Stand der
+// (WHERE). Je Fahrzeug 'stand': frei, vergeben, wartung, ueberfaellig,
+// fuehrerschein oder luxus. Angezeigt werden nur die freien ($liste); der Stand der
 // übrigen dient der Prüfung beim Absenden und dem Hinweis zur Vorauswahl.
 
 // Stand => Grund, warum das Fahrzeug nicht gebucht werden kann.
@@ -182,6 +170,7 @@ $grundText = [
     'wartung'       => 'ist im gewählten Zeitraum in Wartung',
     'ueberfaellig'  => 'ist noch nicht zurückgegeben',
     'fuehrerschein' => 'braucht einen Führerschein, den der Fahrer nicht hat',
+    'luxus'         => 'ist ein Luxusauto, für das der Fahrer nicht freigegeben ist',
 ];
 
 $passende = [];
@@ -193,8 +182,8 @@ if ($suche !== []) {
 
     foreach ($fahrzeuge as $id => $fahrzeug) {
         if ($fahrzeug['sitzplaetze'] < $personen
-            || ($art !== '' && $fahrzeug['art'] !== $art)
-            || (in_array($zweck, $nurAuto, true) && !in_array($fahrzeug['art'], $autoArten, true))) {
+            || ($art !== 0 && $fahrzeug['art_id'] !== $art)
+            || (in_array($zweck, $nurAuto, true) && !in_array($fahrzeug['art_id'], $autoArten, true))) {
             continue;
         }
 
@@ -203,10 +192,12 @@ if ($suche !== []) {
         $fehlt = $fahrzeug['fuehrerschein'] !== null
             && !in_array($fahrzeug['fuehrerschein'], $nutzer[$fahrer]['fuehrerscheine'], true);
 
+        // Zuerst, was am Fahrer liegt: Das gilt für jeden Zeitraum.
         $fahrzeug['stand'] = match (true) {
+            $fehlt                     => 'fuehrerschein',
+            fehlt_luxusfreigabe($fahrer, $fahrzeug) => 'luxus',
             wartung_sperrt($fahrzeug, $zeitraum['beginn'], $zeitraum['ende']) => 'wartung',
             fahrzeug_ueberfaellig($id) => 'ueberfaellig',
-            $fehlt                     => 'fuehrerschein',
             $belegt                    => 'vergeben',
             default                    => 'frei',
         };
@@ -236,7 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($meineSperre !== null) {
         $fehler[] = 'Sie können derzeit nicht buchen. ' . $meineSperre;
     } elseif ($fehler === []) {
-        if ($zweck === '') {
+        if ($zweck === 0) {
             $fehler[] = 'Bitte wählen Sie oben den Zweck der Fahrt.';
         }
 
@@ -252,7 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Nur für diese Anzeige; gespeichert wird noch nicht.
         $bestaetigung = [
             'fahrzeug' => $liste[$auswahl],
-            'status'   => braucht_genehmigung($liste[$auswahl]['art']) ? 'offen' : 'genehmigt',
+            'status'   => braucht_genehmigung($liste[$auswahl]['art_id']) ? STATUS_OFFEN : STATUS_GENEHMIGT,
         ];
     }
 }
@@ -274,7 +265,7 @@ require_once __DIR__ . '/includes/header.php';
 <?php if ($bestaetigung !== null): ?>
     <?php
     $fahrzeug = $bestaetigung['fahrzeug'];
-    $bestaetigt = $bestaetigung['status'] === 'genehmigt';
+    $bestaetigt = $bestaetigung['status'] === STATUS_GENEHMIGT;
     ?>
 
     <div class="alert <?= $bestaetigt ? 'alert--erfolg' : 'alert--hinweis' ?>">
@@ -288,7 +279,7 @@ require_once __DIR__ . '/includes/header.php';
         <p class="alert__zeile">
             <?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell'] . ' (' . $fahrzeug['kennzeichen'] . ')') ?>
             <?= e(zeitraum_satz($zeitraum['beginn'], $zeitraum['ende'])) ?>,
-            <?= e($zweckText[$zweck]) ?>, Fahrer: <?= e($nutzer[$fahrer]['name']) ?>.
+            <?= e(ZWECKE[$zweck]) ?>, Fahrer: <?= e($nutzer[$fahrer]['name']) ?>.
         </p>
     </div>
 
@@ -359,8 +350,8 @@ require_once __DIR__ . '/includes/header.php';
                 <label class="form__label" for="zweck">Zweck</label>
                 <select class="form__input" id="zweck" name="zweck">
                     <option value="">bitte wählen</option>
-                    <?php foreach ($zweckText as $wert => $text): ?>
-                        <option value="<?= e($wert) ?>"<?= $wert === $zweck ? ' selected' : '' ?>><?= e($text) ?></option>
+                    <?php foreach (ZWECKE as $wert => $text): ?>
+                        <option value="<?= e((string) $wert) ?>"<?= $wert === $zweck ? ' selected' : '' ?>><?= e($text) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <span class="form__hinweis">Montage und Materialtransport nur mit Auto oder Transporter</span>
@@ -370,8 +361,8 @@ require_once __DIR__ . '/includes/header.php';
                 <label class="form__label" for="art">Fahrzeugart</label>
                 <select class="form__input" id="art" name="art">
                     <option value="">alle</option>
-                    <?php foreach ($artText as $wert => $text): ?>
-                        <option value="<?= e($wert) ?>"<?= $wert === $art ? ' selected' : '' ?>><?= e($text) ?></option>
+                    <?php foreach (FAHRZEUGARTEN as $wert => $text): ?>
+                        <option value="<?= e((string) $wert) ?>"<?= $wert === $art ? ' selected' : '' ?>><?= e($text) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -427,7 +418,7 @@ require_once __DIR__ . '/includes/header.php';
 
                         <span class="fahrzeugkarte__daten">
                             <?= e($fahrzeug['kennzeichen']) ?> &middot;
-                            <?= e($artText[$fahrzeug['art']]) ?> &middot;
+                            <?= e(FAHRZEUGARTEN[$fahrzeug['art_id']]) ?> &middot;
                             <?= e((string) $fahrzeug['sitzplaetze']) ?> <?= $fahrzeug['sitzplaetze'] === 1 ? 'Sitz' : 'Sitze' ?>
                             <?php if ($fahrzeug['fuehrerschein'] !== null): ?>
                                 &middot; Klasse <?= e($fahrzeug['fuehrerschein']) ?>
@@ -435,7 +426,7 @@ require_once __DIR__ . '/includes/header.php';
                         </span>
 
                         <span class="fahrzeugkarte__fuss">
-                            <span><?= braucht_genehmigung($fahrzeug['art']) ? 'Antrag nötig' : 'sofort bestätigt' ?></span>
+                            <span><?= braucht_genehmigung($fahrzeug['art_id']) ? 'Antrag nötig' : 'sofort bestätigt' ?></span>
                             <a href="<?= url('fahrzeug.php?id=' . $id) ?>">Steckbrief</a>
                         </span>
                     </label>
@@ -450,7 +441,7 @@ require_once __DIR__ . '/includes/header.php';
             <?php else: ?>
                 <h2 class="form__titel section">3. Absenden</h2>
 
-                <?php if ($zweck === ''): ?>
+                <?php if ($zweck === 0): ?>
                     <p class="note">Bitte wählen Sie oben noch den Zweck der Fahrt.</p>
                 <?php endif; ?>
 

@@ -4,7 +4,7 @@
  * genehmigungen.php und auf der Übersicht des Fuhrparkleiters (index.php).
  * Beide schicken an genehmigungen.php. Mit zurueck=index leitet die Seite
  * nach der Entscheidung zur Übersicht zurück (siehe
- * docs/technisches-konzept.md, Regel 8).
+ * docs/konzept/technisches-konzept.md, Regel 8).
  *
  * Erwartet von der einbindenden Seite:
  *   $id             Nummer des Antrags

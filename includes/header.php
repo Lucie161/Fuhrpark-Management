@@ -16,14 +16,14 @@ $pageTitle = $pageTitle ?? 'Übersicht';
 // Buchungen. Die Seiten sind zusätzlich für die andere Rolle gesperrt
 // (nur_fuer_rolle()).
 $nav = [
-    'index.php'               => ['Übersicht',           ['mitarbeiter', 'fuhrparkleiter']],
-    'fahrzeuge.php'           => ['Fahrzeuge',           ['fuhrparkleiter']],
-    'schaeden.php'            => ['Schäden',             ['fuhrparkleiter']],
-    'buchen.php'              => ['Fahrzeug buchen',     ['mitarbeiter']],
-    'meine-buchungen.php'     => ['Meine Buchungen',     ['mitarbeiter']],
-    'kalender.php'            => ['Kalender',            ['mitarbeiter', 'fuhrparkleiter']],
-    'genehmigungen.php'       => ['Anträge genehmigen',  ['fuhrparkleiter']],
-    'historie.php'            => ['Historie',            ['fuhrparkleiter']],
+    'index.php'               => ['Übersicht',           [ROLLE_MITARBEITER, ROLLE_FUHRPARKLEITER]],
+    'fahrzeuge.php'           => ['Fahrzeuge',           [ROLLE_FUHRPARKLEITER]],
+    'schaeden.php'            => ['Schäden',             [ROLLE_FUHRPARKLEITER]],
+    'buchen.php'              => ['Fahrzeug buchen',     [ROLLE_MITARBEITER]],
+    'meine-buchungen.php'     => ['Meine Buchungen',     [ROLLE_MITARBEITER]],
+    'kalender.php'            => ['Kalender',            [ROLLE_MITARBEITER, ROLLE_FUHRPARKLEITER]],
+    'genehmigungen.php'       => ['Anträge genehmigen',  [ROLLE_FUHRPARKLEITER]],
+    'historie.php'            => ['Historie',            [ROLLE_FUHRPARKLEITER]],
 ];
 
 // Seiten ohne eigenen Navigationspunkt => Punkt, der für sie aktiv ist.
@@ -83,7 +83,7 @@ $rollenwahlZurueck = basename($_SERVER['SCRIPT_NAME'])
             <select class="rollenwahl__auswahl" id="rollenwahl" name="nutzer">
                 <?php foreach (nutzer_auswahl() as $wert => $text): ?>
                     <?php
-                    $rollenwahlZusatz = beispiel_nutzer()[$wert]['rolle'] === 'fuhrparkleiter' ? 'Fuhrparkleiter' : 'Mitarbeiter';
+                    $rollenwahlZusatz = ROLLEN[beispiel_nutzer()[$wert]['rolle_id']];
                     $rollenwahlZusatz .= hat_ueberfaellige_rueckgabe($wert) ? ', Rückgabe überfällig' : '';
                     ?>
                     <option value="<?= e((string) $wert) ?>"<?= $wert === aktueller_nutzer() ? ' selected' : '' ?>><?= e($text . ' (' . $rollenwahlZusatz . ')') ?></option>

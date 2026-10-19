@@ -5,7 +5,7 @@
  * Zeigt die aktuellen Buchungen (beantragt, genehmigt, unterwegs), die ich
  * beantragt habe oder bei denen ich Fahrer bin, die nächste zuerst. Von hier
  * aus wird storniert und die Fahrt begonnen; „Fahrt beginnen“ hat keine
- * eigene Seite (siehe docs/technisches-konzept.md, Regel 5). Frühere und
+ * eigene Seite (siehe docs/konzept/technisches-konzept.md, Regel 5). Frühere und
  * abgesagte Buchungen stehen in fruehere-buchungen.php, verlinkt unter der
  * Tabelle.
  *
@@ -15,7 +15,7 @@
  *   SELECT b.*, f.hersteller, f.modell, f.kennzeichen, ...
  *     FROM buchungen b JOIN fahrzeuge f ON f.id = b.fahrzeug_id
  *    WHERE (b.antragsteller_id = :ich OR b.fahrer_id = :ich)
- *      AND b.status IN ('offen', 'genehmigt', 'unterwegs')
+ *      AND b.status_id <= STATUS_UNTERWEGS
  *    ORDER BY b.start
  */
 
@@ -23,58 +23,38 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/config.php';
 
-nur_fuer_rolle('mitarbeiter');
+nur_fuer_rolle(ROLLE_MITARBEITER);
 
 $pageTitle = 'Meine Buchungen';
 
 $ich = aktueller_nutzer();
 
-// Statuskürzel einer Buchung => Beschriftung. Das Kürzel dient zugleich als
-// CSS-Klasse (.badge--offen usw.).
-$statusText = [
-    'offen'     => 'beantragt',
-    'genehmigt' => 'genehmigt',
-    'unterwegs' => 'unterwegs',
-];
-
-// Feste Liste der Zwecke (siehe docs/user-stories.md).
-$zweckText = [
-    'montage'           => 'Montage',
-    'service'           => 'Wartung/Service',
-    'kundentermin'      => 'Kundentermin',
-    'aufmass'           => 'Aufmaß',
-    'materialtransport' => 'Materialtransport',
-    'lieferant'         => 'Lieferantenbesuch',
-    'schulung'          => 'Schulung',
-    'sonstiges'         => 'Sonstiges',
-];
-
 $heute = new DateTimeImmutable('today');
 
 // --- Buchungen aufbereiten --------------------------------------------------
 // Je Buchung wird festgehalten, welche Aktionen möglich sind. Die Regeln
-// stehen in docs/technisches-konzept.md (Regeln 4 und 5).
+// stehen in docs/konzept/technisches-konzept.md (Regeln 4 und 5).
 
 $aktuelle = [];
 
 foreach (beispiel_buchungen() as $buchung) {
     if (($buchung['antragsteller_id'] !== $ich && $buchung['fahrer_id'] !== $ich)
-        || !isset($statusText[$buchung['status']])) {
+        || !belegt_fahrzeug($buchung)) {
         continue;
     }
 
     // Aktiv: genehmigt, heute liegt im Zeitraum, ich bin der Fahrer. Ob die
     // Fahrt wirklich beginnen kann, sagt 'sperre' (überfällige Rückgabe).
-    $buchung['kann_beginnen'] = $buchung['status'] === 'genehmigt'
+    $buchung['kann_beginnen'] = $buchung['status_id'] === STATUS_GENEHMIGT
         && $buchung['start'] <= $heute && $heute <= $buchung['ende']
         && $buchung['fahrer_id'] === $ich;
     $buchung['sperre'] = $buchung['kann_beginnen'] ? sperre_fahrtbeginn($ich, $buchung['fahrzeug_id']) : null;
 
     // Stornieren nur, solange die Fahrt nicht begonnen hat; Antragsteller
     // und Fahrer dürfen beide.
-    $buchung['kann_stornieren'] = in_array($buchung['status'], ['offen', 'genehmigt'], true);
+    $buchung['kann_stornieren'] = in_array($buchung['status_id'], [STATUS_OFFEN, STATUS_GENEHMIGT], true);
 
-    $buchung['ueberfaellig'] = $buchung['status'] === 'unterwegs' && $buchung['ende'] < $heute;
+    $buchung['ueberfaellig'] = $buchung['status_id'] === STATUS_UNTERWEGS && $buchung['ende'] < $heute;
 
     $aktuelle[] = $buchung;
 }
@@ -117,11 +97,11 @@ require_once __DIR__ . '/includes/header.php';
                             <span class="table__zusatz">Fahrer: <?= e(nutzer_name($buchung['fahrer_id'])) ?></span>
                         <?php endif; ?>
                     </td>
-                    <td><?= e($zweckText[$buchung['zweck']] ?? $buchung['zweck']) ?></td>
+                    <td><?= e(ZWECKE[$buchung['zweck_id']]) ?></td>
                     <td class="table__num"><?= e((string) $buchung['personenanzahl']) ?></td>
                     <td>
-                        <span class="badge badge--<?= e($buchung['status']) ?>">
-                            <?= e($statusText[$buchung['status']] ?? $buchung['status']) ?>
+                        <span class="badge badge--<?= e(BUCHUNGSSTATUS_KLASSE[$buchung['status_id']]) ?>">
+                            <?= e(BUCHUNGSSTATUS[$buchung['status_id']]) ?>
                         </span>
                         <?php if ($buchung['ueberfaellig']): ?>
                             <span class="badge badge--abgelehnt">Rückgabe überfällig</span>
@@ -133,7 +113,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <?php require __DIR__ . '/includes/fahrt-beginnen.php'; ?>
                             <?php endif; ?>
 
-                            <?php if ($buchung['status'] === 'unterwegs'): ?>
+                            <?php if ($buchung['status_id'] === STATUS_UNTERWEGS): ?>
                                 <a class="button button--klein"
                                    href="<?= url('rueckgabe.php?buchung=' . $buchung['id']) ?>">Zurückgeben</a>
                             <?php endif; ?>

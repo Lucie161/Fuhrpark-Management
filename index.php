@@ -10,19 +10,20 @@
  * ältesten offenen Anträgen zum direkten Entscheiden und den offenen
  * Schäden, zuletzt „Fuhrpark“ mit den Fahrzeugen nach Status. Er bucht nicht
  * selbst und hat daher keine eigenen Fahrten (siehe
- * docs/technisches-konzept.md, Regeln 5 und 8).
+ * docs/konzept/technisches-konzept.md, Regeln 5 und 8).
  *
  * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Mit Datenbank:
  *
  *   Mitarbeiter:
  *   SELECT ... FROM buchungen WHERE (antragsteller_id = :ich OR fahrer_id = :ich)
- *      AND status IN ('offen', 'genehmigt', 'unterwegs')
+ *      AND status_id <= STATUS_UNTERWEGS
  *   Fuhrparkleiter:
- *   SELECT status, COUNT(*) FROM fahrzeuge GROUP BY status
- *   SELECT ... FROM buchungen WHERE status = 'unterwegs'
+ *   SELECT COUNT(*) FROM fahrzeuge WHERE geloescht_am IS NULL
+ *   SELECT COUNT(*) FROM wartungen WHERE freigegeben_am IS NULL
+ *   SELECT ... FROM buchungen WHERE status_id = STATUS_UNTERWEGS
  *   offene Anträge wie in genehmigungen.php
  *   SELECT COUNT(*) FROM schaeden
- *    WHERE schwere = 'wartung' AND behoben_am IS NULL
+ *    WHERE schwere_id = SCHWERE_WARTUNG AND behoben_am IS NULL
  */
 
 declare(strict_types=1);
@@ -32,18 +33,6 @@ require_once __DIR__ . '/includes/config.php';
 $pageTitle = 'Übersicht';
 
 $ich = aktueller_nutzer();
-
-// Feste Liste der Zwecke (siehe docs/user-stories.md).
-$zweckText = [
-    'montage'           => 'Montage',
-    'service'           => 'Wartung/Service',
-    'kundentermin'      => 'Kundentermin',
-    'aufmass'           => 'Aufmaß',
-    'materialtransport' => 'Materialtransport',
-    'lieferant'         => 'Lieferantenbesuch',
-    'schulung'          => 'Schulung',
-    'sonstiges'         => 'Sonstiges',
-];
 
 // So viele offene Anträge stehen direkt auf der Übersicht: beim
 // Fuhrparkleiter die ältesten zum Entscheiden (die übrigen hinter dem Link auf
@@ -66,18 +55,18 @@ $beantragte = [];
 if (!ist_fuhrparkleiter()) {
     foreach (beispiel_buchungen() as $buchung) {
         if (($buchung['antragsteller_id'] !== $ich && $buchung['fahrer_id'] !== $ich)
-            || !in_array($buchung['status'], ['offen', 'genehmigt', 'unterwegs'], true)) {
+            || !belegt_fahrzeug($buchung)) {
             continue;
         }
 
-        if ($buchung['status'] === 'unterwegs') {
+        if ($buchung['status_id'] === STATUS_UNTERWEGS) {
             $buchung['ueberfaellig'] = $buchung['ende'] < $heute;
             $laufende[] = $buchung;
-        } elseif ($buchung['status'] === 'genehmigt' && $buchung['fahrer_id'] === $ich
+        } elseif ($buchung['status_id'] === STATUS_GENEHMIGT && $buchung['fahrer_id'] === $ich
             && $buchung['start'] <= $heute && $heute <= $buchung['ende']) {
             $buchung['sperre'] = sperre_fahrtbeginn($ich, $buchung['fahrzeug_id']);
             $aktive[] = $buchung;
-        } elseif ($buchung['status'] === 'offen') {
+        } elseif ($buchung['status_id'] === STATUS_OFFEN) {
             $beantragte[] = $buchung;
         }
     }
@@ -96,9 +85,9 @@ $meineUeberfaelligen = array_filter($laufende, fn (array $b): bool => $b['ueberf
 $fuhrpark = null;
 
 if (ist_fuhrparkleiter()) {
-    $fahrzeuge = beispiel_fahrzeuge();
+    $fahrzeuge = fahrzeuge_im_bestand();
 
-    $unterwegs = array_filter(beispiel_buchungen(), fn (array $b): bool => $b['status'] === 'unterwegs');
+    $unterwegs = array_filter(beispiel_buchungen(), fn (array $b): bool => $b['status_id'] === STATUS_UNTERWEGS);
 
     // Überfällige Rückgaben mit der Zahl der Tage seit dem Ende.
     $ueberfaellig = [];
@@ -110,7 +99,7 @@ if (ist_fuhrparkleiter()) {
 
     // Offene Anträge, älteste zuerst, wie in genehmigungen.php. 'hindernis':
     // warum Genehmigen nicht geht, sonst null.
-    $antraege = array_filter(beispiel_buchungen(), fn (array $b): bool => $b['status'] === 'offen');
+    $antraege = array_filter(beispiel_buchungen(), fn (array $b): bool => $b['status_id'] === STATUS_OFFEN);
     uasort($antraege, fn (array $a, array $b): int => $a['beantragt_am'] <=> $b['beantragt_am']);
 
     foreach ($antraege as &$antrag) {
@@ -120,15 +109,19 @@ if (ist_fuhrparkleiter()) {
 
     // Zu erledigen sind nur Schäden, mit denen ein Fahrzeug in Wartung steht.
     // Kleinschäden sperren nichts und müssen nicht sofort behoben werden; sie
-    // stehen in schaeden.php (siehe docs/technisches-konzept.md, Regel 10).
+    // stehen in schaeden.php (siehe docs/konzept/technisches-konzept.md, Regel 10).
+    // Bei Luxusautos sperrt auch ein Kleinschaden (schaden_sperrt()), aber erst
+    // ab der Rückgabe; gezählt wird, was das Fahrzeug schon in Wartung hält.
     $offeneSchaeden = array_filter(
         beispiel_schaeden(),
-        fn (array $s): bool => $s['schwere'] === 'wartung' && $s['behoben_am'] === null,
+        fn (array $s): bool => $s['behoben_am'] === null
+            && beispiel_fahrzeuge()[$s['fahrzeug_id']]['in_wartung']
+            && schaden_sperrt($s['schwere_id'], beispiel_fahrzeuge()[$s['fahrzeug_id']]['art_id']),
     );
 
     // „Unterwegs“ ist kein gespeicherter Status, sondern ergibt sich aus den
-    // laufenden Fahrten (siehe docs/technisches-konzept.md).
-    $anzahlWartung   = count(array_filter($fahrzeuge, fn (array $f): bool => $f['status'] === 'wartung'));
+    // laufenden Fahrten (siehe docs/konzept/technisches-konzept.md).
+    $anzahlWartung   = count(array_filter($fahrzeuge, fn (array $f): bool => $f['in_wartung']));
     $anzahlUnterwegs = count(array_unique(array_column($unterwegs, 'fahrzeug_id')));
 
     $fuhrpark = [
@@ -241,7 +234,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <a href="<?= url('fahrzeug.php?id=' . $antrag['fahrzeug_id']) ?>"><?= e(fahrzeug_name($antrag['fahrzeug_id'])) ?></a>
                             </td>
                             <td><?= e(zeitraum_text($antrag['start'], $antrag['ende'])) ?></td>
-                            <td><?= e($zweckText[$antrag['zweck']] ?? $antrag['zweck']) ?></td>
+                            <td><?= e(ZWECKE[$antrag['zweck_id']]) ?></td>
                             <td>
                                 <?php require __DIR__ . '/includes/antrag-entscheidung.php'; ?>
                             </td>
@@ -315,7 +308,7 @@ require_once __DIR__ . '/includes/header.php';
                 <p class="aktuell__text">
                     <strong>Ihre Fahrt mit <?= e(fahrzeug_name($buchung['fahrzeug_id'])) ?> kann beginnen.</strong>
                     <span class="table__zusatz">
-                        <?= e(zeitraum_text($buchung['start'], $buchung['ende'])) ?>, <?= e($zweckText[$buchung['zweck']] ?? $buchung['zweck']) ?>
+                        <?= e(zeitraum_text($buchung['start'], $buchung['ende'])) ?>, <?= e(ZWECKE[$buchung['zweck_id']]) ?>
                     </span>
                 </p>
 
@@ -360,7 +353,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <span class="table__zusatz">Fahrer: <?= e(nutzer_name($buchung['fahrer_id'])) ?></span>
                             <?php endif; ?>
                         </td>
-                        <td><?= e($zweckText[$buchung['zweck']] ?? $buchung['zweck']) ?></td>
+                        <td><?= e(ZWECKE[$buchung['zweck_id']]) ?></td>
                     </tr>
                 <?php endforeach; ?>
 

@@ -3,15 +3,20 @@
  * Anmeldung (Schritt 1 in jedem Anwendungsfall).
  *
  * Der Nutzer wählt seinen Namen aus einer Auswahlliste und gibt sein
- * persönliches Passwort ein (siehe docs/technisches-konzept.md, „Anmeldung“).
+ * persönliches Passwort ein (siehe docs/konzept/technisches-konzept.md, „Anmeldung“).
  * Bei einem Fehler gibt es eine neutrale Meldung, ohne Angabe, ob Name oder
  * Passwort falsch war.
  *
  * Prototyp: Nutzer und Passwort-Hashes kommen aus includes/beispieldaten.php
  * (Passwort aller Testnutzer: „fuhrpark“). Mit Datenbank:
  *
- *   SELECT id, vorname, nachname FROM nutzer ORDER BY nachname, vorname
- *   SELECT id, rolle, passwort_hash FROM nutzer WHERE id = ?
+ *   SELECT id, vorname, nachname FROM nutzer
+ *    WHERE geloescht_am IS NULL ORDER BY nachname, vorname
+ *   SELECT id, rolle_id, passwort_hash FROM nutzer
+ *    WHERE id = ? AND geloescht_am IS NULL
+ *
+ * Ausgeschiedene Nutzer (geloescht_am gesetzt) stehen nicht in der Liste und
+ * können sich auch mit richtigem Passwort nicht mehr anmelden.
  */
 
 declare(strict_types=1);
@@ -41,10 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $datensatz = beispiel_nutzer()[$nutzerId] ?? null;
 
-        if ($datensatz !== null && password_verify($passwort, $datensatz['passwort_hash'])) {
+        if ($datensatz !== null && $datensatz['geloescht_am'] === null
+            && password_verify($passwort, $datensatz['passwort_hash'])) {
             session_regenerate_id(true);       // schützt vor Session-Fixation
-            $_SESSION['user_id'] = $nutzerId;
-            $_SESSION['rolle']   = $datensatz['rolle'];
+            $_SESSION['user_id']  = $nutzerId;
+            $_SESSION['rolle_id'] = $datensatz['rolle_id'];
             redirect('index.php');
         }
 
