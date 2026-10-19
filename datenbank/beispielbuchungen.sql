@@ -11,7 +11,15 @@
 -- aus stammdaten.sql. Schadensfotos fehlen, bis der Upload umgesetzt ist.
 --
 -- Nutzer: 1 Lucie, 2 Ella, 3 Finn, 4 Kenneth, 5 Larissa (Mitarbeiter),
--- 6 Jonas (Fuhrparkleiter).
+-- 6 Jonas (Fuhrparkleiter), 7 Paul (ausgeschieden).
+--
+-- IDs aus den Schlüsseltabellen (schema.sql, includes/konstanten.php):
+--   zweck_id   1 Montage, 2 Wartung/Service, 3 Kundentermin, 4 Aufmaß,
+--              5 Materialtransport, 6 Lieferantenbesuch, 7 Schulung, 8 Sonstiges
+--   status_id  1 beantragt (offen), 2 genehmigt, 3 unterwegs, 4 abgeschlossen,
+--              5 abgelehnt, 6 storniert
+--   anlass_id  1 bei Übernahme, 2 bei Rückgabe
+--   schwere_id 1 Kleinschaden, 2 Schaden mit Wartung
 
 SET NAMES utf8mb4;
 
@@ -23,70 +31,70 @@ SET @heute = CURDATE();
 -- Offen, genehmigt, abgelehnt und storniert (Fahrt nicht begonnen).
 -- Roller und Fahrräder sind sofort genehmigt, ohne Entscheidung.
 INSERT INTO buchungen
-    (id, fahrzeug_id, antragsteller_id, fahrer_id, start, ende, zweck, personenanzahl, status,
+    (id, fahrzeug_id, antragsteller_id, fahrer_id, start, ende, zweck_id, personenanzahl, status_id,
      beantragt_am, entscheidung_von, entscheidung_am, entscheidung_kommentar)
 VALUES
     -- Lucie: heute mit Rad 1, kann beginnen
-    (11, 8, 1, 1, @heute,                    @heute,                    'aufmass',           1, 'genehmigt',
+    (11, 8, 1, 1, @heute,                    @heute,                    4, 1, 2,
         TIMESTAMP(@heute - INTERVAL 2 DAY, '09:10'), NULL, NULL, NULL),
-    (13, 5, 1, 1, @heute + INTERVAL 2 DAY,   @heute + INTERVAL 2 DAY,   'kundentermin',      1, 'genehmigt',
+    (13, 5, 1, 1, @heute + INTERVAL 2 DAY,   @heute + INTERVAL 2 DAY,   3, 1, 2,
         TIMESTAMP(@heute - INTERVAL 4 DAY, '11:20'), 6, TIMESTAMP(@heute - INTERVAL 4 DAY, '15:00'), NULL),
     -- Kenneth bucht für Lucie
-    (14, 2, 4, 1, @heute + INTERVAL 5 DAY,   @heute + INTERVAL 6 DAY,   'montage',           3, 'offen',
+    (14, 2, 4, 1, @heute + INTERVAL 5 DAY,   @heute + INTERVAL 6 DAY,   1, 3, 1,
         TIMESTAMP(@heute - INTERVAL 3 DAY, '08:45'), NULL, NULL, NULL),
-    (15, 1, 1, 1, @heute + INTERVAL 10 DAY,  @heute + INTERVAL 11 DAY,  'lieferant',         2, 'offen',
+    (15, 1, 1, 1, @heute + INTERVAL 10 DAY,  @heute + INTERVAL 11 DAY,  6, 2, 1,
         TIMESTAMP(@heute - INTERVAL 1 DAY, '10:05'), NULL, NULL, NULL),
-    (16, 6, 1, 1, @heute + INTERVAL 3 DAY,   @heute + INTERVAL 3 DAY,   'kundentermin',      1, 'abgelehnt',
+    (16, 6, 1, 1, @heute + INTERVAL 3 DAY,   @heute + INTERVAL 3 DAY,   3, 1, 5,
         TIMESTAMP(@heute - INTERVAL 4 DAY, '09:30'), 6, TIMESTAMP(@heute - INTERVAL 3 DAY, '10:15'),
         'Für Einzeltermine bitte den ID.3 oder ein E-Fahrrad nutzen.'),
     -- war genehmigt, dann storniert
-    (17, 3, 1, 1, @heute - INTERVAL 6 DAY,   @heute - INTERVAL 6 DAY,   'materialtransport', 2, 'storniert',
+    (17, 3, 1, 1, @heute - INTERVAL 6 DAY,   @heute - INTERVAL 6 DAY,   5, 2, 6,
         TIMESTAMP(@heute - INTERVAL 12 DAY, '13:00'), 6, TIMESTAMP(@heute - INTERVAL 11 DAY, '09:00'), NULL),
-    (19, 3, 4, 4, @heute + INTERVAL 3 DAY,   @heute + INTERVAL 4 DAY,   'materialtransport', 2, 'offen',
+    (19, 3, 4, 4, @heute + INTERVAL 3 DAY,   @heute + INTERVAL 4 DAY,   5, 2, 1,
         TIMESTAMP(@heute - INTERVAL 5 DAY, '14:12'), NULL, NULL, NULL),
-    (20, 6, 4, 4, @heute + INTERVAL 8 DAY,   @heute + INTERVAL 9 DAY,   'aufmass',           1, 'offen',
+    (20, 6, 4, 4, @heute + INTERVAL 8 DAY,   @heute + INTERVAL 9 DAY,   4, 1, 1,
         TIMESTAMP(@heute - INTERVAL 2 DAY, '16:30'), NULL, NULL, NULL),
     -- Ella: heute, kann wegen ihrer überfälligen Tesla-Rückgabe nicht beginnen
-    (21, 1, 2, 2, @heute,                    @heute,                    'kundentermin',      2, 'genehmigt',
+    (21, 1, 2, 2, @heute,                    @heute,                    3, 2, 2,
         TIMESTAMP(@heute - INTERVAL 6 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 6 DAY, '14:30'), NULL),
-    (25, 1, 3, 3, @heute + INTERVAL 4 DAY,   @heute + INTERVAL 6 DAY,   'service',           1, 'genehmigt',
+    (25, 1, 3, 3, @heute + INTERVAL 4 DAY,   @heute + INTERVAL 6 DAY,   2, 1, 2,
         TIMESTAMP(@heute - INTERVAL 8 DAY, '08:15'), 6, TIMESTAMP(@heute - INTERVAL 7 DAY, '09:40'), NULL),
-    (26, 3, 5, 5, @heute + INTERVAL 7 DAY,   @heute + INTERVAL 8 DAY,   'materialtransport', 2, 'genehmigt',
+    (26, 3, 5, 5, @heute + INTERVAL 7 DAY,   @heute + INTERVAL 8 DAY,   5, 2, 2,
         TIMESTAMP(@heute - INTERVAL 5 DAY, '11:00'), 6, TIMESTAMP(@heute - INTERVAL 4 DAY, '08:30'), NULL),
-    (27, 9, 5, 5, @heute + INTERVAL 3 DAY,   @heute + INTERVAL 4 DAY,   'aufmass',           1, 'genehmigt',
+    (27, 9, 5, 5, @heute + INTERVAL 3 DAY,   @heute + INTERVAL 4 DAY,   4, 1, 2,
         TIMESTAMP(@heute - INTERVAL 3 DAY, '12:00'), NULL, NULL, NULL),
     -- Ella: genehmigt, aber ihre Tesla-Rückgabe ist überfällig
-    (31, 9, 2, 2, @heute + INTERVAL 6 DAY,   @heute + INTERVAL 6 DAY,   'kundentermin',      1, 'genehmigt',
+    (31, 9, 2, 2, @heute + INTERVAL 6 DAY,   @heute + INTERVAL 6 DAY,   3, 1, 2,
         TIMESTAMP(@heute - INTERVAL 1 DAY, '09:00'), NULL, NULL, NULL),
     -- Larissa bucht für Ella; fünfter offener Antrag
-    (32, 2, 5, 2, @heute + INTERVAL 9 DAY,   @heute + INTERVAL 9 DAY,   'montage',           3, 'offen',
+    (32, 2, 5, 2, @heute + INTERVAL 9 DAY,   @heute + INTERVAL 9 DAY,   1, 3, 1,
         TIMESTAMP(@heute - INTERVAL 1 DAY, '15:20'), NULL, NULL, NULL),
-    (33, 9, 5, 5, @heute + INTERVAL 1 DAY,   @heute + INTERVAL 1 DAY,   'aufmass',           1, 'storniert',
+    (33, 9, 5, 5, @heute + INTERVAL 1 DAY,   @heute + INTERVAL 1 DAY,   4, 1, 6,
         TIMESTAMP(@heute - INTERVAL 6 DAY, '08:00'), NULL, NULL, NULL),
-    (34, 5, 4, 4, @heute - INTERVAL 4 DAY,   @heute - INTERVAL 4 DAY,   'kundentermin',      2, 'abgelehnt',
+    (34, 5, 4, 4, @heute - INTERVAL 4 DAY,   @heute - INTERVAL 4 DAY,   3, 2, 5,
         TIMESTAMP(@heute - INTERVAL 7 DAY, '10:30'), 6, TIMESTAMP(@heute - INTERVAL 6 DAY, '08:50'),
         'Der ID.3 ist an dem Tag zur Inspektion angemeldet.'),
     -- automatisch storniert, als der Sprinter in Wartung ging
-    (54, 4, 5, 5, @heute + INTERVAL 2 DAY,   @heute + INTERVAL 3 DAY,   'materialtransport', 2, 'storniert',
+    (54, 4, 5, 5, @heute + INTERVAL 2 DAY,   @heute + INTERVAL 3 DAY,   5, 2, 6,
         TIMESTAMP(@heute - INTERVAL 15 DAY, '09:30'), 6, TIMESTAMP(@heute - INTERVAL 13 DAY, '16:50'),
         'Automatisch storniert: Das Fahrzeug ist in diesem Zeitraum in Wartung.');
 
 
 -- Unterwegs. km_start ist der km-Stand des Fahrzeugs bei Fahrtbeginn.
 INSERT INTO buchungen
-    (id, fahrzeug_id, antragsteller_id, fahrer_id, start, ende, zweck, personenanzahl, status,
+    (id, fahrzeug_id, antragsteller_id, fahrer_id, start, ende, zweck_id, personenanzahl, status_id,
      beantragt_am, entscheidung_von, entscheidung_am, begonnen_am, km_start)
 VALUES
     -- Lucie: heute fällig, nicht überfällig
-    (12, 7, 1, 1, @heute - INTERVAL 2 DAY,   @heute,                    'kundentermin',      1, 'unterwegs',
+    (12, 7, 1, 1, @heute - INTERVAL 2 DAY,   @heute,                    3, 1, 3,
         TIMESTAMP(@heute - INTERVAL 5 DAY, '09:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 2 DAY, '08:00'), 6400),
     -- fristgerecht unterwegs; Kratzer bei Übernahme notiert (Schaden 3)
-    (18, 3, 4, 4, @heute,                    @heute + INTERVAL 2 DAY,   'montage',           3, 'unterwegs',
+    (18, 3, 4, 4, @heute,                    @heute + INTERVAL 2 DAY,   1, 3, 3,
         TIMESTAMP(@heute - INTERVAL 6 DAY, '10:20'), 6, TIMESTAMP(@heute - INTERVAL 5 DAY, '09:15'),
         TIMESTAMP(@heute, '07:15'), 112400),
     -- Ella: überfällig seit vorgestern
-    (30, 6, 2, 2, @heute - INTERVAL 3 DAY,   @heute - INTERVAL 2 DAY,   'kundentermin',      1, 'unterwegs',
+    (30, 6, 2, 2, @heute - INTERVAL 3 DAY,   @heute - INTERVAL 2 DAY,   3, 1, 3,
         TIMESTAMP(@heute - INTERVAL 9 DAY, '14:00'), 6, TIMESTAMP(@heute - INTERVAL 8 DAY, '08:20'),
         TIMESTAMP(@heute - INTERVAL 3 DAY, '07:45'), 12020);
 
@@ -94,130 +102,140 @@ VALUES
 -- Abgeschlossen: das Fahrtenbuch. Neueste zuerst. Fahrräder ohne km.
 -- Autos und Transporter sind vom Fuhrparkleiter genehmigt (entscheidung_von = 6).
 INSERT INTO buchungen
-    (id, fahrzeug_id, antragsteller_id, fahrer_id, start, ende, zweck, personenanzahl, status,
+    (id, fahrzeug_id, antragsteller_id, fahrer_id, start, ende, zweck_id, personenanzahl, status_id,
      beantragt_am, entscheidung_von, entscheidung_am, begonnen_am, km_start,
      zurueckgegeben_am, km_ende, bemerkung)
 VALUES
     -- Kleinschaden (Schaden 7)
-    (48, 8, 2, 2, @heute - INTERVAL 5 DAY,   @heute - INTERVAL 5 DAY,   'aufmass',           1, 'abgeschlossen',
+    (48, 8, 2, 2, @heute - INTERVAL 5 DAY,   @heute - INTERVAL 5 DAY,   4, 1, 4,
         TIMESTAMP(@heute - INTERVAL 7 DAY, '16:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 5 DAY, '08:30'), NULL,
         TIMESTAMP(@heute - INTERVAL 5 DAY, '15:10'), NULL, NULL),
     -- Kleinschaden (Schaden 4)
-    (53, 9, 4, 4, @heute - INTERVAL 7 DAY,   @heute - INTERVAL 7 DAY,   'kundentermin',      1, 'abgeschlossen',
+    (53, 9, 4, 4, @heute - INTERVAL 7 DAY,   @heute - INTERVAL 7 DAY,   3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 8 DAY, '11:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 7 DAY, '09:00'), NULL,
         TIMESTAMP(@heute - INTERVAL 7 DAY, '13:40'), NULL, NULL),
-    (22, 5, 1, 1, @heute - INTERVAL 9 DAY,   @heute - INTERVAL 9 DAY,   'kundentermin',      1, 'abgeschlossen',
+    (22, 5, 1, 1, @heute - INTERVAL 9 DAY,   @heute - INTERVAL 9 DAY,   3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 13 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 12 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 9 DAY, '08:00'), 31494,
         TIMESTAMP(@heute - INTERVAL 9 DAY, '16:20'), 31540, NULL),
-    (23, 8, 1, 1, @heute - INTERVAL 10 DAY,  @heute - INTERVAL 10 DAY,  'aufmass',           1, 'abgeschlossen',
+    (23, 8, 1, 1, @heute - INTERVAL 10 DAY,  @heute - INTERVAL 10 DAY,  4, 1, 4,
         TIMESTAMP(@heute - INTERVAL 11 DAY, '14:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 10 DAY, '08:15'), NULL,
         TIMESTAMP(@heute - INTERVAL 10 DAY, '14:30'), NULL, 'Akku nach Rückkehr wieder angeschlossen.'),
-    (35, 1, 4, 4, @heute - INTERVAL 11 DAY,  @heute - INTERVAL 11 DAY,  'kundentermin',      2, 'abgeschlossen',
+    (35, 1, 4, 4, @heute - INTERVAL 11 DAY,  @heute - INTERVAL 11 DAY,  3, 2, 4,
         TIMESTAMP(@heute - INTERVAL 15 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 14 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 11 DAY, '07:45'), 48166,
         TIMESTAMP(@heute - INTERVAL 11 DAY, '17:05'), 48250, NULL),
     -- Schaden mit Wartung (Schaden 1): Sprinter steht deshalb in Wartung (stammdaten.sql)
-    (36, 4, 5, 5, @heute - INTERVAL 15 DAY,  @heute - INTERVAL 13 DAY,  'montage',           3, 'abgeschlossen',
+    (36, 4, 5, 5, @heute - INTERVAL 15 DAY,  @heute - INTERVAL 13 DAY,  1, 3, 4,
         TIMESTAMP(@heute - INTERVAL 19 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 18 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 15 DAY, '07:00'), 87167,
         TIMESTAMP(@heute - INTERVAL 13 DAY, '16:45'), 87310, NULL),
-    (37, 3, 2, 2, @heute - INTERVAL 14 DAY,  @heute - INTERVAL 14 DAY,  'montage',           2, 'abgeschlossen',
+    (37, 3, 2, 2, @heute - INTERVAL 14 DAY,  @heute - INTERVAL 14 DAY,  1, 2, 4,
         TIMESTAMP(@heute - INTERVAL 18 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 17 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 14 DAY, '07:30'), 112304,
         TIMESTAMP(@heute - INTERVAL 14 DAY, '16:00'), 112400, NULL),
-    (38, 1, 5, 5, @heute - INTERVAL 16 DAY,  @heute - INTERVAL 16 DAY,  'aufmass',           1, 'abgeschlossen',
+    (38, 1, 5, 5, @heute - INTERVAL 16 DAY,  @heute - INTERVAL 16 DAY,  4, 1, 4,
         TIMESTAMP(@heute - INTERVAL 20 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 19 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 16 DAY, '08:00'), 48034,
         TIMESTAMP(@heute - INTERVAL 16 DAY, '15:30'), 48166, 'Klappergeräusch hinten rechts bei Tempo über 100.'),
-    (39, 3, 4, 4, @heute - INTERVAL 18 DAY,  @heute - INTERVAL 18 DAY,  'materialtransport', 2, 'abgeschlossen',
+    (39, 3, 4, 4, @heute - INTERVAL 18 DAY,  @heute - INTERVAL 18 DAY,  5, 2, 4,
         TIMESTAMP(@heute - INTERVAL 22 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 21 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 18 DAY, '07:15'), 112246,
         TIMESTAMP(@heute - INTERVAL 18 DAY, '14:50'), 112304, 'Ladefläche verschmutzt, Spanngurt fehlt.'),
     -- vorhandener Kratzer bei Übernahme notiert (Schaden 2)
-    (47, 5, 4, 4, @heute - INTERVAL 20 DAY,  @heute - INTERVAL 20 DAY,  'kundentermin',      2, 'abgeschlossen',
+    (47, 5, 4, 4, @heute - INTERVAL 20 DAY,  @heute - INTERVAL 20 DAY,  3, 2, 4,
         TIMESTAMP(@heute - INTERVAL 24 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 23 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 20 DAY, '08:10'), 31402,
         TIMESTAMP(@heute - INTERVAL 20 DAY, '15:00'), 31494, NULL),
-    (40, 1, 3, 3, @heute - INTERVAL 22 DAY,  @heute - INTERVAL 22 DAY,  'lieferant',         1, 'abgeschlossen',
+    (40, 1, 3, 3, @heute - INTERVAL 22 DAY,  @heute - INTERVAL 22 DAY,  6, 1, 4,
         TIMESTAMP(@heute - INTERVAL 26 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 25 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 22 DAY, '07:30'), 47824,
         TIMESTAMP(@heute - INTERVAL 22 DAY, '17:20'), 48034, 'Innenraum könnte mal gereinigt werden.'),
-    (41, 6, 2, 2, @heute - INTERVAL 25 DAY,  @heute - INTERVAL 25 DAY,  'schulung',          2, 'abgeschlossen',
+    (41, 6, 2, 2, @heute - INTERVAL 25 DAY,  @heute - INTERVAL 25 DAY,  7, 2, 4,
         TIMESTAMP(@heute - INTERVAL 29 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 28 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 25 DAY, '07:00'), 11832,
         TIMESTAMP(@heute - INTERVAL 25 DAY, '18:10'), 12020, NULL),
-    (42, 9, 5, 5, @heute - INTERVAL 28 DAY,  @heute - INTERVAL 28 DAY,  'aufmass',           1, 'abgeschlossen',
+    (42, 9, 5, 5, @heute - INTERVAL 28 DAY,  @heute - INTERVAL 28 DAY,  4, 1, 4,
         TIMESTAMP(@heute - INTERVAL 30 DAY, '12:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 28 DAY, '09:00'), NULL,
         TIMESTAMP(@heute - INTERVAL 28 DAY, '12:30'), NULL, NULL),
-    (49, 4, 4, 4, @heute - INTERVAL 29 DAY,  @heute - INTERVAL 29 DAY,  'materialtransport', 2, 'abgeschlossen',
+    (49, 4, 4, 4, @heute - INTERVAL 29 DAY,  @heute - INTERVAL 29 DAY,  5, 2, 4,
         TIMESTAMP(@heute - INTERVAL 33 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 32 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 29 DAY, '07:00'), 86980,
         TIMESTAMP(@heute - INTERVAL 29 DAY, '16:30'), 87167, NULL),
-    (43, 7, 3, 3, @heute - INTERVAL 30 DAY,  @heute - INTERVAL 30 DAY,  'kundentermin',      1, 'abgeschlossen',
+    (43, 7, 3, 3, @heute - INTERVAL 30 DAY,  @heute - INTERVAL 30 DAY,  3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 31 DAY, '15:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 30 DAY, '09:30'), 6378,
         TIMESTAMP(@heute - INTERVAL 30 DAY, '12:15'), 6400, NULL),
     -- Kleinschaden, inzwischen behoben (Schaden 5)
-    (44, 2, 4, 4, @heute - INTERVAL 37 DAY,  @heute - INTERVAL 36 DAY,  'service',           1, 'abgeschlossen',
+    (44, 2, 4, 4, @heute - INTERVAL 37 DAY,  @heute - INTERVAL 36 DAY,  2, 1, 4,
         TIMESTAMP(@heute - INTERVAL 41 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 40 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 37 DAY, '07:30'), 9605,
         TIMESTAMP(@heute - INTERVAL 36 DAY, '16:00'), 9870, NULL),
-    (50, 7, 1, 1, @heute - INTERVAL 40 DAY,  @heute - INTERVAL 40 DAY,  'kundentermin',      1, 'abgeschlossen',
+    (50, 7, 1, 1, @heute - INTERVAL 40 DAY,  @heute - INTERVAL 40 DAY,  3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 42 DAY, '09:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 40 DAY, '10:00'), 6341,
         TIMESTAMP(@heute - INTERVAL 40 DAY, '13:00'), 6378, 'Helmfach klemmt beim Öffnen.'),
-    (45, 1, 2, 2, @heute - INTERVAL 44 DAY,  @heute - INTERVAL 44 DAY,  'kundentermin',      2, 'abgeschlossen',
+    (45, 1, 2, 2, @heute - INTERVAL 44 DAY,  @heute - INTERVAL 44 DAY,  3, 2, 4,
         TIMESTAMP(@heute - INTERVAL 48 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 47 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 44 DAY, '08:00'), 47706,
         TIMESTAMP(@heute - INTERVAL 44 DAY, '16:40'), 47824, NULL),
     -- Schaden mit Wartung, nach der Reparatur freigegeben (Schaden 6)
-    (46, 3, 3, 3, @heute - INTERVAL 51 DAY,  @heute - INTERVAL 50 DAY,  'montage',           3, 'abgeschlossen',
+    (46, 3, 3, 3, @heute - INTERVAL 51 DAY,  @heute - INTERVAL 50 DAY,  1, 3, 4,
         TIMESTAMP(@heute - INTERVAL 55 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 54 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 51 DAY, '07:00'), 112072,
         TIMESTAMP(@heute - INTERVAL 50 DAY, '17:30'), 112246, 'Rückfahrkamera zeigt zeitweise kein Bild.'),
-    (24, 2, 1, 1, @heute - INTERVAL 57 DAY,  @heute - INTERVAL 57 DAY,  'lieferant',         1, 'abgeschlossen',
+    (24, 2, 1, 1, @heute - INTERVAL 57 DAY,  @heute - INTERVAL 57 DAY,  6, 1, 4,
         TIMESTAMP(@heute - INTERVAL 61 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 60 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 57 DAY, '08:00'), 9508,
         TIMESTAMP(@heute - INTERVAL 57 DAY, '15:45'), 9605, NULL),
-    (51, 1, 5, 5, @heute - INTERVAL 64 DAY,  @heute - INTERVAL 64 DAY,  'montage',           3, 'abgeschlossen',
+    (51, 1, 5, 5, @heute - INTERVAL 64 DAY,  @heute - INTERVAL 64 DAY,  1, 3, 4,
         TIMESTAMP(@heute - INTERVAL 68 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 67 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 64 DAY, '07:00'), 47588,
         TIMESTAMP(@heute - INTERVAL 64 DAY, '16:15'), 47706, NULL),
-    (52, 2, 3, 3, @heute - INTERVAL 71 DAY,  @heute - INTERVAL 70 DAY,  'schulung',          2, 'abgeschlossen',
+    -- Paul, inzwischen ausgeschieden: bleibt im Fahrtenbuch
+    (52, 2, 7, 7, @heute - INTERVAL 71 DAY,  @heute - INTERVAL 70 DAY,  7, 2, 4,
         TIMESTAMP(@heute - INTERVAL 75 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 74 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 71 DAY, '07:30'), 9420,
-        TIMESTAMP(@heute - INTERVAL 70 DAY, '18:00'), 9508, NULL);
+        TIMESTAMP(@heute - INTERVAL 70 DAY, '18:00'), 9508, NULL),
+    -- letzte Fahrt mit dem alten Passat (Fahrzeug 10), vor dem Ausmustern
+    (55, 10, 1, 1, @heute - INTERVAL 95 DAY, @heute - INTERVAL 95 DAY,  3, 1, 4,
+        TIMESTAMP(@heute - INTERVAL 99 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 98 DAY, '09:00'),
+        TIMESTAMP(@heute - INTERVAL 95 DAY, '08:00'), 187312,
+        TIMESTAMP(@heute - INTERVAL 95 DAY, '16:30'), 187430, NULL);
 
 
 -- Schäden. Offen ist ein Schaden, solange behoben_am NULL ist. gemeldet_am ist
 -- bei der Rückgabe zurueckgegeben_am, bei der Übernahme begonnen_am.
 INSERT INTO schaeden
-    (id, buchung_id, anlass, schwere, beschreibung, gemeldet_am, behoben_am, behoben_von)
+    (id, buchung_id, anlass_id, schwere_id, beschreibung, gemeldet_am, behoben_am, behoben_von)
 VALUES
     -- offen; der Sprinter steht deshalb in Wartung
-    (1, 36, 'rueckgabe',  'wartung', 'Delle an der Schiebetür rechts, Tür schließt schwer.',
+    (1, 36, 2, 2, 'Delle an der Schiebetür rechts, Tür schließt schwer.',
         TIMESTAMP(@heute - INTERVAL 13 DAY, '16:45'), NULL, NULL),
     -- offen; sieht Lucie bei Fahrtbeginn mit dem ID.3 (Buchung 13)
-    (2, 47, 'uebernahme', 'klein',   'Kratzer an der Stoßstange hinten links, schon vorhanden.',
+    (2, 47, 1, 1, 'Kratzer an der Stoßstange hinten links, schon vorhanden.',
         TIMESTAMP(@heute - INTERVAL 20 DAY, '08:10'), NULL, NULL),
     -- offen; sieht Larissa bei Fahrtbeginn mit dem Transit (Buchung 26)
-    (3, 18, 'uebernahme', 'klein',   'Kratzer an der Heckklappe, war schon vorhanden.',
+    (3, 18, 1, 1, 'Kratzer an der Heckklappe, war schon vorhanden.',
         TIMESTAMP(@heute, '07:15'), NULL, NULL),
     -- offen; sehen Larissa und Ella bei Fahrtbeginn mit Rad 2 (Buchungen 27, 31)
-    (4, 53, 'rueckgabe',  'klein',   'Klingel abgebrochen.',
+    (4, 53, 2, 1, 'Klingel abgebrochen.',
         TIMESTAMP(@heute - INTERVAL 7 DAY, '13:40'), NULL, NULL),
-    (5, 44, 'rueckgabe',  'klein',   'Steinschlag in der Windschutzscheibe, unten rechts.',
+    (5, 44, 2, 1, 'Steinschlag in der Windschutzscheibe, unten rechts.',
         TIMESTAMP(@heute - INTERVAL 36 DAY, '16:00'), TIMESTAMP(@heute - INTERVAL 30 DAY, '10:00'), 6),
-    (6, 46, 'rueckgabe',  'wartung', 'Außenspiegel links abgebrochen.',
+    (6, 46, 2, 2, 'Außenspiegel links abgebrochen.',
         TIMESTAMP(@heute - INTERVAL 50 DAY, '17:30'), TIMESTAMP(@heute - INTERVAL 47 DAY, '11:00'), 6),
     -- offen; sieht Lucie heute bei Fahrtbeginn mit Rad 1 (Buchung 11)
-    (7, 48, 'rueckgabe',  'klein',   'Schutzblech hinten leicht verbogen, schleift nicht.',
-        TIMESTAMP(@heute - INTERVAL 5 DAY, '15:10'), NULL, NULL);
+    (7, 48, 2, 1, 'Schutzblech hinten leicht verbogen, schleift nicht.',
+        TIMESTAMP(@heute - INTERVAL 5 DAY, '15:10'), NULL, NULL),
+    -- offen; Kleinschaden am Tesla (Luxusauto): steht beim Fuhrparkleiter
+    -- unter „Zu erledigen“
+    (8, 41, 2, 1, 'Felge hinten rechts zerkratzt, Bordstein.',
+        TIMESTAMP(@heute - INTERVAL 25 DAY, '18:10'), NULL, NULL);
 
 
 -- Wartungen. Laufend ist eine Wartung ohne freigegeben_am; die übrigen stehen
