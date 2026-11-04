@@ -155,31 +155,6 @@ h1, h2 {
     margin-left: auto;
 }
 
-/* Rollenauswahl, nur im Prototyp (rolle.php): eigene schmale Zeile unter
-   der Navigation, gestrichelt abgesetzt. */
-.rollenleiste {
-    border-top: 1px dashed var(--farbe-rand);
-    background: var(--farbe-hinter);
-}
-
-.rollenwahl {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding-top: 0.35rem;
-    padding-bottom: 0.35rem;
-    color: var(--farbe-gedaempft);
-    font-size: 0.85rem;
-}
-
-.rollenwahl__auswahl {
-    padding: 0.2rem 0.4rem;
-    border: 1px solid var(--farbe-rand);
-    border-radius: calc(var(--radius) - 4px);
-    background: var(--farbe-flaeche);
-    font: inherit;
-}
-
 .nav-toggle {
     display: none;
     margin-left: auto;

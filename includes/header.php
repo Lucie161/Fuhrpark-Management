@@ -14,7 +14,7 @@ $pageTitle = $pageTitle ?? 'Übersicht';
 // Navigationspunkte: Dateiname => [Beschriftung, Rollen, die ihn sehen]. Der
 // Fuhrparkleiter bucht nicht selbst, daher fehlen ihm Buchen und Meine
 // Buchungen. Die Seiten sind zusätzlich für die andere Rolle gesperrt
-// (nur_fuer_rolle()).
+// (nur_fuer_rolle()). Ohne Anmeldung gibt es nur den Punkt „Anmelden“.
 $nav = [
     'index.php'               => ['Übersicht',           [ROLLE_MITARBEITER, ROLLE_FUHRPARKLEITER]],
     'fahrzeuge.php'           => ['Fahrzeuge',           [ROLLE_FUHRPARKLEITER]],
@@ -33,11 +33,6 @@ $navUnterseiten = [
 ];
 
 $aktiveSeite = $navUnterseiten[basename($_SERVER['SCRIPT_NAME'])] ?? basename($_SERVER['SCRIPT_NAME']);
-
-// Personenauswahl (nur Prototyp, siehe rolle.php): kehrt danach auf diese
-// Seite zurück, samt Parametern wie dem Zeitraum der Historie.
-$rollenwahlZurueck = basename($_SERVER['SCRIPT_NAME'])
-    . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -59,7 +54,7 @@ $rollenwahlZurueck = basename($_SERVER['SCRIPT_NAME'])
 
         <nav id="hauptnavigation" class="nav">
             <?php foreach ($nav as $datei => [$beschriftung, $navRollen]): ?>
-                <?php if (in_array(aktuelle_rolle(), $navRollen, true)): ?>
+                <?php if (is_logged_in() && in_array(aktuelle_rolle(), $navRollen, true)): ?>
                     <a class="nav__link<?= $datei === $aktiveSeite ? ' nav__link--active' : '' ?>"
                        href="<?= url($datei) ?>"><?= e($beschriftung) ?></a>
                 <?php endif; ?>
@@ -72,25 +67,6 @@ $rollenwahlZurueck = basename($_SERVER['SCRIPT_NAME'])
                    href="<?= url('login.php') ?>">Anmelden</a>
             <?php endif; ?>
         </nav>
-    </div>
-
-    <!-- Personenauswahl, nur im Prototyp. Eigene Zeile, damit sie nicht wie
-         ein Teil der Navigation wirkt und auch mobil sichtbar bleibt. -->
-    <div class="rollenleiste">
-        <form class="container rollenwahl" method="post" action="<?= url('rolle.php') ?>">
-            <input type="hidden" name="zurueck" value="<?= e($rollenwahlZurueck) ?>">
-            <label class="rollenwahl__label" for="rollenwahl">Angemeldet als (Test):</label>
-            <select class="rollenwahl__auswahl" id="rollenwahl" name="nutzer">
-                <?php foreach (nutzer_auswahl() as $wert => $text): ?>
-                    <?php
-                    $rollenwahlZusatz = ROLLEN[beispiel_nutzer()[$wert]['rolle_id']];
-                    $rollenwahlZusatz .= hat_ueberfaellige_rueckgabe($wert) ? ', Rückgabe überfällig' : '';
-                    ?>
-                    <option value="<?= e((string) $wert) ?>"<?= $wert === aktueller_nutzer() ? ' selected' : '' ?>><?= e($text . ' (' . $rollenwahlZusatz . ')') ?></option>
-                <?php endforeach; ?>
-            </select>
-            <button class="button button--klein rollenwahl__knopf" type="submit">Wechseln</button>
-        </form>
     </div>
 </header>
 

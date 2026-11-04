@@ -1,7 +1,7 @@
 /**
  * Allgemeines Skript der Anwendung.
- * Aufklappen der Navigation auf schmalen Bildschirmen, die Personenauswahl
- * und die Schadensfelder der Rückgabe.
+ * Aufklappen der Navigation auf schmalen Bildschirmen und die Schadensfelder
+ * der Rückgabe.
  */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -25,17 +25,6 @@ document.addEventListener('DOMContentLoaded', function () {
             radio.addEventListener('change', schadenFelderZeigen);
         });
         schadenFelderZeigen();
-    }
-
-    // Rollenauswahl (nur Prototyp): wechselt sofort beim Auswählen. Ohne
-    // JavaScript bleibt der Knopf „Wechseln“ sichtbar.
-    var rollenwahl = document.querySelector('.rollenwahl');
-
-    if (rollenwahl) {
-        rollenwahl.querySelector('.rollenwahl__knopf').hidden = true;
-        rollenwahl.querySelector('select').addEventListener('change', function () {
-            rollenwahl.submit();
-        });
     }
 
     var toggle = document.querySelector('.nav-toggle');

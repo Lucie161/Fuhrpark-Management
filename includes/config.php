@@ -39,6 +39,17 @@ if (APP_ENV === 'dev') {
 } else {
     error_reporting(0);
     ini_set('display_errors', '0');
+
+    // Unerwartete Fehler (z. B. PDOException) fängt keine Seite. Statt einer
+    // leeren Seite erscheint ein neutraler Hinweis, die Einzelheiten stehen im Log.
+    set_exception_handler(function (Throwable $fehler): void {
+        error_log((string) $fehler);
+        http_response_code(500);
+        echo '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">'
+            . '<title>' . APP_NAME . '</title></head><body>'
+            . '<p>Es ist ein Fehler aufgetreten. Bitte versuchen Sie es später noch einmal.</p>'
+            . '</body></html>';
+    });
 }
 
 // --- Session ----------------------------------------------------------------
@@ -52,6 +63,16 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/konstanten.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
+
+// Fachklassen: PHP lädt includes/klassen/CName.php beim ersten Gebrauch der
+// Klasse. Neue Klassen brauchen deshalb keine eigene require-Zeile.
+spl_autoload_register(function (string $klasse): void {
+    $datei = __DIR__ . '/klassen/' . $klasse . '.php';
+
+    if (is_file($datei)) {
+        require_once $datei;
+    }
+});
 
 // Prototyp: Beispieldaten für alle Seiten, bis sie aus der Datenbank lesen.
 require_once __DIR__ . '/beispieldaten.php';

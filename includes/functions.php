@@ -45,23 +45,18 @@ function is_logged_in(): bool
 }
 
 /**
- * ID des angemeldeten Nutzers (nutzer.id).
- *
- * Prototyp: gesetzt über die Auswahl unter der Navigation (rolle.php), ohne
- * Angabe Lucie Schneider (1) bzw. als Fuhrparkleiter Jonas Weber (6). Später
- * setzt login.php $_SESSION['user_id'].
+ * ID des angemeldeten Nutzers (nutzer.id), gesetzt von login.php. Die Seite
+ * stellt mit nur_angemeldet() oder nur_fuer_rolle() sicher, dass es ihn gibt.
  */
 function aktueller_nutzer(): int
 {
-    return (int) ($_SESSION['user_id'] ?? (aktuelle_rolle() === ROLLE_FUHRPARKLEITER ? 6 : 1));
+    return (int) ($_SESSION['user_id'] ?? 0);
 }
 
 /**
- * Rolle des Nutzers: ROLLE_MITARBEITER oder ROLLE_FUHRPARKLEITER.
- *
- * Prototyp: gesetzt über die Auswahl unter der Navigation (rolle.php).
- * Später setzt login.php $_SESSION['rolle_id'] aus nutzer.rolle_id. Ohne
- * Angabe gilt ROLLE_MITARBEITER.
+ * Rolle des Nutzers: ROLLE_MITARBEITER oder ROLLE_FUHRPARKLEITER. login.php
+ * setzt $_SESSION['rolle_id'] aus nutzer.rolle_id. Ohne Anmeldung gilt
+ * ROLLE_MITARBEITER, also keine besonderen Rechte.
  */
 function aktuelle_rolle(): int
 {
@@ -78,17 +73,28 @@ function ist_fuhrparkleiter(): bool
 }
 
 /**
- * Sperrt eine Seite für die andere Rolle: Wer nicht die angegebene Rolle hat,
- * landet auf der Übersicht. Steht direkt nach config.php, vor jeder
- * Formularverarbeitung der Seite (siehe docs/konzept/technisches-konzept.md, „Rollen
- * je Seite“).
+ * Sperrt eine Seite für alle, die nicht angemeldet sind: Sie landen auf der
+ * Anmeldung. Steht direkt nach config.php auf den Seiten für beide Rollen.
+ *   nur_angemeldet();
+ */
+function nur_angemeldet(): void
+{
+    if (!is_logged_in()) {
+        redirect('login.php');
+    }
+}
+
+/**
+ * Sperrt eine Seite für die andere Rolle: Wer nicht angemeldet ist, landet auf
+ * der Anmeldung, wer nicht die angegebene Rolle hat, auf der Übersicht. Steht
+ * direkt nach config.php, vor jeder Formularverarbeitung der Seite (siehe
+ * docs/konzept/technisches-konzept.md, „Rollen je Seite“).
  *   nur_fuer_rolle(ROLLE_FUHRPARKLEITER);
- *
- * Weiterleitung statt Fehlerseite: Wechselt man im Prototyp die Rolle, kehrt
- * rolle.php auf die aktuelle Seite zurück und landet so auf der Übersicht.
  */
 function nur_fuer_rolle(int $rolle): void
 {
+    nur_angemeldet();
+
     if (aktuelle_rolle() !== $rolle) {
         redirect('index.php');
     }

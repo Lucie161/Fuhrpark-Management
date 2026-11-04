@@ -1,7 +1,7 @@
 <?php
 /**
  * Schlüssel der festen Wertelisten: je Schlüsseltabelle der Datenbank eine
- * Konstante pro Zeile und eine Liste ID => Bezeichnung.
+ * Konstante pro Zeile.
  *
  * In der Datenbank stehen nur Zahlen (z. B. buchungen.status_id = 3). Im Code
  * wird nie mit der Zahl oder einem Wort verglichen, sondern immer mit der
@@ -11,9 +11,11 @@
  * ein Tippfehler in einem Wort wie 'untewegs' dagegen nie (Feedback vom
  * 15.10.2026, siehe docs/besprechungen/transkript-feedback-datenmodell-2026-10-15.md).
  *
- * Die IDs müssen mit den INSERTs in datenbank/schema.sql übereinstimmen. Die
- * Listen sind ein Abbild der Spalte „bezeichnung“; mit der Datenbank könnte
- * man sie auch per JOIN lesen, die Konstanten bleiben in jedem Fall.
+ * Die IDs müssen mit den INSERTs in datenbank/schema.sql übereinstimmen.
+ *
+ * Die Bezeichnungen kommen aus der Datenbank über CListeSchluessel. Die Listen
+ * ID => Bezeichnung hier (ZWECKE usw.) gelten nur noch, bis die letzte Seite
+ * umgestellt ist; neuer Code nutzt sie nicht mehr. Die Konstanten bleiben.
  */
 
 declare(strict_types=1);
@@ -22,11 +24,6 @@ declare(strict_types=1);
 
 const ROLLE_MITARBEITER    = 1;
 const ROLLE_FUHRPARKLEITER = 2;
-
-const ROLLEN = [
-    ROLLE_MITARBEITER    => 'Mitarbeiter',
-    ROLLE_FUHRPARKLEITER => 'Fuhrparkleiter',
-];
 
 // --- fahrzeugarten ----------------------------------------------------------
 // Die Reihenfolge der Listen ist die Anzeigereihenfolge (Kalender, Filter),

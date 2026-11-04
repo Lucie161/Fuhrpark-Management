@@ -7,13 +7,8 @@
  * Bei einem Fehler gibt es eine neutrale Meldung, ohne Angabe, ob Name oder
  * Passwort falsch war.
  *
- * Prototyp: Nutzer und Passwort-Hashes kommen aus includes/beispieldaten.php
- * (Passwort aller Testnutzer: „fuhrpark“). Mit Datenbank:
- *
- *   SELECT id, vorname, nachname FROM nutzer
- *    WHERE geloescht_am IS NULL ORDER BY nachname, vorname
- *   SELECT id, rolle_id, passwort_hash FROM nutzer
- *    WHERE id = ? AND geloescht_am IS NULL
+ * Die Nutzer kommen aus der Datenbank (CListeNutzer, CNutzer). Passwort aller
+ * Testnutzer: „fuhrpark“.
  *
  * Ausgeschiedene Nutzer (geloescht_am gesetzt) stehen nicht in der Liste und
  * können sich auch mit richtigem Passwort nicht mehr anmelden.
@@ -35,7 +30,8 @@ if (isset($_GET['logout'])) {
     redirect('login.php');
 }
 
-$auswahl = nutzer_auswahl();
+$ListeNutzer = new CListeNutzer();
+$ListeNutzer->LadenAktive();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nutzerId = (int) (is_string($_POST['nutzer'] ?? null) ? $_POST['nutzer'] : 0);
@@ -44,13 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($nutzerId === 0 || $passwort === '') {
         $fehler = 'Bitte wählen Sie Ihren Namen und geben Sie Ihr Passwort ein.';
     } else {
-        $datensatz = beispiel_nutzer()[$nutzerId] ?? null;
+        $Nutzer = CNutzer::LoadByID($nutzerId);
 
-        if ($datensatz !== null && $datensatz['geloescht_am'] === null
-            && password_verify($passwort, $datensatz['passwort_hash'])) {
+        if ($Nutzer !== null && !$Nutzer->IstAusgeschieden() && $Nutzer->PruefePasswort($passwort)) {
             session_regenerate_id(true);       // schützt vor Session-Fixation
-            $_SESSION['user_id']  = $nutzerId;
-            $_SESSION['rolle_id'] = $datensatz['rolle_id'];
+            $_SESSION['user_id']  = $Nutzer->GetID();
+            $_SESSION['rolle_id'] = $Nutzer->GetRolleID();
             redirect('index.php');
         }
 
@@ -70,8 +65,8 @@ require_once __DIR__ . '/includes/header.php';
         <label class="form__label" for="nutzer">Name</label>
         <select class="form__input" id="nutzer" name="nutzer" required autocomplete="username">
             <option value="">bitte wählen</option>
-            <?php foreach ($auswahl as $id => $name): ?>
-                <option value="<?= e((string) $id) ?>"<?= $id === $nutzerId ? ' selected' : '' ?>><?= e($name) ?></option>
+            <?php foreach ($ListeNutzer->GetAlle() as $Eintrag): ?>
+                <option value="<?= e((string) $Eintrag->GetID()) ?>"<?= $Eintrag->GetID() === $nutzerId ? ' selected' : '' ?>><?= e($Eintrag->GetName()) ?></option>
             <?php endforeach; ?>
         </select>
     </div>

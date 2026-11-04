@@ -277,20 +277,6 @@ function nutzer_name(int $id): string
 }
 
 /**
- * Alle aktiven Nutzer für eine Auswahlliste (Anmeldung): ID => „Vorname
- * Nachname“, nach Nachname sortiert. Ausgeschiedene fehlen.
- *   SELECT id, vorname, nachname FROM nutzer
- *    WHERE geloescht_am IS NULL ORDER BY nachname, vorname
- */
-function nutzer_auswahl(): array
-{
-    $nutzer = array_filter(beispiel_nutzer(), fn (array $n): bool => $n['geloescht_am'] === null);
-    uasort($nutzer, fn (array $a, array $b): int => [$a['nachname'], $a['vorname']] <=> [$b['nachname'], $b['vorname']]);
-
-    return array_map(fn (array $n): string => $n['vorname'] . ' ' . $n['nachname'], $nutzer);
-}
-
-/**
  * Fahrzeuge im Bestand, ohne ausgemusterte: für Buchen, Kalender und die
  * Fahrzeugliste. Steckbrief und Fahrtenbuch finden auch ausgemusterte.
  *   … WHERE f.geloescht_am IS NULL

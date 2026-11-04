@@ -36,6 +36,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/config.php';
 
+nur_angemeldet();
+
 $fuhrparkleiter = ist_fuhrparkleiter();
 
 // Angezeigter Fahrzeugstatus => Beschriftung (wie in fahrzeuge.php); zugleich

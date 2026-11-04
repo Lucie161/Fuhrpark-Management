@@ -30,6 +30,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/config.php';
 
+nur_angemeldet();
+
 $pageTitle = 'Übersicht';
 
 $ich = aktueller_nutzer();
