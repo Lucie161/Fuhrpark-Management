@@ -8,8 +8,7 @@
  *
  * Erwartet von der einbindenden Seite:
  *   $id             Nummer des Antrags
- *   $antrag         der Antrag mit 'hindernis' (null oder Grund, warum
- *                   Genehmigen nicht geht)
+ *   $hindernis      null oder Grund, warum Genehmigen nicht geht
  *   $zurueck        'index' oder ''
  *   $offenerAntrag  Antrag, dessen Ablehnen nach einem Fehler offen bleibt,
  *                   sonst null
@@ -19,7 +18,7 @@
 declare(strict_types=1);
 ?>
 <div class="aktionen">
-    <?php if ($antrag['hindernis'] === null): ?>
+    <?php if ($hindernis === null): ?>
         <form method="post" action="<?= url('genehmigungen.php') ?>">
             <input type="hidden" name="antrag" value="<?= e((string) $id) ?>">
             <input type="hidden" name="entscheidung" value="genehmigen">
@@ -47,6 +46,6 @@ declare(strict_types=1);
     </details>
 </div>
 
-<?php if ($antrag['hindernis'] !== null): ?>
-    <span class="table__zusatz"><?= e($antrag['hindernis']) ?> Genehmigen ist nicht möglich.</span>
+<?php if ($hindernis !== null): ?>
+    <span class="table__zusatz"><?= e($hindernis) ?> Genehmigen ist nicht möglich.</span>
 <?php endif; ?>

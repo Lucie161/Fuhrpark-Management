@@ -15,26 +15,15 @@
  *
  * Mitarbeiter: nur die eigenen Buchungen (beantragt oder als Fahrer
  * eingetragen) und nur die Fahrzeuge, zu denen es eine gibt. Fremde
- * Buchungen fallen gleich nach dem Laden weg, damit keine Stelle der Seite
- * sie ausgeben kann (Datenschutz). Tage ohne eigene Buchung bleiben neutral,
- * nicht „frei“, denn dort kann jemand anderes gebucht haben. Ob ein Fahrzeug
- * frei ist, zeigt buchen.php.
+ * Buchungen werden gar nicht erst abgefragt (Datenschutz). Tage ohne eigene
+ * Buchung bleiben neutral, nicht „frei“, denn dort kann jemand anderes gebucht
+ * haben. Ob ein Fahrzeug frei ist, zeigt buchen.php.
  *
- * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Mit Datenbank:
- *
- *   SELECT id, kennzeichen, hersteller, modell, art_id
- *     FROM fahrzeuge WHERE geloescht_am IS NULL ORDER BY art_id, kennzeichen
- *   (dazu die laufenden Wartungen wie in includes/beispieldaten.php)
- *   SELECT b.fahrzeug_id, b.start, b.ende, b.zweck_id, b.status_id,
- *          b.fahrer_id, b.antragsteller_id
- *     FROM buchungen b
- *    WHERE b.status_id <= STATUS_UNTERWEGS
- *      AND b.start <= :bis
- *      AND (b.ende >= :von OR b.status_id = STATUS_UNTERWEGS)
- *      [AND (b.antragsteller_id = :ich OR b.fahrer_id = :ich)]  -- Mitarbeiter
- *
- * Die vorletzte Bedingung holt auch überfällige Fahrten: begonnen, Ende
- * vorbei, noch nicht zurückgegeben.
+ * Die Buchungen laden CListeBuchungen::LadenBelegung() und
+ * LadenEigeneBelegung(); überfällige Fahrten sind in der Ansicht ab heute dabei.
+ * Fahrzeuge und Wartungen kommen noch aus includes/beispieldaten.php, die
+ * Überschriften aus FAHRZEUGARTEN_MEHRZAHL, bis Paket B CFahrzeug, CWartung
+ * und die Spalte fahrzeugarten.plural liefert.
  */
 
 declare(strict_types=1);
@@ -73,32 +62,22 @@ $ersterTag = $woche * 7;
 $heute = new DateTimeImmutable('today');
 $fahrzeuge = fahrzeuge_im_bestand();
 
-// Belegende Buchungen (offen, genehmigt, unterwegs) mit Tagen relativ zu
-// heute.
-$buchungen = [];
+$Zwecke = new CListeSchluessel('zwecke');
 
-foreach (beispiel_buchungen() as $b) {
-    if (isset($standText[$b['status_id']])) {
-        $b['von'] = (int) $heute->diff($b['start'])->format('%r%a');
-        $b['bis'] = (int) $heute->diff($b['ende'])->format('%r%a');
-        $buchungen[] = $b;
-    }
-}
+$ansichtVon = $heute->modify('+' . $ersterTag . ' day');
+$ansichtBis = $heute->modify('+' . ($ersterTag + $anzahlTage - 1) . ' day');
 
-// --- Nur eigene Buchungen (Mitarbeiter) -------------------------------------
-// Fremde Buchungen fallen hier weg, dazu die Fahrzeuge, zu denen es im
-// Zeitraum keine eigene Buchung gibt. Überfällige Fahrten zählen mit, sie
-// erscheinen am heutigen Tag.
+// --- Buchungen --------------------------------------------------------------
+// Belegende Buchungen im Zeitraum (offen, genehmigt, unterwegs). Mitarbeiter
+// bekommen nur die eigenen und nur die Fahrzeuge dazu.
 
-if (!$fuhrparkleiter) {
-    $buchungen = array_values(array_filter(
-        $buchungen,
-        fn (array $b): bool => ($b['fahrer_id'] === $ich || $b['antragsteller_id'] === $ich)
-            && $b['von'] < $ersterTag + $anzahlTage
-            && ($b['bis'] >= $ersterTag || ($b['status_id'] === STATUS_UNTERWEGS && $woche === 0)),
-    ));
+$ListeBuchungen = new CListeBuchungen();
 
-    $fahrzeuge = array_intersect_key($fahrzeuge, array_flip(array_column($buchungen, 'fahrzeug_id')));
+if ($fuhrparkleiter) {
+    $ListeBuchungen->LadenBelegung($ansichtVon, $ansichtBis, true);
+} else {
+    $ListeBuchungen->LadenEigeneBelegung($ich, $ansichtVon, $ansichtBis);
+    $fahrzeuge = array_intersect_key($fahrzeuge, array_flip($ListeBuchungen->GetFahrzeugIDs()));
 }
 
 // --- Tage -------------------------------------------------------------------
@@ -164,8 +143,8 @@ foreach ($fahrzeuge as $id => $fahrzeug) {
     }
 }
 
-foreach ($buchungen as $buchung) {
-    $id = $buchung['fahrzeug_id'];
+foreach ($ListeBuchungen->GetAlle() as $Buchung) {
+    $id = $Buchung->GetFahrzeugID();
 
     if (!isset($fahrzeuge[$id])) {
         continue;
@@ -173,34 +152,30 @@ foreach ($buchungen as $buchung) {
 
     // Eine begonnene Fahrt, deren Ende vorbei ist, blockiert das Fahrzeug bis
     // zur Rückgabe. Wann die kommt, ist unbekannt, daher nur heute.
-    $ueberfaellig = $buchung['status_id'] === STATUS_UNTERWEGS && $buchung['bis'] < 0;
+    $ueberfaellig = $Buchung->IstUeberfaellig();
 
-    $von = $ueberfaellig ? 0 : max($buchung['von'], $ersterTag);
-    $bis = $ueberfaellig ? 0 : min($buchung['bis'], $ersterTag + $anzahlTage - 1);
+    $von = $ueberfaellig ? 0 : max((int) $heute->diff($Buchung->GetStart())->format('%r%a'), $ersterTag);
+    $bis = $ueberfaellig ? 0 : min((int) $heute->diff($Buchung->GetEnde())->format('%r%a'), $ersterTag + $anzahlTage - 1);
 
-    if ($von > $bis || $von < $ersterTag) {
-        continue;
-    }
-
-    [$zustand, $stand] = $standText[$buchung['status_id']];
-    $zweck = ZWECKE[$buchung['zweck_id']];
+    [$zustand, $stand] = $standText[$Buchung->GetStatusID()];
+    $zweck = $Zwecke->GetBezeichnung($Buchung->GetZweckID());
 
     // Hier entscheidet sich, was die Rolle sieht.
     if ($fuhrparkleiter) {
         // Hat jemand anderes für den Fahrer gebucht, steht das dabei.
-        $hinweis = $stand . ': ' . nutzer_name($buchung['fahrer_id'])
-            . ($buchung['antragsteller_id'] !== $buchung['fahrer_id'] ? ' (gebucht von ' . nutzer_name($buchung['antragsteller_id']) . ')' : '')
+        $hinweis = $stand . ': ' . $Buchung->GetFahrerName()
+            . ($Buchung->GetAntragstellerID() !== $Buchung->GetFahrerID() ? ' (gebucht von ' . $Buchung->GetAntragstellerName() . ')' : '')
             . ', ' . $zweck;
-        $text = beispiel_nutzer()[$buchung['fahrer_id']]['vorname'];
-        $link = $buchung['status_id'] === STATUS_OFFEN ? 'genehmigungen.php' : null;
+        $text = $Buchung->GetFahrerVorname();
+        $link = $Buchung->GetStatusID() === STATUS_OFFEN ? 'genehmigungen.php' : null;
     } else {
         // Eigene Buchung: andere Namen nur, wenn ich nicht selbst fahre oder
         // nicht selbst gebucht habe.
-        $hinweis = ($buchung['status_id'] === STATUS_GENEHMIGT ? 'genehmigt' : $stand) . ': ' . $zweck
-            . ($buchung['fahrer_id'] !== $ich ? ', Fahrer: ' . nutzer_name($buchung['fahrer_id']) : '')
-            . ($buchung['antragsteller_id'] !== $ich ? ', gebucht von ' . nutzer_name($buchung['antragsteller_id']) : '');
+        $hinweis = ($Buchung->GetStatusID() === STATUS_GENEHMIGT ? 'genehmigt' : $stand) . ': ' . $zweck
+            . ($Buchung->GetFahrerID() !== $ich ? ', Fahrer: ' . $Buchung->GetFahrerName() : '')
+            . ($Buchung->GetAntragstellerID() !== $ich ? ', gebucht von ' . $Buchung->GetAntragstellerName() : '');
         $text = '';
-        $link = $ueberfaellig ? 'rueckgabe.php?buchung=' . $buchung['id'] : 'meine-buchungen.php';
+        $link = $ueberfaellig ? 'rueckgabe.php?buchung=' . $Buchung->GetID() : 'meine-buchungen.php';
     }
 
     $zustaende = [$zustand];

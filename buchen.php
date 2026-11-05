@@ -21,27 +21,11 @@
  *
  * Aufruf mit Vorauswahl aus dem Steckbrief: buchen.php?fahrzeug=1. Die Suche
  * steht in der Adresse, z. B. buchen.php?beginn=2026-10-07&ende=2026-10-08&zweck=1
- * (Zweck und Fahrzeugart als ID aus includes/konstanten.php).
+ * (Zweck und Fahrzeugart als ID aus den Schlüsseltabellen).
  *
- * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Eine Buchung
- * wird geprüft und bestätigt, aber noch nicht gespeichert. Mit Datenbank:
- *
- *   SELECT id, vorname, nachname FROM nutzer
- *    WHERE rolle_id = ROLLE_MITARBEITER AND geloescht_am IS NULL
- *   SELECT nutzer_id, klasse FROM nutzer_fuehrerscheine
- *   SELECT * FROM fahrzeuge
- *    WHERE geloescht_am IS NULL AND sitzplaetze >= :personen
- *      [AND art_id = :art] [AND art_id IN (ART_AUTO, ART_TRANSPORTER)]
- *    ORDER BY art_id, kennzeichen
- *   SELECT fahrzeug_id, start, ende, status_id FROM buchungen
- *    WHERE status_id <= STATUS_UNTERWEGS
- *      AND (ende >= :beginn OR status_id = STATUS_UNTERWEGS)
- *
- * Beim Absenden dieselben Prüfungen noch einmal, dann:
- *   INSERT INTO buchungen (fahrzeug_id, antragsteller_id, fahrer_id, start,
- *     ende, zweck_id, personenanzahl, status_id, beantragt_am)
- *   VALUES (:fahrzeug, :ich, :fahrer, :beginn, :ende, :zweck, :personen,
- *     :status, NOW())
+ * Nutzer, Belegung und Speichern laufen über CListeNutzer, CListeBuchungen und
+ * CBuchung::Create(). Die Fahrzeuge kommen noch aus includes/beispieldaten.php,
+ * bis CFahrzeug (Paket B) fertig ist; die IDs stimmen mit der Datenbank überein.
  */
 
 declare(strict_types=1);
@@ -54,42 +38,34 @@ $pageTitle = 'Fahrzeug buchen';
 
 $ich = aktueller_nutzer();
 
-// Aktive Mitarbeiter mit ihren Führerscheinklassen; nur sie können Fahrer
-// sein. Ausgeschiedene fehlen.
+// Aktive Mitarbeiter; nur sie können Fahrer sein. Ausgeschiedene fehlen.
+$ListeNutzer = new CListeNutzer();
+$ListeNutzer->LadenAktive();
+
 $nutzer = [];
 
-foreach (beispiel_nutzer() as $id => $person) {
-    if ($person['rolle_id'] === ROLLE_MITARBEITER && $person['geloescht_am'] === null) {
-        $nutzer[$id] = ['name' => nutzer_name($id), 'fuehrerscheine' => $person['fuehrerscheine']];
+foreach ($ListeNutzer->GetAlle() as $Eintrag) {
+    if ($Eintrag->GetRolleID() === ROLLE_MITARBEITER) {
+        $nutzer[$Eintrag->GetID()] = $Eintrag;
     }
 }
 
-// Zwecke, für die nur Autos und Transporter in Frage kommen (Regel 1). Wie
-// Zwecke und Fahrzeugarten zusammenhängen, wird noch besprochen.
-$nurAuto = [ZWECK_MONTAGE, ZWECK_MATERIALTRANSPORT];
-$autoArten = [ART_AUTO, ART_TRANSPORTER];
+$Zwecke = new CListeSchluessel('zwecke');
+$Fahrzeugarten = new CListeSchluessel('fahrzeugarten');
 
 $fahrzeuge = fahrzeuge_im_bestand();
 
 $heute = new DateTimeImmutable('today');
 
-// Belegende Buchungen (offen, genehmigt, unterwegs) mit Tagen relativ zu
-// heute. Namen braucht die Seite nicht.
-$buchungen = [];
+// Überfällige Rückgaben, ohne Namen. Wer selbst eine hat, bucht nichts.
+$ListeUeberfaellige = new CListeBuchungen();
+$ListeUeberfaellige->LadenUeberfaellige();
 
-foreach (beispiel_buchungen() as $b) {
-    if (belegt_fahrzeug($b)) {
-        $buchungen[] = [
-            'fahrzeug_id' => $b['fahrzeug_id'],
-            'von'         => (int) $heute->diff($b['start'])->format('%r%a'),
-            'bis'         => (int) $heute->diff($b['ende'])->format('%r%a'),
-        ];
-    }
-}
-
-// Wer selbst eine überfällige Rückgabe hat, bucht nichts.
-$meineSperre = sperre_buchen($ich);
-$meineUeberfaellige = array_filter(ueberfaellige_rueckgaben(), fn (array $b): bool => $b['fahrer_id'] === $ich);
+$meineSperre = $nutzer[$ich]->GetSperreBuchen();
+$meineUeberfaellige = array_filter(
+    $ListeUeberfaellige->GetAlle(),
+    fn (CBuchung $Buchung): bool => $Buchung->GetFahrerID() === $ich,
+);
 
 // --- Suche (GET) ------------------------------------------------------------
 // Fehlt ein Wert, gilt der Standard: ich selbst, morgen, 1 Person, alle
@@ -102,9 +78,9 @@ $fahrer = (int) (is_string($_GET['fahrer'] ?? null) ? $_GET['fahrer'] : $ich);
 if (!isset($nutzer[$fahrer])) {
     $fehler[] = 'Diesen Fahrer gibt es nicht.';
     $fahrer = $ich;
-} elseif ($fahrer !== $ich && sperre_buchen($fahrer) !== null) {
-    $fehler[] = 'Für ' . $nutzer[$fahrer]['name'] . ' kann derzeit nicht gebucht werden: '
-        . sperre_buchen($fahrer) . ' Bitte zuerst zurückgeben.';
+} elseif ($fahrer !== $ich && $nutzer[$fahrer]->GetSperreBuchen() !== null) {
+    $fehler[] = 'Für ' . $nutzer[$fahrer]->GetName() . ' kann derzeit nicht gebucht werden: '
+        . $nutzer[$fahrer]->GetSperreBuchen() . ' Bitte zuerst zurückgeben.';
 }
 
 $zeitraum = [];
@@ -141,9 +117,9 @@ if ($personen === false) {
 
 // Zweck und Fahrzeugart als ID, 0 = nicht gewählt.
 $zweck = (int) (is_string($_GET['zweck'] ?? null) ? $_GET['zweck'] : 0);
-$zweck = isset(ZWECKE[$zweck]) ? $zweck : 0;
+$zweck = $Zwecke->GetByID($zweck) !== null ? $zweck : 0;
 $art   = (int) (is_string($_GET['art'] ?? null) ? $_GET['art'] : 0);
-$art   = isset(FAHRZEUGARTEN[$art]) ? $art : 0;
+$art   = $Fahrzeugarten->GetByID($art) !== null ? $art : 0;
 
 // Aus dem Steckbrief vorgewähltes Fahrzeug (fahrzeug.php → buchen.php?fahrzeug=1).
 $auswahl = (int) (is_string($_GET['fahrzeug'] ?? null) ? $_GET['fahrzeug'] : 0);
@@ -176,30 +152,30 @@ $grundText = [
 $passende = [];
 
 if ($suche !== []) {
-    // Tage relativ zu heute, wie in den Buchungen.
-    $tagVon = (int) $heute->diff($zeitraum['beginn'])->days;
-    $tagBis = (int) $heute->diff($zeitraum['ende'])->days;
+    // Belegende Buchungen im Zeitraum (offen, genehmigt, unterwegs). Namen
+    // braucht die Seite nicht.
+    $ListeBelegung = new CListeBuchungen();
+    $ListeBelegung->LadenBelegung($zeitraum['beginn'], $zeitraum['ende']);
+
+    $belegteFahrzeuge = $ListeBelegung->GetFahrzeugIDs();
+    $ueberfaelligeFahrzeuge = $ListeUeberfaellige->GetFahrzeugIDs();
+    $Fahrer = $nutzer[$fahrer];
 
     foreach ($fahrzeuge as $id => $fahrzeug) {
         if ($fahrzeug['sitzplaetze'] < $personen
             || ($art !== 0 && $fahrzeug['art_id'] !== $art)
-            || (in_array($zweck, $nurAuto, true) && !in_array($fahrzeug['art_id'], $autoArten, true))) {
+            || !CBuchung::PasstZweck($zweck, $fahrzeug['art_id'])) {
             continue;
         }
 
-        $belegungen = array_filter($buchungen, fn (array $b): bool => $b['fahrzeug_id'] === $id);
-        $belegt = array_filter($belegungen, fn (array $b): bool => $b['von'] <= $tagBis && $b['bis'] >= $tagVon) !== [];
-        $fehlt = $fahrzeug['fuehrerschein'] !== null
-            && !in_array($fahrzeug['fuehrerschein'], $nutzer[$fahrer]['fuehrerscheine'], true);
-
         // Zuerst, was am Fahrer liegt: Das gilt für jeden Zeitraum.
         $fahrzeug['stand'] = match (true) {
-            $fehlt                     => 'fuehrerschein',
-            fehlt_luxusfreigabe($fahrer, $fahrzeug) => 'luxus',
+            !$Fahrer->HatFuehrerschein($fahrzeug['fuehrerschein'])     => 'fuehrerschein',
+            $fahrzeug['art_id'] === ART_LUXUS && !$Fahrer->DarfLuxus() => 'luxus',
             wartung_sperrt($fahrzeug, $zeitraum['beginn'], $zeitraum['ende']) => 'wartung',
-            fahrzeug_ueberfaellig($id) => 'ueberfaellig',
-            $belegt                    => 'vergeben',
-            default                    => 'frei',
+            in_array($id, $ueberfaelligeFahrzeuge, true) => 'ueberfaellig',
+            in_array($id, $belegteFahrzeuge, true)       => 'vergeben',
+            default                                      => 'frei',
         };
 
         $passende[$id] = $fahrzeug;
@@ -215,11 +191,9 @@ $auswahlHinweis = isset($passende[$auswahl]) && $passende[$auswahl]['stand'] !==
     : null;
 
 // --- Buchung absenden (POST) ------------------------------------------------
-// Läuft vor header.php, damit später eine Weiterleitung möglich ist. Die
-// Suche kommt über die Adresse des Formulars mit; geprüft wird hier alles
-// noch einmal, denn die Anzeige ist nur Komfort.
-
-$bestaetigung = null;
+// Läuft vor header.php, damit die Weiterleitung möglich ist. Die Suche kommt
+// über die Adresse des Formulars mit. Die Prüfungen hier nennen dem Nutzer den
+// genauen Grund; verbindlich prüft CBuchung::Create() noch einmal beim Speichern.
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $auswahl = (int) (is_string($_POST['fahrzeug'] ?? null) ? $_POST['fahrzeug'] : 0);
@@ -240,11 +214,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($fehler === []) {
-        // Nur für diese Anzeige; gespeichert wird noch nicht.
-        $bestaetigung = [
-            'fahrzeug' => $liste[$auswahl],
-            'status'   => braucht_genehmigung($liste[$auswahl]['art_id']) ? STATUS_OFFEN : STATUS_GENEHMIGT,
-        ];
+        try {
+            $Buchung = CBuchung::Create(
+                $auswahl, $ich, $fahrer, $zeitraum['beginn'], $zeitraum['ende'], $zweck, $personen
+            );
+            $bestaetigt = $Buchung->GetStatusID() === STATUS_GENEHMIGT;
+
+            merke_meldung(
+                ($bestaetigt ? 'Buchung bestätigt. ' : 'Antrag gestellt. Er liegt dem Fuhrparkleiter zur Genehmigung vor. ')
+                    . $Buchung->GetFahrzeugName() . ' ' . zeitraum_satz($zeitraum['beginn'], $zeitraum['ende'])
+                    . ', ' . $Zwecke->GetBezeichnung($zweck) . ', Fahrer: ' . $Fahrer->GetName() . '.',
+                $bestaetigt ? 'erfolg' : 'hinweis',
+            );
+            redirect('buchen.php?gebucht=1');
+        } catch (CFachlicherFehler $Fehler) {
+            $fehler[] = $Fehler->getMessage();
+        }
     }
 }
 
@@ -262,26 +247,7 @@ function zeitraum_satz(DateTimeImmutable $von, DateTimeImmutable $bis): string
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<?php if ($bestaetigung !== null): ?>
-    <?php
-    $fahrzeug = $bestaetigung['fahrzeug'];
-    $bestaetigt = $bestaetigung['status'] === STATUS_GENEHMIGT;
-    ?>
-
-    <div class="alert <?= $bestaetigt ? 'alert--erfolg' : 'alert--hinweis' ?>">
-        <p class="alert__zeile">
-            <?php if ($bestaetigt): ?>
-                <strong>Buchung bestätigt.</strong>
-            <?php else: ?>
-                <strong>Antrag gestellt.</strong> Er liegt dem Fuhrparkleiter zur Genehmigung vor.
-            <?php endif; ?>
-        </p>
-        <p class="alert__zeile">
-            <?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell'] . ' (' . $fahrzeug['kennzeichen'] . ')') ?>
-            <?= e(zeitraum_satz($zeitraum['beginn'], $zeitraum['ende'])) ?>,
-            <?= e(ZWECKE[$zweck]) ?>, Fahrer: <?= e($nutzer[$fahrer]['name']) ?>.
-        </p>
-    </div>
+<?php if (isset($_GET['gebucht'])): ?>
 
     <p class="section">
         <a class="button" href="<?= url('meine-buchungen.php') ?>">Zu meinen Buchungen</a>
@@ -290,15 +256,15 @@ require_once __DIR__ . '/includes/header.php';
 
 <?php elseif ($meineSperre !== null): ?>
 
-    <?php foreach ($meineUeberfaellige as $buchung): ?>
+    <?php foreach ($meineUeberfaellige as $Buchung): ?>
         <div class="banner">
             <p class="banner__text">
                 <strong>Sie können derzeit nichts buchen.</strong>
-                Ihre Rückgabe von <?= e(fahrzeug_name($buchung['fahrzeug_id'])) ?> war am
-                <?= e($buchung['ende']->format('d.m.Y')) ?> fällig. Nach der Rückgabe ist Buchen
+                Ihre Rückgabe von <?= e($Buchung->GetFahrzeugName()) ?> war am
+                <?= e($Buchung->GetEnde()->format('d.m.Y')) ?> fällig. Nach der Rückgabe ist Buchen
                 wieder möglich.
             </p>
-            <a class="button button--klein banner__knopf" href="<?= url('rueckgabe.php?buchung=' . $buchung['id']) ?>">Jetzt zurückgeben</a>
+            <a class="button button--klein banner__knopf" href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>">Jetzt zurückgeben</a>
         </div>
     <?php endforeach; ?>
 
@@ -316,10 +282,10 @@ require_once __DIR__ . '/includes/header.php';
             <div class="form__row">
                 <label class="form__label" for="fahrer">Buchen für</label>
                 <select class="form__input" id="fahrer" name="fahrer">
-                    <?php foreach ($nutzer as $id => $person): ?>
+                    <?php foreach ($nutzer as $id => $Eintrag): ?>
                         <option value="<?= e((string) $id) ?>"<?= $id === $fahrer ? ' selected' : '' ?>>
-                            <?= e($id === $ich ? 'mich selbst (' . $person['name'] . ')' : $person['name']) ?>
-                            <?= sperre_buchen($id) !== null ? '(Rückgabe überfällig)' : '' ?>
+                            <?= e($id === $ich ? 'mich selbst (' . $Eintrag->GetName() . ')' : $Eintrag->GetName()) ?>
+                            <?= $Eintrag->GetSperreBuchen() !== null ? '(Rückgabe überfällig)' : '' ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -350,8 +316,8 @@ require_once __DIR__ . '/includes/header.php';
                 <label class="form__label" for="zweck">Zweck</label>
                 <select class="form__input" id="zweck" name="zweck">
                     <option value="">bitte wählen</option>
-                    <?php foreach (ZWECKE as $wert => $text): ?>
-                        <option value="<?= e((string) $wert) ?>"<?= $wert === $zweck ? ' selected' : '' ?>><?= e($text) ?></option>
+                    <?php foreach ($Zwecke->GetAlle() as $Zweck): ?>
+                        <option value="<?= e((string) $Zweck->GetID()) ?>"<?= $Zweck->GetID() === $zweck ? ' selected' : '' ?>><?= e($Zweck->GetBezeichnung()) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <span class="form__hinweis">Montage und Materialtransport nur mit Auto oder Transporter</span>
@@ -361,8 +327,8 @@ require_once __DIR__ . '/includes/header.php';
                 <label class="form__label" for="art">Fahrzeugart</label>
                 <select class="form__input" id="art" name="art">
                     <option value="">alle</option>
-                    <?php foreach (FAHRZEUGARTEN as $wert => $text): ?>
-                        <option value="<?= e((string) $wert) ?>"<?= $wert === $art ? ' selected' : '' ?>><?= e($text) ?></option>
+                    <?php foreach ($Fahrzeugarten->GetAlle() as $Art): ?>
+                        <option value="<?= e((string) $Art->GetID()) ?>"<?= $Art->GetID() === $art ? ' selected' : '' ?>><?= e($Art->GetBezeichnung()) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -388,7 +354,7 @@ require_once __DIR__ . '/includes/header.php';
             <p class="lead">
                 <?= e(zeitraum_satz($zeitraum['beginn'], $zeitraum['ende'])) ?>
                 für <?= e((string) $personen) ?> <?= $personen === 1 ? 'Person' : 'Personen' ?>,
-                Fahrer: <?= e($nutzer[$fahrer]['name']) ?>.
+                Fahrer: <?= e($Fahrer->GetName()) ?>.
                 <?= e((string) count($liste)) ?> <?= count($liste) === 1 ? 'Fahrzeug ist' : 'Fahrzeuge sind' ?> frei.
                 Autos und Transporter werden beim Fuhrparkleiter beantragt, Roller und Fahrräder sind
                 sofort bestätigt.
@@ -418,7 +384,7 @@ require_once __DIR__ . '/includes/header.php';
 
                         <span class="fahrzeugkarte__daten">
                             <?= e($fahrzeug['kennzeichen']) ?> &middot;
-                            <?= e(FAHRZEUGARTEN[$fahrzeug['art_id']]) ?> &middot;
+                            <?= e($Fahrzeugarten->GetBezeichnung($fahrzeug['art_id'])) ?> &middot;
                             <?= e((string) $fahrzeug['sitzplaetze']) ?> <?= $fahrzeug['sitzplaetze'] === 1 ? 'Sitz' : 'Sitze' ?>
                             <?php if ($fahrzeug['fuehrerschein'] !== null): ?>
                                 &middot; Klasse <?= e($fahrzeug['fuehrerschein']) ?>

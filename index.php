@@ -238,6 +238,7 @@ require_once __DIR__ . '/includes/header.php';
                             <td><?= e(zeitraum_text($antrag['start'], $antrag['ende'])) ?></td>
                             <td><?= e(ZWECKE[$antrag['zweck_id']]) ?></td>
                             <td>
+                                <?php $hindernis = $antrag['hindernis']; ?>
                                 <?php require __DIR__ . '/includes/antrag-entscheidung.php'; ?>
                             </td>
                         </tr>

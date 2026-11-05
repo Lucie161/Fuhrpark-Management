@@ -5,20 +5,11 @@
  * Alle offenen Anträge, älteste zuerst. Der Fahrer steht nur dabei, wenn er
  * nicht selbst beantragt hat („Buchen für“). Genehmigen geht nur, wenn das
  * Fahrzeug im Zeitraum noch frei, nicht in Wartung und nicht überfällig ist
- * (genehmigung_hindernis()); eine Ablehnung braucht eine Begründung, die der
- * Antragsteller liest (siehe docs/konzept/technisches-konzept.md, Regel 9).
+ * (CBuchung::GetGenehmigungHindernis()); eine Ablehnung braucht eine
+ * Begründung, die der Antragsteller liest (siehe
+ * docs/konzept/technisches-konzept.md, Regel 9).
  *
- * Prototyp: Die Anträge kommen aus includes/beispieldaten.php. Eine
- * Entscheidung wird geprüft und angezeigt, aber noch nicht gespeichert. Mit
- * Datenbank:
- *
- *   SELECT * FROM buchungen WHERE status_id = STATUS_OFFEN ORDER BY beantragt_am
- *
- * Beim Speichern:
- *   UPDATE buchungen SET status_id = STATUS_GENEHMIGT | STATUS_ABGELEHNT,
- *          entscheidung_von = :ich, entscheidung_am = NOW(),
- *          entscheidung_kommentar = :kommentar
- *    WHERE id = :id AND status_id = STATUS_OFFEN
+ * Laden und Speichern laufen über CListeBuchungen und CBuchung.
  */
 
 declare(strict_types=1);
@@ -29,26 +20,18 @@ nur_fuer_rolle(ROLLE_FUHRPARKLEITER);
 
 $pageTitle = 'Anträge genehmigen';
 
-// --- Anträge aufbereiten ----------------------------------------------------
-// Offene Anträge, älteste zuerst. 'hindernis': warum Genehmigen nicht geht,
-// sonst null.
+$ListeAntraege = new CListeBuchungen();
+$ListeAntraege->LadenOffeneAntraege();
 
-$antraege = array_filter(beispiel_buchungen(), fn (array $b): bool => $b['status_id'] === STATUS_OFFEN);
-uasort($antraege, fn (array $a, array $b): int => $a['beantragt_am'] <=> $b['beantragt_am']);
-
-foreach ($antraege as &$antrag) {
-    $antrag['hindernis'] = genehmigung_hindernis($antrag);
-}
-unset($antrag);
+$Zwecke = new CListeSchluessel('zwecke');
 
 // --- Entscheidung verarbeiten -----------------------------------------------
-// Läuft vor header.php, damit die Weiterleitung zur Übersicht möglich ist.
-// Das Formular steht in includes/antrag-entscheidung.php und kommt auch von
-// index.php (mit zurueck=index). Nach Erfolg geht es dann dorthin zurück;
-// nach einem Fehler bleibt es hier, mit Meldung und der Eingabe im Feld.
+// Läuft vor header.php, damit die Weiterleitung möglich ist. Das Formular
+// steht in includes/antrag-entscheidung.php und kommt auch von index.php (mit
+// zurueck=index). Nach Erfolg geht es dorthin zurück; nach einem Fehler bleibt
+// es hier, mit Meldung und der Eingabe im Feld.
 
 $fehler = [];
-$bestaetigung = null;
 
 // Bei einem Fehler im Ablehnen bleibt das Feld dieses Antrags offen und
 // behält die Eingabe. $zurueck bleibt in den Formularen, damit es nach der
@@ -63,45 +46,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $kommentar = is_string($_POST['kommentar'] ?? null) ? trim($_POST['kommentar']) : '';
     $zurueck = ($_POST['zurueck'] ?? '') === 'index' ? 'index' : '';
 
-    if (!isset($antraege[$id])) {
-        $fehler[] = 'Diesen Antrag gibt es nicht mehr. Vielleicht wurde er schon entschieden.';
-    } elseif ($entscheidung === 'genehmigen') {
-        if ($antraege[$id]['hindernis'] !== null) {
-            $fehler[] = 'Der Antrag kann nicht genehmigt werden. ' . $antraege[$id]['hindernis'];
-        }
-    } elseif ($entscheidung === 'ablehnen') {
-        $offenerAntrag = $id;
+    $Antrag = $ListeAntraege->GetByID($id);
 
-        if ($kommentar === '') {
-            $fehler[] = 'Bitte begründen Sie die Ablehnung. Der Antragsteller sieht die Begründung.';
-        } elseif (mb_strlen($kommentar) > 500) {
-            $fehler[] = 'Die Begründung darf höchstens 500 Zeichen lang sein.';
+    try {
+        if ($Antrag === null) {
+            throw new CFachlicherFehler('Diesen Antrag gibt es nicht mehr. Vielleicht wurde er schon entschieden.');
         }
-    } else {
-        $fehler[] = 'Diese Entscheidung gibt es nicht.';
-    }
 
-    if ($fehler === []) {
-        $antrag = $antraege[$id];
-        $bestaetigung = [
-            'text' => 'Antrag von ' . nutzer_name($antrag['antragsteller_id']) . ' für '
-                . fahrzeug_name($antrag['fahrzeug_id']) . ' (' . zeitraum_text($antrag['start'], $antrag['ende']) . ') '
+        if ($entscheidung === 'genehmigen') {
+            $Antrag->Genehmigen(aktueller_nutzer());
+        } elseif ($entscheidung === 'ablehnen') {
+            $offenerAntrag = $id;
+            $Antrag->Ablehnen(aktueller_nutzer(), $kommentar);
+        } else {
+            throw new CFachlicherFehler('Diese Entscheidung gibt es nicht.');
+        }
+
+        merke_meldung(
+            'Antrag von ' . $Antrag->GetAntragstellerName() . ' für ' . $Antrag->GetFahrzeugName()
+                . ' (' . zeitraum_text($Antrag->GetStart(), $Antrag->GetEnde()) . ') '
                 . ($entscheidung === 'genehmigen' ? 'genehmigt.' : 'abgelehnt.'),
-            'art'  => $entscheidung === 'genehmigen' ? 'erfolg' : 'hinweis',
-        ];
-
-        // Prototyp: Weil nichts gespeichert wird, steht der Antrag auf der
-        // Übersicht danach wieder in der Liste.
-        if ($zurueck === 'index') {
-            merke_meldung($bestaetigung['text'], $bestaetigung['art']);
-            redirect('index.php');
-        }
-
-        // Nur für diese Anzeige; gespeichert wird noch nicht. Der entschiedene
-        // Antrag verschwindet aus der Liste.
-        unset($antraege[$id]);
-        $offenerAntrag = null;
-        $kommentar = '';
+            $entscheidung === 'genehmigen' ? 'erfolg' : 'hinweis',
+        );
+        redirect($zurueck === 'index' ? 'index.php' : 'genehmigungen.php');
+    } catch (CFachlicherFehler $Fehler) {
+        $fehler[] = $Fehler->getMessage();
     }
 }
 
@@ -109,11 +78,11 @@ require_once __DIR__ . '/includes/header.php';
 ?>
 
 <p class="lead">
-    <?php if ($antraege === []): ?>
+    <?php if ($ListeAntraege->Count() === 0): ?>
         Keine offenen Anträge.
     <?php else: ?>
-        <?= e((string) count($antraege)) ?>
-        <?= count($antraege) === 1 ? 'Antrag wartet' : 'Anträge warten' ?> auf Ihre Entscheidung,
+        <?= e((string) $ListeAntraege->Count()) ?>
+        <?= $ListeAntraege->Count() === 1 ? 'Antrag wartet' : 'Anträge warten' ?> auf Ihre Entscheidung,
         älteste zuerst.
     <?php endif; ?>
 </p>
@@ -124,10 +93,6 @@ require_once __DIR__ . '/includes/header.php';
             <p class="alert__zeile"><?= e($meldung) ?></p>
         <?php endforeach; ?>
     </div>
-<?php endif; ?>
-
-<?php if ($bestaetigung !== null): ?>
-    <p class="alert alert--<?= e($bestaetigung['art']) ?>"><?= e($bestaetigung['text']) ?></p>
 <?php endif; ?>
 
 <table class="table">
@@ -143,31 +108,35 @@ require_once __DIR__ . '/includes/header.php';
         </tr>
     </thead>
     <tbody>
-        <?php foreach ($antraege as $id => $antrag): ?>
+        <?php foreach ($ListeAntraege->GetAlle() as $Antrag): ?>
+            <?php
+            $id = $Antrag->GetID();
+            $hindernis = $Antrag->GetGenehmigungHindernis();
+            ?>
             <tr>
                 <td>
-                    <?= e($antrag['beantragt_am']->format('d.m.Y')) ?>
-                    <span class="table__zusatz"><?= e($antrag['beantragt_am']->format('H:i')) ?> Uhr</span>
+                    <?= e($Antrag->GetBeantragtAm()->format('d.m.Y')) ?>
+                    <span class="table__zusatz"><?= e($Antrag->GetBeantragtAm()->format('H:i')) ?> Uhr</span>
                 </td>
                 <td>
-                    <?= e(nutzer_name($antrag['antragsteller_id'])) ?>
-                    <?php if ($antrag['fahrer_id'] !== $antrag['antragsteller_id']): ?>
-                        <span class="table__zusatz">für <?= e(nutzer_name($antrag['fahrer_id'])) ?></span>
+                    <?= e($Antrag->GetAntragstellerName()) ?>
+                    <?php if ($Antrag->GetFahrerID() !== $Antrag->GetAntragstellerID()): ?>
+                        <span class="table__zusatz">für <?= e($Antrag->GetFahrerName()) ?></span>
                     <?php endif; ?>
                 </td>
                 <td>
-                    <a href="<?= url('fahrzeug.php?id=' . $antrag['fahrzeug_id']) ?>"><?= e(fahrzeug_name($antrag['fahrzeug_id'])) ?></a>
+                    <a href="<?= url('fahrzeug.php?id=' . $Antrag->GetFahrzeugID()) ?>"><?= e($Antrag->GetFahrzeugName()) ?></a>
                 </td>
-                <td><?= e(zeitraum_text($antrag['start'], $antrag['ende'])) ?></td>
-                <td><?= e(ZWECKE[$antrag['zweck_id']]) ?></td>
-                <td class="table__num"><?= e((string) $antrag['personenanzahl']) ?></td>
+                <td><?= e(zeitraum_text($Antrag->GetStart(), $Antrag->GetEnde())) ?></td>
+                <td><?= e($Zwecke->GetBezeichnung($Antrag->GetZweckID())) ?></td>
+                <td class="table__num"><?= e((string) $Antrag->GetPersonenanzahl()) ?></td>
                 <td>
                     <?php require __DIR__ . '/includes/antrag-entscheidung.php'; ?>
                 </td>
             </tr>
         <?php endforeach; ?>
 
-        <?php if ($antraege === []): ?>
+        <?php if ($ListeAntraege->Count() === 0): ?>
             <tr>
                 <td colspan="7" class="table__empty">Keine offenen Anträge.</td>
             </tr>
