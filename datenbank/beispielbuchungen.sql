@@ -8,7 +8,7 @@
 --
 -- Die IDs 11–24 entsprechen den Beispieldaten der Prototyp-Seiten. Die
 -- km-Stände ergeben je Fahrzeug eine lückenlose Kette bis zu fahrzeuge.kmstand
--- aus stammdaten.sql. Schadensfotos fehlen, bis der Upload umgesetzt ist.
+-- aus stammdaten.sql. Schadensfotos gibt es keine; sie entstehen erst bei einer Rückgabe.
 --
 -- Nutzer: 1 Lucie, 2 Ella, 3 Finn, 4 Kenneth, 5 Larissa (Mitarbeiter),
 -- 6 Jonas (Fuhrparkleiter), 7 Paul (ausgeschieden).

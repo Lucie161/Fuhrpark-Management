@@ -20,22 +20,14 @@
  * Ausgeschiedene Mitarbeiter und ausgemusterte Fahrzeuge bleiben in Liste und
  * Filter, mit einem Zusatz im Namen: Die Fahrten haben stattgefunden.
  *
- * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Mit Datenbank:
+ * Daten: die Fahrten aus CListeBuchungen::LadenHistorie(), ihre Schäden aus
+ * CListeSchaeden::LadenRueckgabenImZeitraum(), die Wartungen aus
+ * CListeWartungen::LadenImZeitraum(); für die Filter alle Fahrzeuge und Nutzer,
+ * auch ausgemusterte und ausgeschiedene.
  *
- *   SELECT b.*, n.vorname, n.nachname, b.km_ende - b.km_start AS km,
- *          s.schwere_id, s.beschreibung
- *     FROM buchungen b
- *     JOIN nutzer n ON n.id = b.fahrer_id
- *     LEFT JOIN schaeden s ON s.buchung_id = b.id AND s.anlass_id = ANLASS_RUECKGABE
- *    WHERE b.status_id = STATUS_ABGESCHLOSSEN
- *      AND DATE(b.zurueckgegeben_am) BETWEEN :von AND :bis
- *    ORDER BY b.zurueckgegeben_am DESC
- *   SELECT * FROM wartungen
- *    WHERE begonnen_am <= :bis AND (freigegeben_am IS NULL OR freigegeben_am >= :von)
- *   SELECT * FROM fahrzeuge ORDER BY kennzeichen
- *
- * Die Kennzahlen rechnet die Seite aus derselben Liste, damit Liste und
- * Kennzahlen nicht voneinander abweichen können.
+ * Die Kennzahlen rechnet die Seite aus derselben Liste wie die Fahrten, damit
+ * Liste und Kennzahlen nicht voneinander abweichen können. Die Filter wirken
+ * nur auf die Liste, die Kennzahlen zeigen den ganzen Fuhrpark.
  */
 
 declare(strict_types=1);
@@ -47,29 +39,26 @@ nur_fuer_rolle(ROLLE_FUHRPARKLEITER);
 $pageTitle = 'Historie';
 
 // Alle Fahrzeuge, auch ausgemusterte: Ihre Fahrten gehören zur Historie.
-$fahrzeuge = beispiel_fahrzeuge();
+$Fahrzeuge = new CListeFahrzeuge();
+$Fahrzeuge->LadenAlle();
 
 // Mitarbeiter für den Filter „Mitarbeiter“, nach Nachname, auch
 // ausgeschiedene.
+$ListeNutzer = new CListeNutzer();
+$ListeNutzer->LadenAlle();
+
 $mitarbeiter = [];
 
-foreach (beispiel_nutzer() as $id => $person) {
-    if ($person['rolle_id'] === ROLLE_MITARBEITER) {
-        $mitarbeiter[$id] = $person['nachname'] . ', ' . $person['vorname']
-            . ($person['geloescht_am'] !== null ? ' (ausgeschieden)' : '');
+foreach ($ListeNutzer->GetAlle() as $Nutzer) {
+    if ($Nutzer->GetRolleID() === ROLLE_MITARBEITER) {
+        $mitarbeiter[$Nutzer->GetID()] = $Nutzer->GetNachname() . ', ' . $Nutzer->GetVorname()
+            . ($Nutzer->IstAusgeschieden() ? ' (ausgeschieden)' : '');
     }
 }
 
-asort($mitarbeiter);
-
-// Schaden aus der Rückgabe je Buchung.
-$schadenJeBuchung = [];
-
-foreach (beispiel_schaeden() as $schaden) {
-    if ($schaden['anlass_id'] === ANLASS_RUECKGABE) {
-        $schadenJeBuchung[$schaden['buchung_id']] = $schaden;
-    }
-}
+$Fahrzeugarten = new CListeSchluessel('fahrzeugarten');
+$Zwecke = new CListeSchluessel('zwecke');
+$Schweregrade = new CListeSchluessel('schweregrade');
 
 $heute = new DateTimeImmutable('today');
 
@@ -118,14 +107,14 @@ if ($eingabe['bis'] === '' && $bis !== null) {
 
 $auswahlKategorien = [];
 
-foreach (FAHRZEUGARTEN_MEHRZAHL as $art => $text) {
-    $auswahlKategorien['art:' . $art] = $text;
+foreach ($Fahrzeugarten->GetAlle() as $Art) {
+    $auswahlKategorien['art:' . $Art->GetID()] = $Art->GetPlural();
 }
 
 $auswahlFahrzeuge = [];
 
-foreach ($fahrzeuge as $id => $fahrzeug) {
-    $auswahlFahrzeuge['id:' . $id] = fahrzeug_name($id) . ($fahrzeug['geloescht_am'] !== null ? ', ausgemustert' : '');
+foreach ($Fahrzeuge->GetAlle() as $Fahrzeug) {
+    $auswahlFahrzeuge['id:' . $Fahrzeug->GetID()] = $Fahrzeug->GetName() . ($Fahrzeug->IstAusgemustert() ? ', ausgemustert' : '');
 }
 
 $wert = $_GET['auswahl'] ?? '';
@@ -149,44 +138,38 @@ if ($fahrerFilter !== null && (!isset($mitarbeiter[$fahrerFilter]) || (string) $
 $nurFahrten = ($_GET['nur_fahrten'] ?? '') === '1';
 
 // --- Auswerten --------------------------------------------------------------
+// Alle Fahrten im Zeitraum mit ihren Schäden laden und daraus die Kennzahlen
+// zählen. Bei einem Fehler in der Eingabe bleibt alles leer.
 
-$imZeitraum = [];
+$ListeFahrten = new CListeBuchungen();
+$ListeSchaeden = new CListeSchaeden();
+$ListeWartungen = new CListeWartungen();
 
 $summe = ['fahrten' => 0, 'km' => 0, 'schaeden' => 0, 'bemerkungen' => 0];
 
 if ($fehler === []) {
-    foreach (beispiel_buchungen() as $fahrt) {
-        if ($fahrt['status_id'] !== STATUS_ABGESCHLOSSEN
-            || $fahrt['zurueckgegeben_am'] < $von || $fahrt['zurueckgegeben_am'] > $bis) {
-            continue;
-        }
+    $ListeFahrten->LadenHistorie($von, $bis);
+    $ListeSchaeden->LadenRueckgabenImZeitraum($von, $bis);
 
-        // Gefahrene km für die Summen; null ohne km-Stand.
-        $fahrt['km'] = $fahrt['km_ende'] !== null ? $fahrt['km_ende'] - $fahrt['km_start'] : null;
-        $fahrt['schaden'] = $schadenJeBuchung[$fahrt['id']] ?? null;
-
-        $imZeitraum[] = $fahrt;
-
+    foreach ($ListeFahrten->GetAlle() as $Fahrt) {
         $summe['fahrten']++;
-        $summe['km'] += $fahrt['km'] ?? 0;
+        $summe['km'] += gefahrene_km($Fahrt) ?? 0;
 
-        if ($fahrt['schaden'] !== null) {
+        if ($ListeSchaeden->GetBeiRueckgabe($Fahrt->GetID()) !== null) {
             $summe['schaeden']++;
         }
 
-        if ($fahrt['bemerkung'] !== '') {
+        if ($Fahrt->GetBemerkung() !== '') {
             $summe['bemerkungen']++;
         }
     }
-
-    usort($imZeitraum, fn (array $a, array $b): int => $b['zurueckgegeben_am'] <=> $a['zurueckgegeben_am']);
 }
 
 // Fahrtenliste: die Fahrten im Zeitraum, eingeschränkt auf die Auswahl.
 $fahrtenliste = array_values(array_filter(
-    $imZeitraum,
-    fn (array $fahrt): bool => passt_zur_auswahl($fahrt, $eingabe['auswahl'], $fahrzeuge)
-        && ($fahrerFilter === null || $fahrt['fahrer_id'] === $fahrerFilter),
+    $ListeFahrten->GetAlle(),
+    fn (CBuchung $Fahrt): bool => passt_zur_auswahl($Fahrt->GetFahrzeugID(), $eingabe['auswahl'], $Fahrzeuge)
+        && ($fahrerFilter === null || $Fahrt->GetFahrerID() === $fahrerFilter),
 ));
 
 // Wartungen im Zeitraum, eingeschränkt auf die Fahrzeugauswahl. Eine laufende
@@ -194,11 +177,11 @@ $fahrtenliste = array_values(array_filter(
 $wartungsliste = [];
 
 if ($fehler === [] && !$nurFahrten && $fahrerFilter === null) {
+    $ListeWartungen->LadenImZeitraum($von, $bis);
+
     $wartungsliste = array_values(array_filter(
-        beispiel_wartungen(),
-        fn (array $w): bool => $w['begonnen_am'] <= $bis
-            && ($w['freigegeben_am'] ?? $heute) >= $von
-            && passt_zur_auswahl($w, $eingabe['auswahl'], $fahrzeuge),
+        $ListeWartungen->GetAlle(),
+        fn (CWartung $Wartung): bool => passt_zur_auswahl($Wartung->GetFahrzeugID(), $eingabe['auswahl'], $Fahrzeuge),
     ));
 }
 
@@ -206,18 +189,18 @@ if ($fehler === [] && !$nurFahrten && $fahrerFilter === null) {
 // Freigabe), eine laufende Wartung ganz oben.
 $eintraege = [];
 
-foreach ($fahrtenliste as $fahrt) {
-    $eintraege[] = ['art' => 'fahrt', 'datum' => $fahrt['zurueckgegeben_am'], 'daten' => $fahrt];
+foreach ($fahrtenliste as $Fahrt) {
+    $eintraege[] = ['art' => 'fahrt', 'datum' => $Fahrt->GetZurueckgegebenAm(), 'daten' => $Fahrt];
 }
 
-foreach ($wartungsliste as $wartung) {
-    $eintraege[] = ['art' => 'wartung', 'datum' => $wartung['freigegeben_am'] ?? $heute->modify('+1 day'), 'daten' => $wartung];
+foreach ($wartungsliste as $Wartung) {
+    $eintraege[] = ['art' => 'wartung', 'datum' => $Wartung->GetFreigegebenAm() ?? $heute->modify('+1 day'), 'daten' => $Wartung];
 }
 
 usort($eintraege, fn (array $a, array $b): int => $b['datum'] <=> $a['datum']);
 
 // km der Liste; null, wenn keine Fahrt einen km-Stand hat (nur Fahrräder).
-$kmWerte = array_filter(array_column($fahrtenliste, 'km'), fn (?int $km): bool => $km !== null);
+$kmWerte = array_filter(array_map('gefahrene_km', $fahrtenliste), fn (?int $km): bool => $km !== null);
 $kmListe = $fahrtenliste !== [] && $kmWerte === [] ? null : array_sum($kmWerte);
 
 $kennzahlen = [
@@ -230,7 +213,7 @@ $kennzahlen = [
 // Beschreibung der Auswahl für den Satz über der Liste.
 $filterText = implode(', ', array_filter([
     $auswahlText ?? 'alle Fahrzeuge',
-    $fahrerFilter !== null && isset($mitarbeiter[$fahrerFilter]) ? nutzer_name($fahrerFilter) : null,
+    $fahrerFilter !== null && isset($mitarbeiter[$fahrerFilter]) ? $ListeNutzer->GetByID($fahrerFilter)->GetName() : null,
 ]));
 
 /**
@@ -247,9 +230,9 @@ function datum_aus_eingabe(string $wert): ?DateTimeImmutable
 }
 
 /**
- * Ob eine Fahrt zur Auswahl im Filter passt: '' (alle), 'art:…' oder 'id:…'.
+ * Ob ein Fahrzeug zur Auswahl im Filter passt: '' (alle), 'art:…' oder 'id:…'.
  */
-function passt_zur_auswahl(array $fahrt, string $auswahl, array $fahrzeuge): bool
+function passt_zur_auswahl(int $fahrzeugId, string $auswahl, CListeFahrzeuge $Fahrzeuge): bool
 {
     if ($auswahl === '') {
         return true;
@@ -258,8 +241,16 @@ function passt_zur_auswahl(array $fahrt, string $auswahl, array $fahrzeuge): boo
     [$feld, $wert] = explode(':', $auswahl, 2);
 
     return $feld === 'art'
-        ? (string) $fahrzeuge[$fahrt['fahrzeug_id']]['art_id'] === $wert
-        : (string) $fahrt['fahrzeug_id'] === $wert;
+        ? (string) $Fahrzeuge->GetByID($fahrzeugId)->GetArtID() === $wert
+        : (string) $fahrzeugId === $wert;
+}
+
+/**
+ * Gefahrene km einer Fahrt, null ohne km-Stand.
+ */
+function gefahrene_km(CBuchung $Fahrt): ?int
+{
+    return $Fahrt->GetKmEnde() !== null ? $Fahrt->GetKmEnde() - $Fahrt->GetKmStart() : null;
 }
 
 /**
@@ -397,29 +388,29 @@ require_once __DIR__ . '/includes/header.php';
                 <?php foreach ($eintraege as $eintrag): ?>
                     <?php if ($eintrag['art'] === 'wartung'): ?>
                         <?php
-                        $wartung = $eintrag['daten'];
-                        $fahrzeug = $fahrzeuge[$wartung['fahrzeug_id']];
+                        $Wartung = $eintrag['daten'];
+                        $Fahrzeug = $Fahrzeuge->GetByID($Wartung->GetFahrzeugID());
                         ?>
                         <tr class="table__zeile--wartung">
                             <td>
-                                <?php if ($wartung['freigegeben_am'] !== null): ?>
-                                    <?= e(zeitraum_text($wartung['begonnen_am'], $wartung['freigegeben_am'])) ?>
+                                <?php if (!$Wartung->IstLaufend()): ?>
+                                    <?= e(zeitraum_text($Wartung->GetBegonnenAm(), $Wartung->GetFreigegebenAm())) ?>
                                 <?php else: ?>
-                                    seit <?= e($wartung['begonnen_am']->format('d.m.Y')) ?>
+                                    seit <?= e($Wartung->GetBegonnenAm()->format('d.m.Y')) ?>
                                 <?php endif; ?>
                             </td>
                             <td>&ndash;</td>
                             <td>
-                                <a href="<?= url('fahrzeug.php?id=' . $wartung['fahrzeug_id']) ?>#fahrtenbuch"><?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']) ?></a>
-                                <span class="table__zusatz"><?= e($fahrzeug['kennzeichen']) ?></span>
+                                <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>#fahrtenbuch"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></a>
+                                <span class="table__zusatz"><?= e($Fahrzeug->GetKennzeichen()) ?></span>
                             </td>
                             <td>Wartung</td>
                             <td class="table__num">&ndash;</td>
                             <td class="table__num">&ndash;</td>
                             <td>
-                                <?= e($wartung['grund']) ?>
-                                <?php if ($wartung['freigegeben_am'] === null): ?>
-                                    <span class="table__zusatz">läuft, <?= e(wartung_text($fahrzeug)) ?></span>
+                                <?= e($Wartung->GetGrund()) ?>
+                                <?php if ($Wartung->IstLaufend()): ?>
+                                    <span class="table__zusatz">läuft, <?= e($Fahrzeug->GetWartungText()) ?></span>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -427,31 +418,32 @@ require_once __DIR__ . '/includes/header.php';
                     <?php endif; ?>
 
                     <?php
-                    $fahrt = $eintrag['daten'];
-                    $fahrzeug = $fahrzeuge[$fahrt['fahrzeug_id']];
+                    $Fahrt = $eintrag['daten'];
+                    $Fahrzeug = $Fahrzeuge->GetByID($Fahrt->GetFahrzeugID());
+                    $Schaden = $ListeSchaeden->GetBeiRueckgabe($Fahrt->GetID());
                     ?>
                     <tr>
-                        <td><?= e(zeitraum_text($fahrt['start'], $fahrt['zurueckgegeben_am'])) ?></td>
-                        <td><?= e(nutzer_name($fahrt['fahrer_id'])) ?></td>
+                        <td><?= e(zeitraum_text($Fahrt->GetStart(), $Fahrt->GetZurueckgegebenAm())) ?></td>
+                        <td><?= e($Fahrt->GetFahrerName()) ?></td>
                         <td>
-                            <a href="<?= url('fahrzeug.php?id=' . $fahrt['fahrzeug_id']) ?>#fahrtenbuch"><?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']) ?></a>
-                            <span class="table__zusatz"><?= e($fahrzeug['kennzeichen']) ?></span>
+                            <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>#fahrtenbuch"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></a>
+                            <span class="table__zusatz"><?= e($Fahrzeug->GetKennzeichen()) ?></span>
                         </td>
-                        <td><?= e(ZWECKE[$fahrt['zweck_id']]) ?></td>
-                        <td class="table__num"><?= e(km_text($fahrt['km_start'])) ?></td>
-                        <td class="table__num"><?= e(km_text($fahrt['km_ende'])) ?></td>
+                        <td><?= e($Zwecke->GetBezeichnung($Fahrt->GetZweckID())) ?></td>
+                        <td class="table__num"><?= e(km_text($Fahrt->GetKmStart())) ?></td>
+                        <td class="table__num"><?= e(km_text($Fahrt->GetKmEnde())) ?></td>
                         <td>
-                            <?php if ($fahrt['schaden'] !== null): ?>
-                                <span class="badge<?= $fahrt['schaden']['schwere_id'] === SCHWERE_WARTUNG ? ' badge--abgelehnt' : '' ?>"><?= e(SCHWEREGRADE[$fahrt['schaden']['schwere_id']]) ?></span>
-                                <span class="table__zusatz"><?= e($fahrt['schaden']['beschreibung']) ?></span>
-                            <?php elseif ($fahrt['bemerkung'] !== ''): ?>
+                            <?php if ($Schaden !== null): ?>
+                                <span class="badge<?= $Schaden->GetSchwereID() === SCHWERE_WARTUNG ? ' badge--abgelehnt' : '' ?>"><?= e($Schweregrade->GetBezeichnung($Schaden->GetSchwereID())) ?></span>
+                                <span class="table__zusatz"><?= e($Schaden->GetBeschreibung()) ?></span>
+                            <?php elseif ($Fahrt->GetBemerkung() !== ''): ?>
                                 <span class="badge">Bemerkung</span>
                             <?php else: ?>
                                 &ndash;
                             <?php endif; ?>
 
-                            <?php if ($fahrt['bemerkung'] !== ''): ?>
-                                <span class="table__zusatz"><?= e($fahrt['bemerkung']) ?></span>
+                            <?php if ($Fahrt->GetBemerkung() !== ''): ?>
+                                <span class="table__zusatz"><?= e($Fahrt->GetBemerkung()) ?></span>
                             <?php endif; ?>
                         </td>
                     </tr>

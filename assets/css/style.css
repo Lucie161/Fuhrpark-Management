@@ -643,21 +643,14 @@ a.button {
     list-style: none;
 }
 
+/* Vorschau; ein Klick öffnet das Foto in voller Größe (foto.php). */
 .schadensfotos__bild {
+    display: block;
     width: 72px;
     aspect-ratio: 4 / 3;
     object-fit: cover;
     border: 1px solid var(--farbe-rand);
     border-radius: calc(var(--radius) - 4px);
-}
-
-/* Platzhalter, solange im Prototyp keine Fotos abgelegt werden. */
-.schadensfotos__bild--platzhalter {
-    display: grid;
-    place-items: center;
-    background: var(--farbe-hinter);
-    color: var(--farbe-gedaempft);
-    font-size: 0.75rem;
 }
 
 /* Offene Schäden eines Fahrzeugs im Steckbrief (fahrzeug.php). */

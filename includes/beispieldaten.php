@@ -342,21 +342,3 @@ function fahrzeug_ueberfaellig(int $fahrzeugId): bool
 
     return false;
 }
-
-/**
- * Noch nicht behobene Schäden eines Fahrzeugs, neueste zuerst.
- *   SELECT s.* FROM schaeden s JOIN buchungen b ON b.id = s.buchung_id
- *    WHERE b.fahrzeug_id = :id AND s.behoben_am IS NULL
- *    ORDER BY s.gemeldet_am DESC
- */
-function offene_schaeden(int $fahrzeugId): array
-{
-    $schaeden = array_filter(
-        beispiel_schaeden(),
-        fn (array $s): bool => $s['fahrzeug_id'] === $fahrzeugId && $s['behoben_am'] === null,
-    );
-
-    uasort($schaeden, fn (array $a, array $b): int => $b['gemeldet_am'] <=> $a['gemeldet_am']);
-
-    return $schaeden;
-}

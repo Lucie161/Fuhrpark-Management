@@ -121,6 +121,33 @@ class CListeBuchungen
         );
     }
 
+    /**
+     * Lädt das Fahrtenbuch eines Fahrzeugs: seine abgeschlossenen Fahrten, die
+     * zuletzt zurückgegebene zuerst. Namen nur für den Fuhrparkleiter.
+     */
+    public function LadenFahrtenbuch(int $in_FahrzeugID, bool $in_MitNamen = false): void
+    {
+        $this->Laden(
+            self::GetSelect($in_MitNamen) . ' WHERE b.fahrzeug_id = ? AND b.status_id = ?
+             ORDER BY b.zurueckgegeben_am DESC, b.id DESC',
+            [$in_FahrzeugID, STATUS_ABGESCHLOSSEN]
+        );
+    }
+
+    /**
+     * Lädt die abgeschlossenen Fahrten aller Fahrzeuge, die im Zeitraum
+     * zurückgegeben wurden, die zuletzt zurückgegebene zuerst. Mit Namen, für
+     * die Historie des Fuhrparkleiters.
+     */
+    public function LadenHistorie(DateTimeImmutable $in_Von, DateTimeImmutable $in_Bis): void
+    {
+        $this->Laden(
+            CBuchung::SQL_MIT_NAMEN . ' WHERE b.status_id = ? AND DATE(b.zurueckgegeben_am) BETWEEN ? AND ?
+             ORDER BY b.zurueckgegeben_am DESC, b.id DESC',
+            [STATUS_ABGESCHLOSSEN, $in_Von->format('Y-m-d'), $in_Bis->format('Y-m-d')]
+        );
+    }
+
     private static function GetSelect(bool $in_MitNamen): string
     {
         return $in_MitNamen ? CBuchung::SQL_MIT_NAMEN : CBuchung::SQL_OHNE_NAMEN;

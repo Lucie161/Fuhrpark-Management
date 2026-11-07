@@ -224,58 +224,6 @@ function genehmigung_hindernis(array $antrag): ?string
     return null;
 }
 
-// Schadensfotos (Rückgabe): höchstens 3 Stück zu je 5 MB, nur JPEG, PNG oder
-// WebP. Die Grenzen liegen unter post_max_size (XAMPP: 40 MB).
-const FOTOS_MAX       = 3;
-const FOTO_MAX_BYTES  = 5 * 1024 * 1024;
-const FOTO_TYPEN      = ['image/jpeg', 'image/png', 'image/webp'];
-
-/**
- * Prüft die hochgeladenen Schadensfotos aus <input type="file" name="fotos[]" multiple>.
- *
- * Der Dateityp wird am Inhalt erkannt, nicht an Endung oder Browserangabe,
- * beides lässt sich fälschen. Liefert [gültige Fotos, Fehlermeldungen].
- */
-function pruefe_fotos(array $dateien): array
-{
-    $fotos  = [];
-    $fehler = [];
-
-    foreach ($dateien['error'] ?? [] as $i => $code) {
-        $name = (string) $dateien['name'][$i];
-
-        if ($code === UPLOAD_ERR_NO_FILE) {
-            continue;
-        }
-
-        if ($code === UPLOAD_ERR_INI_SIZE || $code === UPLOAD_ERR_FORM_SIZE
-            || $dateien['size'][$i] > FOTO_MAX_BYTES) {
-            $fehler[] = '„' . $name . '“ ist größer als ' . intdiv(FOTO_MAX_BYTES, 1024 * 1024) . ' MB.';
-            continue;
-        }
-
-        if ($code !== UPLOAD_ERR_OK || !is_uploaded_file($dateien['tmp_name'][$i])) {
-            $fehler[] = '„' . $name . '“ konnte nicht hochgeladen werden.';
-            continue;
-        }
-
-        $typ = (new finfo(FILEINFO_MIME_TYPE))->file($dateien['tmp_name'][$i]);
-
-        if (!in_array($typ, FOTO_TYPEN, true)) {
-            $fehler[] = '„' . $name . '“ ist kein Foto im Format JPEG, PNG oder WebP.';
-            continue;
-        }
-
-        $fotos[] = ['tmp_name' => $dateien['tmp_name'][$i], 'typ' => $typ];
-    }
-
-    if (count($fotos) > FOTOS_MAX) {
-        $fehler[] = 'Bitte höchstens ' . FOTOS_MAX . ' Fotos anhängen.';
-    }
-
-    return [$fotos, $fehler];
-}
-
 /**
  * Zeitraum als Text, eintägig ohne „bis“: „03.10.2026“ oder
  * „03.10.2026 bis 05.10.2026“.

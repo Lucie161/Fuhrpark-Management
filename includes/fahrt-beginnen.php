@@ -23,7 +23,8 @@ $fahrtID = $Buchung->GetID();
 $fahrtSperre = $Buchung->GetSperreFahrtbeginn();
 $fahrtLuxus = CFahrzeug::LoadByID($Buchung->GetFahrzeugID())->IstLuxus();
 $fahrtOffen = ($offeneFahrt ?? null) === $fahrtID;
-$fahrtOffeneSchaeden = offene_schaeden($Buchung->GetFahrzeugID());
+$FahrtOffeneSchaeden = new CListeSchaeden();
+$FahrtOffeneSchaeden->LadenOffene($Buchung->GetFahrzeugID());
 ?>
 <?php if ($fahrtSperre !== null): ?>
     <span class="table__zusatz">Fahrt beginnen nicht möglich. <?= e($fahrtSperre) ?></span>
@@ -38,25 +39,25 @@ $fahrtOffeneSchaeden = offene_schaeden($Buchung->GetFahrzeugID());
                 <input type="hidden" name="zurueck" value="<?= e($zurueck) ?>">
             <?php endif; ?>
 
-            <?php if ($fahrtOffeneSchaeden !== []): ?>
+            <?php if ($FahrtOffeneSchaeden->Count() > 0): ?>
                 <p class="klappaktion__frage">
                     Diese Schäden sind bereits bekannt. Sie müssen sie nicht erneut angeben:
                 </p>
                 <ul class="klappaktion__liste">
-                    <?php foreach ($fahrtOffeneSchaeden as $fahrtSchaden): ?>
+                    <?php foreach ($FahrtOffeneSchaeden->GetAlle() as $FahrtSchaden): ?>
                         <li>
-                            <?= e($fahrtSchaden['beschreibung']) ?>
-                            (<?= e($fahrtSchaden['gemeldet_am']->format('d.m.Y')) ?>)
+                            <?= e($FahrtSchaden->GetBeschreibung()) ?>
+                            (<?= e($FahrtSchaden->GetGemeldetAm()->format('d.m.Y')) ?>)
                         </li>
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
 
             <label class="form__label" for="schaden-<?= e((string) $fahrtID) ?>">
-                <?= $fahrtOffeneSchaeden !== [] ? 'Weitere' : 'Vorhandene' ?> Schäden, die Ihnen auffallen (optional)
+                <?= $FahrtOffeneSchaeden->Count() > 0 ? 'Weitere' : 'Vorhandene' ?> Schäden, die Ihnen auffallen (optional)
             </label>
             <textarea class="form__input" id="schaden-<?= e((string) $fahrtID) ?>" name="schaden" rows="2"
-                      maxlength="200" placeholder="z. B. Kratzer am Kotflügel links"><?= $fahrtOffen ? e($schadenEingabe ?? '') : '' ?></textarea>
+                      maxlength="<?= e((string) CSchaden::MAX_BESCHREIBUNG) ?>" placeholder="z. B. Kratzer am Kotflügel links"><?= $fahrtOffen ? e($schadenEingabe ?? '') : '' ?></textarea>
             <?php if ($fahrtLuxus): ?>
                 <p class="klappaktion__frage">
                     Luxusauto: Die Fahrt kann trotzdem beginnen. Nach der Rückgabe geht das Fahrzeug

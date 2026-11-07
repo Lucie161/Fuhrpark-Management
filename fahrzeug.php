@@ -15,11 +15,10 @@
  * weiter erreichbar, aber ohne Belegung und Buchen.
  *
  * Daten: CFahrzeug::LoadByID() mit laufender Wartung, die Belegung aus
- * CListeBuchungen::LadenBelegung() (Namen nur für den Fuhrparkleiter), die
- * Wartungen im Fahrtenbuch aus CListeWartungen::LadenZuFahrzeug().
- *
- * Noch aus includes/beispieldaten.php: offene Schäden
- * (offene_schaeden()) und die Fahrten im Fahrtenbuch.
+ * CListeBuchungen::LadenBelegung() und die Fahrten aus
+ * CListeBuchungen::LadenFahrtenbuch() (Namen jeweils nur für den
+ * Fuhrparkleiter), die Wartungen im Fahrtenbuch aus
+ * CListeWartungen::LadenZuFahrzeug(), die Schäden aus CListeSchaeden.
  */
 
 declare(strict_types=1);
@@ -33,6 +32,8 @@ $fuhrparkleiter = ist_fuhrparkleiter();
 $Fahrzeugarten = new CListeSchluessel('fahrzeugarten');
 $Antriebe = new CListeSchluessel('antriebe');
 $Zwecke = new CListeSchluessel('zwecke');
+$Schweregrade = new CListeSchluessel('schweregrade');
+$Anlaesse = new CListeSchluessel('schadensanlaesse');
 
 // Angezeigter Fahrzeugstatus => Beschriftung (wie in fahrzeuge.php); zugleich
 // CSS-Klasse (.badge--wartung usw.), siehe CFahrzeug::GetStand().
@@ -143,44 +144,28 @@ $zustandText = [
 ];
 
 // --- Schäden ----------------------------------------------------------------
-// Noch aus den Beispieldaten. Noch nicht behobene Schäden, für beide
-// Rollen ohne Namen. Schäden aus der Rückgabe stehen außerdem im Fahrtenbuch
-// an der jeweiligen Fahrt.
+// Noch nicht behobene Schäden, für beide Rollen ohne Namen. Schäden aus der
+// Rückgabe stehen außerdem im Fahrtenbuch an der jeweiligen Fahrt.
 
-$offeneSchaeden = $Fahrzeug !== null ? offene_schaeden($id) : [];
+$ListeOffene = new CListeSchaeden();
+$ListeOffene->LadenOffene($id);
 
-$schadenJeBuchung = [];
-
-foreach (beispiel_schaeden() as $schaden) {
-    if ($schaden['anlass_id'] === ANLASS_RUECKGABE) {
-        $schadenJeBuchung[$schaden['buchung_id']] = $schaden;
-    }
-}
+$ListeSchaeden = new CListeSchaeden();
+$ListeSchaeden->LadenZuFahrzeug($id);
 
 // --- Fahrtenbuch des Fahrzeugs ----------------------------------------------
-// Die Fahrten kommen noch aus den Beispieldaten. Für Mitarbeiter
-// fällt der Fahrer schon hier weg, damit ihn keine Stelle der Seite ausgeben
-// kann.
+// Den Fahrer fragt die Abfrage nur für den Fuhrparkleiter ab; für Mitarbeiter
+// liefert GetFahrerName() null.
 
-$fahrtenbuch = array_filter(
-    beispiel_buchungen(),
-    fn (array $b): bool => $b['fahrzeug_id'] === $id && $b['status_id'] === STATUS_ABGESCHLOSSEN
-);
-usort($fahrtenbuch, fn (array $a, array $b): int => $b['zurueckgegeben_am'] <=> $a['zurueckgegeben_am']);
-
-if (!$fuhrparkleiter) {
-    foreach ($fahrtenbuch as &$fahrt) {
-        unset($fahrt['fahrer_id'], $fahrt['antragsteller_id']);
-    }
-    unset($fahrt);
-}
+$ListeFahrten = new CListeBuchungen();
+$ListeFahrten->LadenFahrtenbuch($id, $fuhrparkleiter);
 
 // Ohne km-Stand (Fahrrad) entfallen die km-Spalten und die Summe.
 $mitKm = $Fahrzeug !== null && $Fahrzeug->GetKmStand() !== null;
 
 $summeKm = 0;
-foreach ($fahrtenbuch as $fahrt) {
-    $summeKm += $fahrt['km_ende'] !== null ? $fahrt['km_ende'] - $fahrt['km_start'] : 0;
+foreach ($ListeFahrten->GetAlle() as $Fahrt) {
+    $summeKm += $Fahrt->GetKmEnde() !== null ? $Fahrt->GetKmEnde() - $Fahrt->GetKmStart() : 0;
 }
 
 // Wartungen stehen als eigene Zeilen zwischen den Fahrten. Sie zählen nicht
@@ -191,8 +176,8 @@ $ListeWartungen->LadenZuFahrzeug($id);
 
 $eintraege = [];
 
-foreach ($fahrtenbuch as $fahrt) {
-    $eintraege[] = ['art' => 'fahrt', 'datum' => $fahrt['zurueckgegeben_am'], 'daten' => $fahrt];
+foreach ($ListeFahrten->GetAlle() as $Fahrt) {
+    $eintraege[] = ['art' => 'fahrt', 'datum' => $Fahrt->GetZurueckgegebenAm(), 'daten' => $Fahrt];
 }
 
 foreach ($ListeWartungen->GetAlle() as $Wartung) {
@@ -301,19 +286,19 @@ require_once __DIR__ . '/includes/header.php';
     <section class="section">
         <h2>Offene Schäden</h2>
 
-        <?php if ($offeneSchaeden === []): ?>
+        <?php if ($ListeOffene->Count() === 0): ?>
             <p class="note">Keine bekannten Schäden.</p>
         <?php else: ?>
             <ul class="schadensliste">
-                <?php foreach ($offeneSchaeden as $schaden): ?>
+                <?php foreach ($ListeOffene->GetAlle() as $Schaden): ?>
                     <li>
-                        <span class="badge<?= $schaden['schwere_id'] === SCHWERE_WARTUNG ? ' badge--abgelehnt' : '' ?>">
-                            <?= e(SCHWEREGRADE[$schaden['schwere_id']]) ?>
+                        <span class="badge<?= $Schaden->GetSchwereID() === SCHWERE_WARTUNG ? ' badge--abgelehnt' : '' ?>">
+                            <?= e($Schweregrade->GetBezeichnung($Schaden->GetSchwereID())) ?>
                         </span>
-                        <?= e($schaden['beschreibung']) ?>
+                        <?= e($Schaden->GetBeschreibung()) ?>
                         <span class="table__zusatz">
-                            gemeldet am <?= e($schaden['gemeldet_am']->format('d.m.Y')) ?>
-                            <?= e(SCHADENSANLAESSE[$schaden['anlass_id']]) ?>
+                            gemeldet am <?= e($Schaden->GetGemeldetAm()->format('d.m.Y')) ?>
+                            <?= e($Anlaesse->GetBezeichnung($Schaden->GetAnlassID())) ?>
                         </span>
                     </li>
                 <?php endforeach; ?>
@@ -343,7 +328,7 @@ require_once __DIR__ . '/includes/header.php';
 
         <?php if ($eintraege !== []): ?>
             <p class="lead">
-                <?= e((string) count($fahrtenbuch)) ?> <?= count($fahrtenbuch) === 1 ? 'Fahrt' : 'Fahrten' ?><?php if ($mitKm): ?>,
+                <?= e((string) $ListeFahrten->Count()) ?> <?= $ListeFahrten->Count() === 1 ? 'Fahrt' : 'Fahrten' ?><?php if ($mitKm): ?>,
                     zusammen <?= e(km_text($summeKm)) ?> km<?php endif; ?><?php if ($ListeWartungen->Count() > 0): ?>,
                     dazu <?= e((string) $ListeWartungen->Count()) ?> <?= $ListeWartungen->Count() === 1 ? 'Wartung' : 'Wartungen' ?><?php endif; ?>.
                 Neueste zuerst.
@@ -396,31 +381,31 @@ require_once __DIR__ . '/includes/header.php';
                     <?php endif; ?>
 
                     <?php
-                    $fahrt = $eintrag['daten'];
-                    $schaden = $schadenJeBuchung[$fahrt['id']] ?? null;
+                    $Fahrt = $eintrag['daten'];
+                    $Schaden = $ListeSchaeden->GetBeiRueckgabe($Fahrt->GetID());
                     ?>
                     <tr>
-                        <td><?= e(zeitraum_text($fahrt['start'], $fahrt['zurueckgegeben_am'])) ?></td>
+                        <td><?= e(zeitraum_text($Fahrt->GetStart(), $Fahrt->GetZurueckgegebenAm())) ?></td>
                         <?php if ($fuhrparkleiter): ?>
-                            <td><?= e(nutzer_name($fahrt['fahrer_id'])) ?></td>
+                            <td><?= e($Fahrt->GetFahrerName()) ?></td>
                         <?php endif; ?>
-                        <td><?= e(ZWECKE[$fahrt['zweck_id']]) ?></td>
+                        <td><?= e($Zwecke->GetBezeichnung($Fahrt->GetZweckID())) ?></td>
                         <?php if ($mitKm): ?>
-                            <td class="table__num"><?= e(km_text($fahrt['km_start'])) ?></td>
-                            <td class="table__num"><?= e(km_text($fahrt['km_ende'])) ?></td>
+                            <td class="table__num"><?= e(km_text($Fahrt->GetKmStart())) ?></td>
+                            <td class="table__num"><?= e(km_text($Fahrt->GetKmEnde())) ?></td>
                         <?php endif; ?>
                         <td>
-                            <?php if ($schaden !== null): ?>
-                                <span class="badge<?= $schaden['schwere_id'] === SCHWERE_WARTUNG ? ' badge--abgelehnt' : '' ?>"><?= e(SCHWEREGRADE[$schaden['schwere_id']]) ?></span>
-                                <span class="table__zusatz"><?= e($schaden['beschreibung']) ?></span>
-                            <?php elseif ($fahrt['bemerkung'] !== ''): ?>
+                            <?php if ($Schaden !== null): ?>
+                                <span class="badge<?= $Schaden->GetSchwereID() === SCHWERE_WARTUNG ? ' badge--abgelehnt' : '' ?>"><?= e($Schweregrade->GetBezeichnung($Schaden->GetSchwereID())) ?></span>
+                                <span class="table__zusatz"><?= e($Schaden->GetBeschreibung()) ?></span>
+                            <?php elseif ($Fahrt->GetBemerkung() !== ''): ?>
                                 <span class="badge">Bemerkung</span>
                             <?php else: ?>
                                 &ndash;
                             <?php endif; ?>
 
-                            <?php if ($fahrt['bemerkung'] !== ''): ?>
-                                <span class="table__zusatz"><?= e($fahrt['bemerkung']) ?></span>
+                            <?php if ($Fahrt->GetBemerkung() !== ''): ?>
+                                <span class="table__zusatz"><?= e($Fahrt->GetBemerkung()) ?></span>
                             <?php endif; ?>
                         </td>
                     </tr>

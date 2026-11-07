@@ -30,7 +30,7 @@ const ROLLE_FUHRPARKLEITER = 2;
 //
 // Luxusautos sind Autos mit Sonderregeln: buchen
 // dürfen sie nur Fahrer mit nutzer.darf_luxus, und schon ein Kleinschaden
-// sperrt sie bis zur Reparatur (schaden_sperrt()). Wie Autos brauchen sie eine
+// sperrt sie bis zur Reparatur (CSchaden::Sperrt()). Wie Autos brauchen sie eine
 // Genehmigung; für Montage und Materialtransport werden sie nicht angeboten.
 
 const ART_AUTO        = 1;

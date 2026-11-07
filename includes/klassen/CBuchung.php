@@ -31,10 +31,6 @@ class CBuchung
 
     private const MAX_KOMMENTAR = 500;
 
-    // Eine Schadensbeschreibung wird bei einer Sperre zum Grund der Wartung
-    // (wartungen.grund), deshalb dieselbe Grenze.
-    private const MAX_BESCHREIBUNG = 200;
-
     // „Neuer Schaden?“ bei der Rückgabe: 0 heißt nein, sonst die schwere_id.
     public const KEIN_SCHADEN = 0;
 
@@ -402,7 +398,7 @@ class CBuchung
             throw new CFachlicherFehler('Diese Fahrt können Sie heute nicht beginnen.');
         }
 
-        $Schaden = self::PruefeBeschreibung($in_Schaden);
+        $Schaden = CSchaden::PruefeBeschreibung($in_Schaden);
 
         db()->beginTransaction();
 
@@ -431,7 +427,7 @@ class CBuchung
 
             // Notierter Schaden: schon vorhanden, also kein Schaden dieses Fahrers
             if ($Schaden !== '') {
-                $this->SpeichereSchaden(ANLASS_UEBERNAHME, SCHWERE_KLEIN, $Schaden);
+                CSchaden::Create($this->m_ID, ANLASS_UEBERNAHME, SCHWERE_KLEIN, $Schaden);
             }
 
             db()->commit();
@@ -449,17 +445,20 @@ class CBuchung
      * Gibt das Fahrzeug zurück und schließt die Fahrt ab.
      *
      * Speichert in einer Transaktion km-Stand (auch am Fahrzeug), Bemerkung
-     * und einen neuen Schaden. Sperrt ein Schaden das Fahrzeug, kommt es in
-     * die Wartung, siehe SetzeInWartung(). $in_KmEnde entfällt bei Fahrzeugen
-     * ohne km-Stand, $in_SchwereID ist KEIN_SCHADEN oder eine schwere_id.
-     * Steht etwas im Weg, wirft sie CFachlicherFehler.
+     * und einen neuen Schaden mit seinen Fotos. Sperrt ein Schaden das
+     * Fahrzeug, kommt es in die Wartung, siehe SetzeInWartung(). $in_KmEnde
+     * entfällt bei Fahrzeugen ohne km-Stand, $in_SchwereID ist KEIN_SCHADEN
+     * oder eine schwere_id. $in_Fotos sind die geprüften Fotos aus
+     * CSchadensfoto::Pruefe(); ohne Schaden werden sie ignoriert. Steht etwas
+     * im Weg, wirft sie CFachlicherFehler.
      */
     public function Zurueckgeben(
         int $in_NutzerID,
         ?int $in_KmEnde,
         int $in_SchwereID,
         string $in_Beschreibung,
-        string $in_Bemerkung
+        string $in_Bemerkung,
+        array $in_Fotos = []
     ): void {
         // Eingaben prüfen; das geht ohne Datenbank, deshalb vor der Transaktion
         $this->PruefeRueckgabe($in_NutzerID, $in_KmEnde);
@@ -502,13 +501,21 @@ class CBuchung
             }
 
             // Neuen Schaden speichern und das Fahrzeug bei Bedarf sperren
-            $SchadenID = null;
+            $Schaden = null;
 
             if ($in_SchwereID !== self::KEIN_SCHADEN) {
-                $SchadenID = $this->SpeichereSchaden(ANLASS_RUECKGABE, $in_SchwereID, $Beschreibung);
+                $Schaden = CSchaden::Create($this->m_ID, ANLASS_RUECKGABE, $in_SchwereID, $Beschreibung);
             }
 
-            $this->SetzeInWartung($SchadenID, $in_SchwereID, $Beschreibung);
+            $this->SetzeInWartung($Schaden);
+
+            // Fotos zuletzt ablegen, damit nach einem Fehler davor keine
+            // Dateien ohne Eintrag zurückbleiben
+            if ($Schaden !== null) {
+                foreach ($in_Fotos as $Foto) {
+                    CSchadensfoto::Create($Schaden->GetID(), $Foto);
+                }
+            }
 
             db()->commit();
         } catch (Throwable $Fehler) {
@@ -564,7 +571,7 @@ class CBuchung
             return '';
         }
 
-        $Beschreibung = self::PruefeBeschreibung($in_Beschreibung);
+        $Beschreibung = CSchaden::PruefeBeschreibung($in_Beschreibung);
 
         if ($Beschreibung === '') {
             throw new CFachlicherFehler('Bitte beschreiben Sie den Schaden.');
@@ -574,54 +581,23 @@ class CBuchung
     }
 
     /**
-     * Kürzt die Schadensbeschreibung um Leerzeichen und prüft ihre Länge.
-     */
-    private static function PruefeBeschreibung(string $in_Beschreibung): string
-    {
-        $Beschreibung = trim($in_Beschreibung);
-
-        if (mb_strlen($Beschreibung) > self::MAX_BESCHREIBUNG) {
-            throw new CFachlicherFehler(
-                'Die Beschreibung des Schadens darf höchstens ' . self::MAX_BESCHREIBUNG . ' Zeichen lang sein.'
-            );
-        }
-
-        return $Beschreibung;
-    }
-
-    /**
-     * Trägt einen Schaden zu dieser Buchung ein und liefert seine ID. Läuft in
-     * der Transaktion des Aufrufers.
-     */
-    private function SpeichereSchaden(int $in_AnlassID, int $in_SchwereID, string $in_Beschreibung): int
-    {
-        $Statement = db()->prepare(
-            'INSERT INTO schaeden (buchung_id, anlass_id, schwere_id, beschreibung, gemeldet_am)
-             VALUES (?, ?, ?, ?, NOW())'
-        );
-        $Statement->execute([$this->m_ID, $in_AnlassID, $in_SchwereID, $in_Beschreibung]);
-
-        return (int) db()->lastInsertId();
-    }
-
-    /**
      * Setzt das Fahrzeug nach der Rückgabe in die Wartung, wenn ein Schaden es
-     * sperrt: der neue Schaden (schaden_sperrt()) oder, bei einem Luxusauto,
+     * sperrt: der neue Schaden (CSchaden::Sperrt()) oder, bei einem Luxusauto,
      * der bei der Übernahme notierte. Das Ende bleibt offen, bis der
      * Fuhrparkleiter es festlegt. Läuft schon eine Wartung, bleibt es bei ihr.
      * Läuft in der Transaktion von Zurueckgeben().
      */
-    private function SetzeInWartung(?int $in_SchadenID, int $in_SchwereID, string $in_Beschreibung): void
+    private function SetzeInWartung(?CSchaden $in_Schaden): void
     {
         $Fahrzeug = CFahrzeug::LoadByID($this->m_FahrzeugID);
 
         // Welcher Schaden sperrt? Zuerst der neue, dann der bei der Übernahme
         $Sperrend = null;
 
-        if ($in_SchadenID !== null && schaden_sperrt($in_SchwereID, $Fahrzeug->GetArtID())) {
-            $Sperrend = ['id' => $in_SchadenID, 'beschreibung' => $in_Beschreibung];
+        if ($in_Schaden !== null && $in_Schaden->Sperrt()) {
+            $Sperrend = $in_Schaden;
         } elseif ($Fahrzeug->IstLuxus()) {
-            $Sperrend = $this->LadeUebernahmeSchaden();
+            $Sperrend = CSchaden::LoadOffenBeiUebernahme($this->m_ID);
         }
 
         if ($Sperrend === null || $Fahrzeug->IstInWartung()) {
@@ -632,24 +608,7 @@ class CBuchung
         $Statement = db()->prepare(
             'INSERT INTO wartungen (fahrzeug_id, schaden_id, grund, begonnen_am) VALUES (?, ?, ?, CURDATE())'
         );
-        $Statement->execute([$this->m_FahrzeugID, $Sperrend['id'], $Sperrend['beschreibung']]);
-    }
-
-    /**
-     * Der noch offene Schaden, den der Fahrer bei der Übernahme notiert hat,
-     * mit id und beschreibung; sonst null.
-     */
-    private function LadeUebernahmeSchaden(): ?array
-    {
-        $Statement = db()->prepare(
-            'SELECT id, beschreibung FROM schaeden
-              WHERE buchung_id = ? AND anlass_id = ? AND behoben_am IS NULL
-              ORDER BY id LIMIT 1'
-        );
-        $Statement->execute([$this->m_ID, ANLASS_UEBERNAHME]);
-        $Zeile = $Statement->fetch();
-
-        return $Zeile !== false ? ['id' => (int) $Zeile['id'], 'beschreibung' => $Zeile['beschreibung']] : null;
+        $Statement->execute([$this->m_FahrzeugID, $Sperrend->GetID(), $Sperrend->GetBeschreibung()]);
     }
 
     // --- Fachfunktionen -----------------------------------------------------
@@ -660,7 +619,7 @@ class CBuchung
      */
     public function HatSchadenBeiUebernahme(): bool
     {
-        return $this->LadeUebernahmeSchaden() !== null;
+        return CSchaden::LoadOffenBeiUebernahme($this->m_ID) !== null;
     }
 
     /**

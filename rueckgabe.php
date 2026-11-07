@@ -10,13 +10,13 @@
  * Ein neuer Schaden ist entweder ein Kleinschaden (z. B. ein Kratzer, das
  * Fahrzeug bleibt fahrbereit) oder ein Schaden, mit dem das Fahrzeug in die
  * Wartung muss. Bei einem Luxusauto sperrt auch ein Kleinschaden
- * (schaden_sperrt()), es geht ebenfalls in die Wartung. Beides braucht eine
+ * (CSchaden::Sperrt()), es geht ebenfalls in die Wartung. Beides braucht eine
  * Beschreibung; Fotos sind bei beiden möglich. Die Bemerkung zum Zustand ist
  * davon getrennt und bleibt optional.
  *
  * Laden über CListeBuchungen::LadenLaufendeFahrten(), Speichern über
- * CBuchung::Zurueckgeben(). Die Fotos werden geprüft, aber noch nicht
- * abgelegt.
+ * CBuchung::Zurueckgeben(). Die Fotos prüft CSchadensfoto::Pruefe(), abgelegt
+ * werden sie mit dem Schaden.
  */
 
 declare(strict_types=1);
@@ -89,7 +89,7 @@ if ($zuGross) {
         $fotos = [];
 
         if ($eingabe['schaden'] !== CBuchung::KEIN_SCHADEN) {
-            [$fotos, $fehler] = pruefe_fotos($_FILES['fotos'] ?? []);
+            [$fotos, $fehler] = CSchadensfoto::Pruefe($_FILES['fotos'] ?? []);
         }
 
         // Speichern; die übrigen Regeln prüft CBuchung
@@ -103,6 +103,7 @@ if ($zuGross) {
                     $eingabe['schaden'],
                     $eingabe['beschreibung'],
                     $eingabe['bemerkung'],
+                    $fotos,
                 );
             } catch (CFachlicherFehler $Fehler) {
                 $fehler[] = $Fehler->getMessage();
@@ -127,10 +128,6 @@ if ($zuGross) {
             if ($Fahrt->GetKmEnde() !== null) {
                 $meldung .= ' Gefahrene Strecke: '
                     . number_format($Fahrt->GetKmEnde() - $Fahrt->GetKmStart(), 0, ',', '.') . ' km.';
-            }
-
-            if ($fotos !== []) {
-                $meldung .= ' Die Fotos werden noch nicht gespeichert.';
             }
 
             merke_meldung($meldung, $Fahrzeug->IstInWartung() ? 'hinweis' : 'erfolg');
@@ -248,7 +245,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <div class="form__row" data-nur-bei-schaden>
                 <label class="form__label" for="beschreibung">Beschreibung des Schadens</label>
-                <textarea class="form__input" id="beschreibung" name="beschreibung" rows="2" maxlength="200"
+                <textarea class="form__input" id="beschreibung" name="beschreibung" rows="2" maxlength="<?= e((string) CSchaden::MAX_BESCHREIBUNG) ?>"
                           placeholder="z. B. Delle hinten links, Tür schließt schwer"><?= e($eingabe['beschreibung']) ?></textarea>
                 <span class="form__hinweis">Nur bei einem Schaden, dann Pflicht: Was ist beschädigt?</span>
             </div>
@@ -258,8 +255,8 @@ require_once __DIR__ . '/includes/header.php';
                 <input class="form__input" type="file" id="fotos" name="fotos[]" multiple
                        accept="image/jpeg,image/png,image/webp">
                 <span class="form__hinweis">
-                    Nur bei einem Schaden. Höchstens <?= e((string) FOTOS_MAX) ?> Fotos
-                    (JPEG, PNG oder WebP) zu je <?= e((string) intdiv(FOTO_MAX_BYTES, 1024 * 1024)) ?> MB.
+                    Nur bei einem Schaden. Höchstens <?= e((string) CSchadensfoto::MAX_ANZAHL) ?> Fotos
+                    (JPEG, PNG oder WebP) zu je <?= e((string) intdiv(CSchadensfoto::MAX_BYTES, 1024 * 1024)) ?> MB.
                 </span>
             </div>
 
