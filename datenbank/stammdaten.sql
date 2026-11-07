@@ -4,7 +4,7 @@
 --
 -- IDs aus den Schlüsseltabellen (schema.sql, includes/konstanten.php):
 --   rolle_id   1 Mitarbeiter, 2 Fuhrparkleiter
---   art_id     1 Auto, 2 Transporter, 3 Roller, 4 Fahrrad, 5 Luxusauto
+--   art_id     1 Auto, 2 Luxusauto, 3 Transporter, 4 Roller, 5 Fahrrad
 --   antrieb_id 1 Benzin, 2 Diesel, 3 Elektro
 
 SET NAMES utf8mb4;
@@ -42,12 +42,12 @@ INSERT INTO fahrzeuge
 VALUES
     (1,  'M-HS 101',  1, 'Kombi',       'Volkswagen',     'Passat Variant', 2021, 'vw-passat-variant.jpg',     5, 2, 48250,  'B',  '2027-03-01', NULL),
     (2,  'M-HS 102',  1, 'Kombi',       'Škoda',          'Octavia Combi',  2023, 'skoda-octavia-combi.jpg',   5, 1, 9870,   'B',  '2026-05-01', NULL),
-    (3,  'M-HS 201',  2, 'Transporter', 'Ford',           'Transit',        2019, 'ford-transit.jpg',          3, 2, 112400, 'B',  '2026-11-01', NULL),
-    (4,  'M-HS 202',  2, 'Transporter', 'Mercedes-Benz',  'Sprinter',       2020, 'mercedes-sprinter.jpg',     3, 2, 87310,  'C1', '2026-10-01', NULL),
+    (3,  'M-HS 201',  3, 'Transporter', 'Ford',           'Transit',        2019, 'ford-transit.jpg',          3, 2, 112400, 'B',  '2026-11-01', NULL),
+    (4,  'M-HS 202',  3, 'Transporter', 'Mercedes-Benz',  'Sprinter',       2020, 'mercedes-sprinter.jpg',     3, 2, 87310,  'C1', '2026-10-01', NULL),
     (5,  'M-HS 301E', 1, 'E-Auto',      'Volkswagen',     'ID.3',           2022, 'vw-id3.jpg',                5, 3, 31540,  'B',  '2027-08-01', NULL),
-    (6,  'M-HS 302E', 5, 'E-Auto',      'Tesla',          'Model 3',        2024, 'tesla-model-3.jpg',         5, 3, 12020,  'B',  '2027-02-01', NULL),
-    (7,  'M-HS 401',  3, 'Roller',      'Vespa',          'Primavera 125',  2022, 'vespa-primavera.jpg',       2, 1, 6400,   'A1', '2027-06-01', NULL),
-    (8,  'Rad 1',     4, 'E-Fahrrad',   'Riese & Müller', 'Charger4',       2023, 'riese-mueller-charger.jpg', 1, 3, NULL,   NULL, NULL,         NULL),
-    (9,  'Rad 2',     4, 'E-Fahrrad',   'Riese & Müller', 'Charger4',       2023, 'riese-mueller-charger.jpg', 1, 3, NULL,   NULL, NULL,         NULL),
+    (6,  'M-HS 302E', 2, 'E-Auto',      'Tesla',          'Model 3',        2024, 'tesla-model-3.jpg',         5, 3, 12020,  'B',  '2027-02-01', NULL),
+    (7,  'M-HS 401',  4, 'Roller',      'Vespa',          'Primavera 125',  2022, 'vespa-primavera.jpg',       2, 1, 6400,   'A1', '2027-06-01', NULL),
+    (8,  'Rad 1',     5, 'E-Fahrrad',   'Riese & Müller', 'Charger4',       2023, 'riese-mueller-charger.jpg', 1, 3, NULL,   NULL, NULL,         NULL),
+    (9,  'Rad 2',     5, 'E-Fahrrad',   'Riese & Müller', 'Charger4',       2023, 'riese-mueller-charger.jpg', 1, 3, NULL,   NULL, NULL,         NULL),
     (10, 'M-HS 101',  1, 'Kombi',       'Volkswagen',     'Passat Variant', 2014, NULL,                        5, 2, 187430, 'B',  '2026-03-01',
         TIMESTAMP(CURDATE() - INTERVAL 90 DAY, '12:00'));

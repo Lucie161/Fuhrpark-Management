@@ -1,6 +1,6 @@
 <?php
 /**
- * Überblick nach der Anmeldung (Anwendungsfall 8), je Rolle.
+ * Überblick nach der Anmeldung, je Rolle.
  *
  * Beide Rollen: ganz oben ein rotes Banner, sobald eine Rückgabe überfällig
  * ist. Mitarbeiter: Banner nur für die eigenen Fahrten mit „Jetzt
@@ -9,8 +9,7 @@
  * die Liste (Fahrer zuerst) hinter „Details“; dann „Zu erledigen“ mit den drei
  * ältesten offenen Anträgen zum direkten Entscheiden und den offenen
  * Schäden, zuletzt „Fuhrpark“ mit den Fahrzeugen nach Status. Er bucht nicht
- * selbst und hat daher keine eigenen Fahrten (siehe
- * docs/konzept/technisches-konzept.md, Regeln 5 und 8).
+ * selbst und hat daher keine eigenen Fahrten.
  *
  * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Mit Datenbank:
  *
@@ -111,7 +110,7 @@ if (ist_fuhrparkleiter()) {
 
     // Zu erledigen sind nur Schäden, mit denen ein Fahrzeug in Wartung steht.
     // Kleinschäden sperren nichts und müssen nicht sofort behoben werden; sie
-    // stehen in schaeden.php (siehe docs/konzept/technisches-konzept.md, Regel 10).
+    // stehen in schaeden.php.
     // Bei Luxusautos sperrt auch ein Kleinschaden (schaden_sperrt()), aber erst
     // ab der Rückgabe; gezählt wird, was das Fahrzeug schon in Wartung hält.
     $offeneSchaeden = array_filter(
@@ -122,7 +121,7 @@ if (ist_fuhrparkleiter()) {
     );
 
     // „Unterwegs“ ist kein gespeicherter Status, sondern ergibt sich aus den
-    // laufenden Fahrten (siehe docs/konzept/technisches-konzept.md).
+    // laufenden Fahrten.
     $anzahlWartung   = count(array_filter($fahrzeuge, fn (array $f): bool => $f['in_wartung']));
     $anzahlUnterwegs = count(array_unique(array_column($unterwegs, 'fahrzeug_id')));
 
@@ -211,7 +210,7 @@ require_once __DIR__ . '/includes/header.php';
         </h3>
 
         <?php if ($anzahl > 0): ?>
-            <!-- Dasselbe Formular wie in genehmigungen.php (Regel 8); es
+            <!-- Dasselbe Formular wie in genehmigungen.php; es
                  schickt dorthin und kehrt danach hierher zurück. -->
             <table class="table">
                 <thead>

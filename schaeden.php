@@ -1,15 +1,15 @@
 <?php
 /**
- * Schäden (Anwendungsfall 10), nur für den Fuhrparkleiter.
+ * Schäden, nur für den Fuhrparkleiter.
  *
  * Alle gemeldeten Schäden, zuerst die offenen, dann die behobenen, jeweils
  * neueste zuerst: Schäden aus Rückgaben (Kleinschaden oder mit Wartung) und
  * vorhandene Schäden, die ein Fahrer bei Fahrtbeginn notiert hat („bei
  * Übernahme“). Gemeldet hat jeweils der Fahrer der Buchung. Bemerkungen ohne
- * Schaden stehen nur im Fahrtenbuch (docs/aenderungen/aenderungen-todo2.md, Punkt 10).
+ * Schaden stehen nur im Fahrtenbuch.
  *
- * Bei Luxusautos sperrt schon ein Kleinschaden das Fahrzeug (entschieden am
- * 19.10.2026, schaden_sperrt()); er wird wie ein Schaden mit Wartung durch das
+ * Bei Luxusautos sperrt schon ein Kleinschaden das Fahrzeug (schaden_sperrt());
+ * er wird wie ein Schaden mit Wartung durch das
  * Freigeben behoben und ist markiert.
  *
  * Ein offener Schaden lässt sich als behoben markieren. Steht das Fahrzeug
@@ -29,8 +29,7 @@
  *   UPDATE schaeden SET behoben_am = NOW(), behoben_von = :ich
  *    WHERE id = :id AND behoben_am IS NULL
  *
- * Schadensfotos sieht nur der Fuhrparkleiter (Datenschutz, siehe
- * docs/konzept/technisches-konzept.md, Regel 6). Im Prototyp gibt es noch keine
+ * Schadensfotos sieht nur der Fuhrparkleiter (Datenschutz). Im Prototyp gibt es noch keine
  * abgelegten Fotos, die Vorschau zeigt deshalb Platzhalter. Später die Fotos
  * nicht direkt aus uploads/schaeden/ verlinken, sondern über ein Skript
  * ausliefern, das die Rolle prüft.

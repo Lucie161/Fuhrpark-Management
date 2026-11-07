@@ -1,12 +1,11 @@
 <?php
 /**
  * „Fahrt beginnen“ an einer aktiven Buchung: dasselbe Formular in
- * index.php und meine-buchungen.php (siehe docs/konzept/technisches-konzept.md,
- * Regel 5). Vor dem Bestätigen sieht der Fahrer die noch nicht behobenen
+ * index.php und meine-buchungen.php. Vor dem Bestätigen sieht der Fahrer die noch nicht behobenen
  * Schäden des Fahrzeugs, damit sie ihm nicht zugerechnet werden.
  *
- * Bei einem Luxusauto kann die Fahrt trotz eines notierten Schadens beginnen
- * (entschieden am 19.10.2026); nach der Rückgabe geht es in die Wartung.
+ * Bei einem Luxusauto kann die Fahrt trotz eines notierten Schadens beginnen;
+ * nach der Rückgabe geht es in die Wartung.
  *
  * Erwartet von der einbindenden Seite:
  *   $buchung  die Buchung mit 'fahrzeug_id' und 'sperre' (null oder Grund,

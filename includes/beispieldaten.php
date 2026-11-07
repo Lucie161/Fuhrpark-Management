@@ -315,7 +315,7 @@ function ueberfaellige_rueckgaben(): array
 
 /**
  * Hat der Nutzer als Fahrer eine überfällige Rückgabe? Dann darf er nichts
- * neu buchen und keine Fahrt beginnen (Regel 12 in docs/aenderungen/aenderungen-todo2.md).
+ * neu buchen und keine Fahrt beginnen.
  */
 function hat_ueberfaellige_rueckgabe(int $nutzerId): bool
 {

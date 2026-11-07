@@ -3,8 +3,7 @@
  * Genehmigen und Ablehnen eines Antrags: dasselbe Formular in
  * genehmigungen.php und auf der Übersicht des Fuhrparkleiters (index.php).
  * Beide schicken an genehmigungen.php. Mit zurueck=index leitet die Seite
- * nach der Entscheidung zur Übersicht zurück (siehe
- * docs/konzept/technisches-konzept.md, Regel 8).
+ * nach der Entscheidung zur Übersicht zurück.
  *
  * Erwartet von der einbindenden Seite:
  *   $id             Nummer des Antrags

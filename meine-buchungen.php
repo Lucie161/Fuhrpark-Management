@@ -1,11 +1,11 @@
 <?php
 /**
- * Meine Buchungen (Anwendungsfälle 3, 4 und 5), nur für Mitarbeiter.
+ * Meine Buchungen, nur für Mitarbeiter.
  *
  * Zeigt die aktuellen Buchungen (beantragt, genehmigt, unterwegs), die ich
  * beantragt habe oder bei denen ich Fahrer bin, die nächste zuerst. Von hier
  * aus wird storniert und die Fahrt begonnen; „Fahrt beginnen“ hat keine
- * eigene Seite (siehe docs/konzept/technisches-konzept.md, Regel 5). Frühere und
+ * eigene Seite. Frühere und
  * abgesagte Buchungen stehen in fruehere-buchungen.php, verlinkt unter der
  * Tabelle.
  *
@@ -32,8 +32,7 @@ $ich = aktueller_nutzer();
 $heute = new DateTimeImmutable('today');
 
 // --- Buchungen aufbereiten --------------------------------------------------
-// Je Buchung wird festgehalten, welche Aktionen möglich sind. Die Regeln
-// stehen in docs/konzept/technisches-konzept.md (Regeln 4 und 5).
+// Je Buchung wird festgehalten, welche Aktionen möglich sind.
 
 $aktuelle = [];
 

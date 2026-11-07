@@ -65,7 +65,7 @@ function aktuelle_rolle(): int
 
 /**
  * Ist der Nutzer Fuhrparkleiter? Er bucht nicht selbst, sondern genehmigt,
- * verwaltet die Fahrzeuge und wertet aus (siehe docs/konzept/user-stories.md, „Rollen“).
+ * verwaltet die Fahrzeuge und wertet aus.
  */
 function ist_fuhrparkleiter(): bool
 {
@@ -87,8 +87,7 @@ function nur_angemeldet(): void
 /**
  * Sperrt eine Seite für die andere Rolle: Wer nicht angemeldet ist, landet auf
  * der Anmeldung, wer nicht die angegebene Rolle hat, auf der Übersicht. Steht
- * direkt nach config.php, vor jeder Formularverarbeitung der Seite (siehe
- * docs/konzept/technisches-konzept.md, „Rollen je Seite“).
+ * direkt nach config.php, vor jeder Formularverarbeitung der Seite.
  *   nur_fuer_rolle(ROLLE_FUHRPARKLEITER);
  */
 function nur_fuer_rolle(int $rolle): void
@@ -103,8 +102,7 @@ function nur_fuer_rolle(int $rolle): void
 /**
  * Ampel: Muss eine Buchung dieser Fahrzeugart genehmigt werden? Autos und
  * Transporter ja („gelb“, Status „offen“), Roller und Fahrräder nein
- * („grün“, sofort „genehmigt“). Wie Transporter eingeordnet werden, wird
- * noch besprochen (docs/aenderungen/aenderungen-todo2.md); bis dahin wie Autos.
+ * („grün“, sofort „genehmigt“).
  */
 function braucht_genehmigung(int $artId): bool
 {
@@ -113,7 +111,7 @@ function braucht_genehmigung(int $artId): bool
 
 /**
  * Fehlt dem Fahrer die Freigabe für dieses Fahrzeug? Luxusautos dürfen nur
- * Nutzer mit darf_luxus fahren (entschieden am 19.10.2026); wie ein fehlender
+ * Nutzer mit darf_luxus fahren; wie ein fehlender
  * Führerschein ist das „rot“ in der Ampel.
  */
 function fehlt_luxusfreigabe(int $fahrerId, array $fahrzeug): bool
@@ -123,7 +121,7 @@ function fehlt_luxusfreigabe(int $fahrerId, array $fahrzeug): bool
 
 /**
  * Sperrt ein Schaden das Fahrzeug? Ein Schaden mit Wartung immer, bei einem
- * Luxusauto auch ein Kleinschaden (entschieden am 19.10.2026). Dann entsteht
+ * Luxusauto auch ein Kleinschaden. Dann entsteht
  * bei der Rückgabe eine Wartung mit offenem Ende, bis der Fuhrparkleiter das
  * Fahrzeug freigibt. Ein bei Fahrtbeginn notierter Schaden hält die Fahrt
  * nicht auf; das Luxusauto wird erst bei der Rückgabe dieser Fahrt gesperrt.
@@ -146,7 +144,7 @@ function belegt_fahrzeug(array $buchung): bool
 /**
  * Warum der Nutzer nicht buchen darf, sonst null: Wer eine überfällige
  * Rückgabe hat, bucht nichts Neues und wird auch von Kollegen nicht als
- * Fahrer eingetragen (docs/aenderungen/aenderungen-todo2.md, Punkt 12).
+ * Fahrer eingetragen.
  */
 function sperre_buchen(int $nutzerId): ?string
 {
@@ -214,7 +212,7 @@ function sperre_fahrtbeginn(int $fahrerId, int $fahrzeugId): ?string
 }
 
 /**
- * Warum ein Antrag nicht genehmigt werden kann, sonst null (Regel 9): Das
+ * Warum ein Antrag nicht genehmigt werden kann, sonst null: Das
  * Fahrzeug ist ein Luxusauto und der Fahrer nicht freigegeben, es ist im
  * Zeitraum in Wartung, seine Rückgabe ist überfällig, oder es ist im Zeitraum
  * schon vergeben (genehmigt oder unterwegs).

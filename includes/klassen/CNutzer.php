@@ -1,9 +1,6 @@
 <?php
 /**
  * Ein Nutzer mit Rolle und Führerscheinen.
- *
- * Nutzer werden nicht über die Anwendung angelegt oder geändert, Stammdaten
- * werden direkt in der Datenbank gepflegt.
  */
 
 declare(strict_types=1);

@@ -1,7 +1,6 @@
 <?php
 /**
- * Historie: Fahrtenbuch aller Fahrzeuge (Anwendungsfall 11), nur für den
- * Fuhrparkleiter. Bis 06.10.2026 auswertung.php, bis 10.10.2026 verlauf.php.
+ * Historie: Fahrtenbuch aller Fahrzeuge, nur für den Fuhrparkleiter.
  *
  * Aufruf: historie.php, mit Zeitraum historie.php?von=2026-09-01&bis=2026-09-30,
  * die Fahrtenliste gefiltert mit &auswahl=art:1 (Kategorie, ID der Fahrzeugart) oder &auswahl=id:3
@@ -12,8 +11,7 @@
  * nicht zu den Kennzahlen.
  *
  * Es gibt kein eigenes Fahrtenbuch: Jede Buchung im Status „abgeschlossen“ ist
- * ein Eintrag. Er entsteht automatisch bei der Rückgabe (entschieden am
- * 05.10.2026, siehe docs/besprechungen/vorlesung-notizen.md, Frage C). Eine Fahrt zählt zu
+ * ein Eintrag. Er entsteht automatisch bei der Rückgabe. Eine Fahrt zählt zu
  * dem Tag, an dem sie zurückgegeben wurde.
  *
  * Die Summen je Fahrzeug stehen nicht hier, sondern im Fahrtenbuch des
@@ -22,8 +20,7 @@
  * Ausgeschiedene Mitarbeiter und ausgemusterte Fahrzeuge bleiben in Liste und
  * Filter, mit einem Zusatz im Namen: Die Fahrten haben stattgefunden.
  *
- * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Mit Datenbank
- * (siehe docs/konzept/technisches-konzept.md, Regel 11):
+ * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Mit Datenbank:
  *
  *   SELECT b.*, n.vorname, n.nachname, b.km_ende - b.km_start AS km,
  *          s.schwere_id, s.beschreibung

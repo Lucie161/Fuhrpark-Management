@@ -1,12 +1,12 @@
 <?php
 /**
- * Buchungskalender (Anwendungsfall 7, Anforderung B-01), für beide Rollen
+ * Buchungskalender für beide Rollen
  * mit unterschiedlichem Inhalt.
  *
  * Belegung über 14 Tage: Zeilen sind Fahrzeuge, Spalten Tage. Wochenweise
  * blättern, höchstens 4 Wochen über die heutige Ansicht hinaus, nicht in die
  * Vergangenheit: kalender.php?woche=0 bis 4. Reine Anzeige ohne JavaScript
- * und ohne Verschieben (siehe docs/konzept/technisches-konzept.md, Regel 7).
+ * und ohne Verschieben.
  * Gerechnet wird in ganzen Tagen.
  *
  * Fuhrparkleiter: alle Fahrzeuge und alle Buchungen mit Fahrer und Zweck.
@@ -22,8 +22,7 @@
  * Die Buchungen laden CListeBuchungen::LadenBelegung() und
  * LadenEigeneBelegung(); überfällige Fahrten sind in der Ansicht ab heute dabei.
  * Fahrzeuge und Wartungen kommen noch aus includes/beispieldaten.php, die
- * Überschriften aus FAHRZEUGARTEN_MEHRZAHL, bis Paket B CFahrzeug, CWartung
- * und die Spalte fahrzeugarten.plural liefert.
+ * Überschriften aus FAHRZEUGARTEN_MEHRZAHL.
  */
 
 declare(strict_types=1);

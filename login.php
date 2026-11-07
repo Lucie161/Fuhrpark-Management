@@ -1,9 +1,9 @@
 <?php
 /**
- * Anmeldung (Schritt 1 in jedem Anwendungsfall).
+ * Anmeldung.
  *
  * Der Nutzer wählt seinen Namen aus einer Auswahlliste und gibt sein
- * persönliches Passwort ein (siehe docs/konzept/technisches-konzept.md, „Anmeldung“).
+ * persönliches Passwort ein.
  * Bei einem Fehler gibt es eine neutrale Meldung, ohne Angabe, ob Name oder
  * Passwort falsch war.
  *

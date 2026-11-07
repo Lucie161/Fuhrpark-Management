@@ -1,12 +1,12 @@
 <?php
 /**
- * Frühere und abgesagte Buchungen (Anwendungsfall 3), nur für Mitarbeiter.
+ * Frühere und abgesagte Buchungen, nur für Mitarbeiter.
  *
  * Abgeschlossene, stornierte und abgelehnte Buchungen, die ich beantragt
  * habe oder bei denen ich Fahrer bin, die neueste zuerst. Bei einer Ablehnung
  * steht die Begründung des Fuhrparkleiters dabei. Die Seite steht nicht in
  * der Navigation, sondern ist unter der Tabelle in meine-buchungen.php
- * verlinkt (siehe docs/konzept/technisches-konzept.md, Regel 3).
+ * verlinkt.
  *
  * Prototyp: Die Buchungen kommen aus includes/beispieldaten.php; die
  * abgeschlossenen sind dieselben Fahrten wie im Fahrtenbuch (fahrzeug.php,

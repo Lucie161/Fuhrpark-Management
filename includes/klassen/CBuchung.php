@@ -1,13 +1,6 @@
 <?php
 /**
  * Eine Buchung, vom Antrag über die Fahrt bis zur Rückgabe.
- *
- * Laden mit LoadByID() oder über CListeBuchungen, Anlegen mit Create(). Die
- * Namen von Fahrer und Antragsteller sind nur belegt, wenn sie mitgeladen
- * wurden (SQL_MIT_NAMEN), sonst null. So kommt ein fremder Name gar nicht erst
- * auf eine Seite, die ihn nicht zeigen darf.
- *
- * Status und Ablauf: docs/konzept/technisches-konzept.md, „Status“.
  */
 
 declare(strict_types=1);
@@ -32,8 +25,7 @@ class CBuchung
            JOIN nutzer fa ON fa.id = b.fahrer_id
            JOIN nutzer an ON an.id = b.antragsteller_id';
 
-    // Montage und Materialtransport gehen nur mit Auto oder Transporter. Wie
-    // Zwecke und Fahrzeugarten zusammenhängen, wird noch besprochen.
+    // Montage und Materialtransport gehen nur mit Auto oder Transporter.
     private const ZWECKE_NUR_AUTO = [ZWECK_MONTAGE, ZWECK_MATERIALTRANSPORT];
     private const ARTEN_FUER_MATERIAL = [ART_AUTO, ART_TRANSPORTER];
 
@@ -452,7 +444,7 @@ class CBuchung
 
     // --- Angaben zum Fahrzeug -----------------------------------------------
     // Übergang: LadeFahrzeug(), IstFahrzeugUeberfaellig() und
-    // FehltLuxusfreigabe() entfallen, sobald CFahrzeug aus Paket B fertig ist.
+    // FehltLuxusfreigabe() werden durch CFahrzeug ersetzt.
 
     /**
      * Sperrt die Zeile des Fahrzeugs bis zum Ende der Transaktion. Wer dasselbe

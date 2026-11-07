@@ -8,8 +8,7 @@
  * Konstante:
  *   if ($buchung['status_id'] === STATUS_UNTERWEGS) { … }
  * Ein Tippfehler im Namen fällt dann sofort auf (PHP: „Undefined constant“),
- * ein Tippfehler in einem Wort wie 'untewegs' dagegen nie (Feedback vom
- * 15.10.2026, siehe docs/besprechungen/transkript-feedback-datenmodell-2026-10-15.md).
+ * ein Tippfehler in einem Wort wie 'untewegs' dagegen nie.
  *
  * Die IDs müssen mit den INSERTs in datenbank/schema.sql übereinstimmen.
  *
@@ -26,19 +25,19 @@ const ROLLE_MITARBEITER    = 1;
 const ROLLE_FUHRPARKLEITER = 2;
 
 // --- fahrzeugarten ----------------------------------------------------------
-// Die Reihenfolge der Listen ist die Anzeigereihenfolge (Kalender, Filter),
-// nicht die der IDs: Luxusautos stehen nach den Autos.
+// Die IDs sind zugleich die Anzeigereihenfolge (Kalender, Filter):
+// Luxusautos stehen direkt nach den Autos.
 //
-// Luxusautos (entschieden am 19.10.2026) sind Autos mit Sonderregeln: buchen
+// Luxusautos sind Autos mit Sonderregeln: buchen
 // dürfen sie nur Fahrer mit nutzer.darf_luxus, und schon ein Kleinschaden
 // sperrt sie bis zur Reparatur (schaden_sperrt()). Wie Autos brauchen sie eine
 // Genehmigung; für Montage und Materialtransport werden sie nicht angeboten.
 
 const ART_AUTO        = 1;
-const ART_TRANSPORTER = 2;
-const ART_ROLLER      = 3;
-const ART_FAHRRAD     = 4;
-const ART_LUXUS       = 5;
+const ART_LUXUS       = 2;
+const ART_TRANSPORTER = 3;
+const ART_ROLLER      = 4;
+const ART_FAHRRAD     = 5;
 
 const FAHRZEUGARTEN = [
     ART_AUTO        => 'Auto',
@@ -48,7 +47,8 @@ const FAHRZEUGARTEN = [
     ART_FAHRRAD     => 'Fahrrad',
 ];
 
-// Mehrzahl für Filter und Gruppenüberschriften; steht nicht in der Datenbank.
+// Mehrzahl für Filter und Gruppenüberschriften; neuer Code liest sie aus
+// fahrzeugarten.plural (CListeSchluessel::GetPlural()).
 const FAHRZEUGARTEN_MEHRZAHL = [
     ART_AUTO        => 'Autos',
     ART_LUXUS       => 'Luxusautos',
@@ -103,7 +103,7 @@ const BUCHUNGSSTATUS_KLASSE = [
 ];
 
 // --- zwecke -----------------------------------------------------------------
-// Feste Liste der Zwecke (siehe docs/konzept/user-stories.md).
+// Feste Liste der Zwecke.
 
 const ZWECK_MONTAGE           = 1;
 const ZWECK_SERVICE           = 2;

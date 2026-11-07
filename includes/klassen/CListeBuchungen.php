@@ -1,14 +1,6 @@
 <?php
 /**
  * Eine Liste von Buchungen.
- *
- * Erst eine der Laden-Methoden aufrufen, dann zugreifen:
- *   $ListeAntraege = new CListeBuchungen();
- *   $ListeAntraege->LadenOffeneAntraege();
- *   foreach ($ListeAntraege->GetAlle() as $Antrag) { … }
- *
- * Personennamen lädt nur, was der Fuhrparkleiter oder der Nutzer selbst für
- * seine eigenen Buchungen sieht (siehe CBuchung).
  */
 
 declare(strict_types=1);
@@ -100,6 +92,20 @@ class CListeBuchungen
             CBuchung::SQL_MIT_NAMEN . self::SQL_BELEGUNG . ' AND (b.antragsteller_id = ? OR b.fahrer_id = ?)
              ORDER BY b.start, b.id',
             [...self::GetBelegungParameter($in_Von, $in_Bis), $in_NutzerID, $in_NutzerID]
+        );
+    }
+
+    /**
+     * Lädt alle belegenden Buchungen, die heute oder später enden, dazu jede
+     * laufende Fahrt, auch eine überfällige. Für fahrzeuge.php, was
+     * eine neue Wartung betrifft. Namen nur für den Fuhrparkleiter.
+     */
+    public function LadenAbHeute(bool $in_MitNamen = false): void
+    {
+        $this->Laden(
+            self::GetSelect($in_MitNamen) . ' WHERE b.status_id <= ? AND (b.ende >= CURDATE() OR b.status_id = ?)
+             ORDER BY b.start, b.id',
+            [STATUS_UNTERWEGS, STATUS_UNTERWEGS]
         );
     }
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Fahrzeug buchen (Anwendungsfall 1), nur für Mitarbeiter.
+ * Fahrzeug buchen, nur für Mitarbeiter.
  *
  * Eine Seite: oben die Suche (Buchen für, Zeitraum, Personen, Zweck,
  * Fahrzeugart) als GET-Formular, darunter alle passenden Fahrzeuge mit Bild,
@@ -8,15 +8,13 @@
  * gebucht werden können; belegte, in Wartung, mit überfälliger Rückgabe und
  * solche, für die dem Fahrer der Führerschein oder die Freigabe für
  * Luxusautos (nutzer.darf_luxus) fehlt (Ampel „rot“), sind
- * ausgeblendet (entschieden am 10.10.2026). Jedes Fahrzeug verlinkt auf seinen
- * Steckbrief; eine eigene Fahrzeugliste haben Mitarbeiter nicht (siehe
- * docs/konzept/technisches-konzept.md, Regel 1).
+ * ausgeblendet. Jedes Fahrzeug verlinkt auf seinen Steckbrief; eine eigene
+ * Fahrzeugliste haben Mitarbeiter nicht.
  *
  * Ampel: Autos und Transporter werden beantragt (Status „offen“), Roller und
  * Fahrräder sind sofort bestätigt („genehmigt“), siehe braucht_genehmigung().
  *
- * Überfällige Rückgabe (docs/aenderungen/aenderungen-todo2.md, Punkt 12): Wer selbst eine
- * hat, kann nichts buchen; wer eine hat, kann nicht als Fahrer eingetragen
+ * Überfällige Rückgabe: Wer selbst eine hat, kann nichts buchen; wer eine hat, kann nicht als Fahrer eingetragen
  * werden; ein Fahrzeug mit überfälliger Rückgabe ist nicht wählbar.
  *
  * Aufruf mit Vorauswahl aus dem Steckbrief: buchen.php?fahrzeug=1. Die Suche
@@ -24,8 +22,8 @@
  * (Zweck und Fahrzeugart als ID aus den Schlüsseltabellen).
  *
  * Nutzer, Belegung und Speichern laufen über CListeNutzer, CListeBuchungen und
- * CBuchung::Create(). Die Fahrzeuge kommen noch aus includes/beispieldaten.php,
- * bis CFahrzeug (Paket B) fertig ist; die IDs stimmen mit der Datenbank überein.
+ * CBuchung::Create(). Die Fahrzeuge kommen noch aus includes/beispieldaten.php;
+ * die IDs stimmen mit der Datenbank überein.
  */
 
 declare(strict_types=1);

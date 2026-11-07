@@ -47,18 +47,21 @@ INSERT INTO rollen (id, bezeichnung) VALUES
     (2, 'Fuhrparkleiter');
 
 -- Fahrzeugarten
+-- Die IDs sind zugleich die Anzeigereihenfolge (Luxusauto direkt nach dem
+-- Auto). plural steht in Filtern und Gruppenüberschriften („Fahrräder“).
 CREATE TABLE fahrzeugarten (
     id          TINYINT UNSIGNED NOT NULL,
     bezeichnung VARCHAR(30)      NOT NULL,
+    plural      VARCHAR(30)      NOT NULL,
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO fahrzeugarten (id, bezeichnung) VALUES
-    (1, 'Auto'),
-    (2, 'Transporter'),
-    (3, 'Roller'),
-    (4, 'Fahrrad'),
-    (5, 'Luxusauto');        -- nur mit nutzer.darf_luxus buchbar
+INSERT INTO fahrzeugarten (id, bezeichnung, plural) VALUES
+    (1, 'Auto',        'Autos'),
+    (2, 'Luxusauto',   'Luxusautos'),   -- nur mit nutzer.darf_luxus buchbar
+    (3, 'Transporter', 'Transporter'),
+    (4, 'Roller',      'Roller'),
+    (5, 'Fahrrad',     'Fahrräder');
 
 -- Antriebe
 CREATE TABLE antriebe (
@@ -139,7 +142,7 @@ CREATE TABLE nutzer (
     nachname      VARCHAR(50)      NOT NULL,
     rolle_id      TINYINT UNSIGNED NOT NULL DEFAULT 1, -- Mitarbeiter
     passwort_hash VARCHAR(255)     NOT NULL,           -- Ergebnis von password_hash()
-    darf_luxus    TINYINT(1)       NOT NULL DEFAULT 0, -- 1 = darf Luxusautos fahren (art_id 5)
+    darf_luxus    TINYINT(1)       NOT NULL DEFAULT 0, -- 1 = darf Luxusautos fahren (art_id 2)
     geloescht_am  DATETIME         NULL,               -- NULL = aktiv; sonst keine Anmeldung, nicht mehr wählbar
     PRIMARY KEY (id),
     CONSTRAINT fk_nutzer_rolle                         -- Referenz auf Rolle

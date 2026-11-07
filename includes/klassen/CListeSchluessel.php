@@ -1,11 +1,6 @@
 <?php
 /**
  * Alle Werte einer Schlüsseltabelle, nach ID sortiert.
- *
- * Eine Klasse für alle sieben Tabellen, denn sie sind gleich aufgebaut.
- * Geladen wird beim ersten Zugriff und nur einmal:
- *   $Zwecke = new CListeSchluessel('zwecke');
- *   echo e($Zwecke->GetBezeichnung($zweckId));
  */
 
 declare(strict_types=1);

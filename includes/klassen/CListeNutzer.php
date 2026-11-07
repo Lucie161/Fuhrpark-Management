@@ -1,11 +1,6 @@
 <?php
 /**
  * Eine Liste von Nutzern, nach Nachname und Vorname sortiert.
- *
- * Erst eine der Laden-Methoden aufrufen, dann zugreifen:
- *   $ListeNutzer = new CListeNutzer();
- *   $ListeNutzer->LadenAktive();
- *   foreach ($ListeNutzer->GetAlle() as $Nutzer) { … }
  */
 
 declare(strict_types=1);

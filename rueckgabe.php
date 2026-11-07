@@ -1,6 +1,6 @@
 <?php
 /**
- * Fahrzeug zurückgeben (Anwendungsfall 6), nur für Mitarbeiter.
+ * Fahrzeug zurückgeben, nur für Mitarbeiter.
  *
  * Kein Navigationspunkt: Aufruf über „Zurückgeben“ an der laufenden Fahrt in
  * index.php (auch aus dem roten Banner) und meine-buchungen.php, jeweils mit
@@ -21,8 +21,7 @@
  *   SELECT b.*, f.kmstand, ... FROM buchungen b JOIN fahrzeuge f ON f.id = b.fahrzeug_id
  *    WHERE b.fahrer_id = :ich AND b.status_id = STATUS_UNTERWEGS
  *
- * Beim Speichern in einer Transaktion (siehe docs/konzept/technisches-konzept.md,
- * Regel 6):
+ * Beim Speichern in einer Transaktion:
  *   UPDATE buchungen  SET status_id = STATUS_ABGESCHLOSSEN, zurueckgegeben_am = NOW(),
  *                         km_ende = :km, bemerkung = :bemerkung
  *   UPDATE fahrzeuge  SET kmstand = :km

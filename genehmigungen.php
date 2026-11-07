@@ -1,13 +1,12 @@
 <?php
 /**
- * Anträge genehmigen (Anwendungsfall 9), nur für den Fuhrparkleiter.
+ * Anträge genehmigen, nur für den Fuhrparkleiter.
  *
  * Alle offenen Anträge, älteste zuerst. Der Fahrer steht nur dabei, wenn er
  * nicht selbst beantragt hat („Buchen für“). Genehmigen geht nur, wenn das
  * Fahrzeug im Zeitraum noch frei, nicht in Wartung und nicht überfällig ist
  * (CBuchung::GetGenehmigungHindernis()); eine Ablehnung braucht eine
- * Begründung, die der Antragsteller liest (siehe
- * docs/konzept/technisches-konzept.md, Regel 9).
+ * Begründung, die der Antragsteller liest.
  *
  * Laden und Speichern laufen über CListeBuchungen und CBuchung.
  */
