@@ -65,7 +65,6 @@ if (!ist_fuhrparkleiter()) {
             $laufende[] = $buchung;
         } elseif ($buchung['status_id'] === STATUS_GENEHMIGT && $buchung['fahrer_id'] === $ich
             && $buchung['start'] <= $heute && $heute <= $buchung['ende']) {
-            $buchung['sperre'] = sperre_fahrtbeginn($ich, $buchung['fahrzeug_id']);
             $aktive[] = $buchung;
         } elseif ($buchung['status_id'] === STATUS_OFFEN) {
             $beantragte[] = $buchung;
@@ -314,7 +313,15 @@ require_once __DIR__ . '/includes/header.php';
                     </span>
                 </p>
 
-                <?php require __DIR__ . '/includes/fahrt-beginnen.php'; ?>
+                <?php
+                // Das Formular braucht die Buchung als Objekt und schickt
+                // nach dem Fahrtbeginn hierher zurück.
+                $Buchung = CBuchung::LoadByID($buchung['id']);
+                $zurueck = 'index';
+                ?>
+                <?php if ($Buchung !== null && $Buchung->KannBeginnen($ich)): ?>
+                    <?php require __DIR__ . '/includes/fahrt-beginnen.php'; ?>
+                <?php endif; ?>
             </div>
         <?php endforeach; ?>
 

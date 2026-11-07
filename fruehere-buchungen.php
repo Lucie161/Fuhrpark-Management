@@ -4,19 +4,11 @@
  *
  * Abgeschlossene, stornierte und abgelehnte Buchungen, die ich beantragt
  * habe oder bei denen ich Fahrer bin, die neueste zuerst. Bei einer Ablehnung
- * steht die Begründung des Fuhrparkleiters dabei. Die Seite steht nicht in
- * der Navigation, sondern ist unter der Tabelle in meine-buchungen.php
- * verlinkt.
+ * oder einer automatischen Stornierung (Wartung) steht die Begründung dabei.
+ * Die Seite steht nicht in der Navigation, sondern ist unter der Tabelle in
+ * meine-buchungen.php verlinkt.
  *
- * Prototyp: Die Buchungen kommen aus includes/beispieldaten.php; die
- * abgeschlossenen sind dieselben Fahrten wie im Fahrtenbuch (fahrzeug.php,
- * historie.php). Mit Datenbank:
- *
- *   SELECT b.*, f.hersteller, f.modell, f.kennzeichen, ...
- *     FROM buchungen b JOIN fahrzeuge f ON f.id = b.fahrzeug_id
- *    WHERE (b.antragsteller_id = :ich OR b.fahrer_id = :ich)
- *      AND b.status_id >= STATUS_ABGESCHLOSSEN
- *    ORDER BY b.start DESC
+ * Laden über CListeBuchungen::LadenFruehere().
  */
 
 declare(strict_types=1);
@@ -29,16 +21,11 @@ $pageTitle = 'Frühere Buchungen';
 
 $ich = aktueller_nutzer();
 
-// Meine Buchungen, die nicht mehr aktuell sind: abgeschlossen, abgelehnt oder
-// storniert, also alle, die das Fahrzeug nicht mehr belegen.
-$buchungen = array_filter(
-    beispiel_buchungen(),
-    fn (array $b): bool => ($b['antragsteller_id'] === $ich || $b['fahrer_id'] === $ich)
-        && !belegt_fahrzeug($b),
-);
+$ListeBuchungen = new CListeBuchungen();
+$ListeBuchungen->LadenFruehere($ich);
 
-// Neueste zuerst.
-usort($buchungen, fn (array $a, array $b): int => $b['start'] <=> $a['start']);
+$Zwecke = new CListeSchluessel('zwecke');
+$Status = new CListeSchluessel('buchungsstatus');
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -61,29 +48,29 @@ require_once __DIR__ . '/includes/header.php';
         </tr>
     </thead>
     <tbody>
-        <?php foreach ($buchungen as $buchung): ?>
+        <?php foreach ($ListeBuchungen->GetAlle() as $Buchung): ?>
             <tr>
-                <td><?= e(zeitraum_text($buchung['start'], $buchung['ende'])) ?></td>
+                <td><?= e(zeitraum_text($Buchung->GetStart(), $Buchung->GetEnde())) ?></td>
                 <td>
-                    <a href="<?= url('fahrzeug.php?id=' . $buchung['fahrzeug_id']) ?>"><?= e(fahrzeug_name($buchung['fahrzeug_id'])) ?></a>
-                    <?php if ($buchung['antragsteller_id'] !== $ich): ?>
-                        <span class="table__zusatz">gebucht von <?= e(nutzer_name($buchung['antragsteller_id'])) ?></span>
+                    <a href="<?= url('fahrzeug.php?id=' . $Buchung->GetFahrzeugID()) ?>"><?= e($Buchung->GetFahrzeugName()) ?></a>
+                    <?php if ($Buchung->GetAntragstellerID() !== $ich): ?>
+                        <span class="table__zusatz">gebucht von <?= e($Buchung->GetAntragstellerName()) ?></span>
                     <?php endif; ?>
-                    <?php if ($buchung['fahrer_id'] !== $ich): ?>
-                        <span class="table__zusatz">Fahrer: <?= e(nutzer_name($buchung['fahrer_id'])) ?></span>
+                    <?php if ($Buchung->GetFahrerID() !== $ich): ?>
+                        <span class="table__zusatz">Fahrer: <?= e($Buchung->GetFahrerName()) ?></span>
                     <?php endif; ?>
                 </td>
-                <td><?= e(ZWECKE[$buchung['zweck_id']]) ?></td>
+                <td><?= e($Zwecke->GetBezeichnung($Buchung->GetZweckID())) ?></td>
                 <td>
-                    <span class="badge badge--<?= e(BUCHUNGSSTATUS_KLASSE[$buchung['status_id']]) ?>">
-                        <?= e(BUCHUNGSSTATUS[$buchung['status_id']]) ?>
+                    <span class="badge badge--<?= e(BUCHUNGSSTATUS_KLASSE[$Buchung->GetStatusID()]) ?>">
+                        <?= e($Status->GetBezeichnung($Buchung->GetStatusID())) ?>
                     </span>
                 </td>
-                <td><?= $buchung['entscheidung_kommentar'] !== '' ? e($buchung['entscheidung_kommentar']) : '&ndash;' ?></td>
+                <td><?= $Buchung->GetEntscheidungKommentar() !== '' ? e($Buchung->GetEntscheidungKommentar()) : '&ndash;' ?></td>
             </tr>
         <?php endforeach; ?>
 
-        <?php if ($buchungen === []): ?>
+        <?php if ($ListeBuchungen->Count() === 0): ?>
             <tr>
                 <td colspan="5" class="table__empty">Keine früheren Buchungen.</td>
             </tr>

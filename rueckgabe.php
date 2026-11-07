@@ -14,30 +14,9 @@
  * Beschreibung; Fotos sind bei beiden möglich. Die Bemerkung zum Zustand ist
  * davon getrennt und bleibt optional.
  *
- * Prototyp: Die laufenden Fahrten kommen aus includes/beispieldaten.php. Das
- * Formular wird geprüft und bestätigt, aber noch nicht gespeichert. Mit
- * Datenbank:
- *
- *   SELECT b.*, f.kmstand, ... FROM buchungen b JOIN fahrzeuge f ON f.id = b.fahrzeug_id
- *    WHERE b.fahrer_id = :ich AND b.status_id = STATUS_UNTERWEGS
- *
- * Beim Speichern in einer Transaktion:
- *   UPDATE buchungen  SET status_id = STATUS_ABGESCHLOSSEN, zurueckgegeben_am = NOW(),
- *                         km_ende = :km, bemerkung = :bemerkung
- *   UPDATE fahrzeuge  SET kmstand = :km
- *   INSERT INTO schaeden (buchung_id, anlass_id, schwere_id, beschreibung, gemeldet_am)
- *   VALUES (:buchung, ANLASS_RUECKGABE, :schwere, :beschreibung, NOW())  -- nur bei Schaden
- *   INSERT INTO wartungen (fahrzeug_id, schaden_id, grund, begonnen_am)
- *   VALUES (:fahrzeug, :schaden, :beschreibung, CURDATE())          -- nur wenn schaden_sperrt()
- *   (bei einem Luxusauto auch ohne neuen Schaden, wenn bei Fahrtbeginn einer
- *   notiert wurde; schaden_id ist dann dieser)
- *   (voraussichtlich_bis bleibt NULL: Das Ende kennt der Fahrer nicht. Bis der
- *   Fuhrparkleiter es auf der Übersicht festlegt, ist das Fahrzeug ganz gesperrt.)
- *
- * Schadensfotos werden geprüft (Anzahl, Größe, Dateityp am Inhalt), aber im
- * Prototyp noch nicht abgelegt. Später: move_uploaded_file() nach
- * uploads/schaeden/ unter einem zufälligen Namen, dazu je Foto
- *   INSERT INTO schadensfotos (schaden_id, datei) VALUES (:schaden, :datei)
+ * Laden über CListeBuchungen::LadenLaufendeFahrten(), Speichern über
+ * CBuchung::Zurueckgeben(). Die Fotos werden geprüft, aber noch nicht
+ * abgelegt.
  */
 
 declare(strict_types=1);
@@ -50,46 +29,43 @@ $pageTitle = 'Fahrzeug zurückgeben';
 
 $ich = aktueller_nutzer();
 
-// Neuer Schaden => Beschriftung. Die Werte außer 0 (kein Schaden) sind
-// zugleich schaeden.schwere_id; SCHWERE_WARTUNG sperrt das Fahrzeug.
+// Neuer Schaden => Beschriftung. Die Werte außer KEIN_SCHADEN sind zugleich
+// schaeden.schwere_id; SCHWERE_WARTUNG sperrt das Fahrzeug.
 $schadenText = [
-    0               => 'Nein',
-    SCHWERE_KLEIN   => 'Ja, Kleinschaden',
-    SCHWERE_WARTUNG => 'Ja, muss in die Wartung',
+    CBuchung::KEIN_SCHADEN => 'Nein',
+    SCHWERE_KLEIN          => 'Ja, Kleinschaden',
+    SCHWERE_WARTUNG        => 'Ja, muss in die Wartung',
 ];
 
-$heute = new DateTimeImmutable('today');
+// Meine laufenden Fahrten (Status „unterwegs“)
+$ListeLaufende = new CListeBuchungen();
+$ListeLaufende->LadenLaufendeFahrten($ich);
 
-// Meine laufenden Fahrten (Status „unterwegs“), wie in meine-buchungen.php.
-// km_start ist null bei Fahrzeugen ohne km-Stand (Fahrrad).
-$laufende = array_filter(
-    beispiel_buchungen(),
-    fn (array $b): bool => $b['fahrer_id'] === $ich && $b['status_id'] === STATUS_UNTERWEGS,
-);
+$Zwecke = new CListeSchluessel('zwecke');
 
 // --- Fahrt auswählen --------------------------------------------------------
 // Gibt es nur eine laufende Fahrt, ist sie gleich ausgewählt.
 
 $buchungId = (int) ($_POST['buchung'] ?? $_GET['buchung'] ?? 0);
 
-if ($buchungId === 0 && count($laufende) === 1) {
-    $buchungId = array_key_first($laufende);
+if ($buchungId === 0 && $ListeLaufende->Count() === 1) {
+    $buchungId = $ListeLaufende->Get(0)->GetID();
 }
 
-$fahrt = $laufende[$buchungId] ?? null;
+$Fahrt = $ListeLaufende->GetByID($buchungId);
 
-// Bei einem Luxusauto sperrt schon ein Kleinschaden (schaden_sperrt()), auch
-// einer, der bei Fahrtbeginn notiert wurde: Die Fahrt durfte beginnen, mit der
-// Rückgabe geht das Fahrzeug in die Wartung.
-$artId = $fahrt !== null ? beispiel_fahrzeuge()[$fahrt['fahrzeug_id']]['art_id'] : 0;
-$luxus = $artId === ART_LUXUS;
-$vorhandeneSchaeden = $luxus ? offene_schaeden($fahrt['fahrzeug_id']) : [];
+// Bei einem Luxusauto sperrt schon ein Kleinschaden, auch einer, der bei
+// Fahrtbeginn notiert wurde: Die Fahrt durfte beginnen, mit der Rückgabe
+// geht das Fahrzeug in die Wartung.
+$Fahrzeug = $Fahrt !== null ? CFahrzeug::LoadByID($Fahrt->GetFahrzeugID()) : null;
+$luxus = $Fahrzeug !== null && $Fahrzeug->IstLuxus();
+$schadenBeiUebernahme = $luxus && $Fahrt->HatSchadenBeiUebernahme();
 
 // --- Formular verarbeiten ---------------------------------------------------
-// Läuft vor header.php, damit später eine Weiterleitung möglich ist.
+// Läuft vor header.php, damit nach dem Speichern die Weiterleitung zu „Meine
+// Buchungen“ möglich ist. Nach einem Fehler bleibt die Eingabe im Formular.
 
 $fehler = [];
-$bestaetigung = null;
 
 $eingabe = [
     'km_ende'      => trim((string) ($_POST['km_ende'] ?? '')),
@@ -106,47 +82,62 @@ $zuGross = $_SERVER['REQUEST_METHOD'] === 'POST' && $_POST === []
 if ($zuGross) {
     $fehler[] = 'Die Fotos sind zusammen zu groß. Bitte wählen Sie kleinere oder weniger Fotos.';
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($fahrt === null) {
+    if ($Fahrt === null) {
         $fehler[] = 'Bitte wählen Sie die Fahrt aus, die Sie beendet haben.';
     } else {
-        $kmEnde = null;
-
-        if ($fahrt['km_start'] !== null) {
-            $kmEnde = filter_var($eingabe['km_ende'], FILTER_VALIDATE_INT);
-
-            if ($kmEnde === false) {
-                $fehler[] = 'Bitte geben Sie den Kilometerstand als ganze Zahl ein.';
-            } elseif ($kmEnde < $fahrt['km_start']) {
-                $fehler[] = 'Der Kilometerstand darf nicht kleiner sein als bei Fahrtbeginn ('
-                    . number_format($fahrt['km_start'], 0, ',', '.') . ' km).';
-            }
-        }
-
-        $mitSchaden = $eingabe['schaden'] !== 0;
-
-        if (!isset($schadenText[$eingabe['schaden']])) {
-            $fehler[] = 'Bitte geben Sie an, ob ein neuer Schaden entstanden ist.';
-        } elseif ($mitSchaden && $eingabe['beschreibung'] === '') {
-            $fehler[] = 'Bitte beschreiben Sie den Schaden.';
-        }
-
         // Fotos gehören zur Schadensmeldung und werden ohne Schaden ignoriert.
         $fotos = [];
 
-        if ($mitSchaden) {
-            [$fotos, $fotoFehler] = pruefe_fotos($_FILES['fotos'] ?? []);
-            $fehler = array_merge($fehler, $fotoFehler);
+        if ($eingabe['schaden'] !== CBuchung::KEIN_SCHADEN) {
+            [$fotos, $fehler] = pruefe_fotos($_FILES['fotos'] ?? []);
+        }
+
+        // Speichern; die übrigen Regeln prüft CBuchung
+        if ($fehler === []) {
+            $kmEnde = filter_var($eingabe['km_ende'], FILTER_VALIDATE_INT);
+
+            try {
+                $Fahrt->Zurueckgeben(
+                    $ich,
+                    $kmEnde !== false ? $kmEnde : null,
+                    $eingabe['schaden'],
+                    $eingabe['beschreibung'],
+                    $eingabe['bemerkung'],
+                );
+            } catch (CFachlicherFehler $Fehler) {
+                $fehler[] = $Fehler->getMessage();
+            }
         }
 
         if ($fehler === []) {
-            $bestaetigung = [
-                'fahrzeug' => fahrzeug_name($fahrt['fahrzeug_id']),
-                'schaden'  => $eingabe['schaden'],
-                'sperrt'   => ($mitSchaden && schaden_sperrt($eingabe['schaden'], $artId)) || $vorhandeneSchaeden !== [],
-                'km'       => $kmEnde !== null ? $kmEnde - $fahrt['km_start'] : null,
-                'fotos'    => count($fotos),
-            ];
-        } elseif ($fotos !== [] || ($_FILES['fotos']['name'][0] ?? '') !== '') {
+            // Bestätigung je nach Ergebnis: Ist das Fahrzeug jetzt in Wartung?
+            $Fahrzeug = CFahrzeug::LoadByID($Fahrt->GetFahrzeugID());
+            $meldung = 'Rückgabe gespeichert. ' . $Fahrzeug->GetName();
+
+            if ($Fahrzeug->IstInWartung()) {
+                $meldung .= ' steht jetzt „in Wartung“'
+                    . ($luxus && $eingabe['schaden'] !== SCHWERE_WARTUNG ? ', denn bei einem Luxusauto sperrt auch ein Kleinschaden' : '')
+                    . '. Der Fuhrparkleiter sieht Ihre Meldung und gibt das Fahrzeug nach der Reparatur wieder frei.';
+            } elseif ($eingabe['schaden'] === SCHWERE_KLEIN) {
+                $meldung .= ' ist wieder für andere frei. Der Fuhrparkleiter sieht den Kleinschaden, der nächste Fahrer sieht ihn vor Fahrtbeginn.';
+            } else {
+                $meldung .= ' ist wieder für andere frei.';
+            }
+
+            if ($Fahrt->GetKmEnde() !== null) {
+                $meldung .= ' Gefahrene Strecke: '
+                    . number_format($Fahrt->GetKmEnde() - $Fahrt->GetKmStart(), 0, ',', '.') . ' km.';
+            }
+
+            if ($fotos !== []) {
+                $meldung .= ' Die Fotos werden noch nicht gespeichert.';
+            }
+
+            merke_meldung($meldung, $Fahrzeug->IstInWartung() ? 'hinweis' : 'erfolg');
+            redirect('meine-buchungen.php');
+        }
+
+        if (($_FILES['fotos']['name'][0] ?? '') !== '') {
             // Der Browser kann ausgewählte Dateien nicht erneut vorbelegen.
             $fehler[] = 'Bitte wählen Sie die Fotos nach der Korrektur erneut aus.';
         }
@@ -164,39 +155,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 <?php endif; ?>
 
-<?php if ($bestaetigung !== null): ?>
-
-    <?php if ($bestaetigung['sperrt']): ?>
-        <p class="alert alert--hinweis">
-            Rückgabe gespeichert. <?= e($bestaetigung['fahrzeug']) ?> steht wegen des gemeldeten
-            Schadens jetzt &bdquo;in Wartung&ldquo;<?= $bestaetigung['schaden'] !== SCHWERE_WARTUNG ? ', denn bei einem Luxusauto sperrt auch ein Kleinschaden' : '' ?>.
-            Der Fuhrparkleiter sieht Ihre Meldung und gibt das Fahrzeug nach der Reparatur wieder frei.
-        </p>
-    <?php elseif ($bestaetigung['schaden'] === SCHWERE_KLEIN): ?>
-        <p class="alert alert--erfolg">
-            Rückgabe gespeichert. <?= e($bestaetigung['fahrzeug']) ?> ist wieder für andere frei.
-            Der Fuhrparkleiter sieht den Kleinschaden, der nächste Fahrer sieht ihn vor Fahrtbeginn.
-        </p>
-    <?php else: ?>
-        <p class="alert alert--erfolg">
-            Rückgabe gespeichert. <?= e($bestaetigung['fahrzeug']) ?> ist wieder für andere frei.
-        </p>
-    <?php endif; ?>
-
-    <?php if ($bestaetigung['fotos'] > 0): ?>
-        <p class="lead">
-            <?= $bestaetigung['fotos'] === 1 ? '1 Foto' : $bestaetigung['fotos'] . ' Fotos' ?>
-            zur Schadensmeldung angehängt.
-        </p>
-    <?php endif; ?>
-
-    <?php if ($bestaetigung['km'] !== null): ?>
-        <p class="lead">Gefahrene Strecke: <?= number_format($bestaetigung['km'], 0, ',', '.') ?> km.</p>
-    <?php endif; ?>
-
-    <p><a href="<?= url('meine-buchungen.php') ?>">Zu meinen Buchungen</a></p>
-
-<?php elseif ($laufende === []): ?>
+<?php if ($ListeLaufende->Count() === 0): ?>
 
     <p class="lead">Sie haben derzeit keine laufende Fahrt.</p>
     <p><a href="<?= url('meine-buchungen.php') ?>">Zu meinen Buchungen</a></p>
@@ -217,20 +176,20 @@ require_once __DIR__ . '/includes/header.php';
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($laufende as $id => $laufend): ?>
-                    <tr<?= $id === $buchungId ? ' class="table__zeile--gewaehlt"' : '' ?>>
-                        <td><?= e(zeitraum_text($laufend['start'], $laufend['ende'])) ?></td>
-                        <td><?= e(fahrzeug_name($laufend['fahrzeug_id'])) ?></td>
-                        <td><?= e(ZWECKE[$laufend['zweck_id']]) ?></td>
+                <?php foreach ($ListeLaufende->GetAlle() as $Laufend): ?>
+                    <tr<?= $Laufend->GetID() === $buchungId ? ' class="table__zeile--gewaehlt"' : '' ?>>
+                        <td><?= e(zeitraum_text($Laufend->GetStart(), $Laufend->GetEnde())) ?></td>
+                        <td><?= e($Laufend->GetFahrzeugName()) ?></td>
+                        <td><?= e($Zwecke->GetBezeichnung($Laufend->GetZweckID())) ?></td>
                         <td>
                             <span class="badge badge--unterwegs">unterwegs</span>
-                            <?php if ($laufend['ende'] < $heute): ?>
+                            <?php if ($Laufend->IstUeberfaellig()): ?>
                                 <span class="badge badge--abgelehnt">Rückgabe überfällig</span>
                             <?php endif; ?>
                         </td>
                         <td>
-                            <?php if ($id !== $buchungId): ?>
-                                <a class="button button--klein" href="<?= url('rueckgabe.php?buchung=' . $id) ?>">Auswählen</a>
+                            <?php if ($Laufend->GetID() !== $buchungId): ?>
+                                <a class="button button--klein" href="<?= url('rueckgabe.php?buchung=' . $Laufend->GetID()) ?>">Auswählen</a>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -239,22 +198,22 @@ require_once __DIR__ . '/includes/header.php';
         </table>
     </section>
 
-    <?php if ($fahrt !== null): ?>
+    <?php if ($Fahrt !== null): ?>
         <form class="form form--breit section" method="post" action="<?= url('rueckgabe.php') ?>"
               enctype="multipart/form-data">
-            <h2 class="form__titel">Rückgabe: <?= e(fahrzeug_name($fahrt['fahrzeug_id'])) ?></h2>
+            <h2 class="form__titel">Rückgabe: <?= e($Fahrt->GetFahrzeugName()) ?></h2>
 
-            <input type="hidden" name="buchung" value="<?= e((string) $buchungId) ?>">
+            <input type="hidden" name="buchung" value="<?= e((string) $Fahrt->GetID()) ?>">
 
             <div class="form__raster">
-                <?php if ($fahrt['km_start'] !== null): ?>
+                <?php if ($Fahrt->GetKmStart() !== null): ?>
                     <div class="form__row">
                         <label class="form__label" for="km_ende">Kilometerstand bei Rückgabe</label>
                         <input class="form__input" type="number" id="km_ende" name="km_ende"
-                               min="<?= e((string) $fahrt['km_start']) ?>" step="1" required
+                               min="<?= e((string) $Fahrt->GetKmStart()) ?>" step="1" required
                                value="<?= e($eingabe['km_ende']) ?>">
                         <span class="form__hinweis">
-                            bei Fahrtbeginn: <?= number_format($fahrt['km_start'], 0, ',', '.') ?> km
+                            bei Fahrtbeginn: <?= number_format($Fahrt->GetKmStart(), 0, ',', '.') ?> km
                         </span>
                     </div>
                 <?php endif; ?>
@@ -265,7 +224,7 @@ require_once __DIR__ . '/includes/header.php';
                         <?php foreach ($schadenText as $wert => $text): ?>
                             <label>
                                 <input type="radio" name="schaden" value="<?= e((string) $wert) ?>"
-                                       <?= $wert === $eingabe['schaden'] || ($wert === 0 && !isset($schadenText[$eingabe['schaden']])) ? 'checked' : '' ?>>
+                                       <?= $wert === $eingabe['schaden'] || ($wert === CBuchung::KEIN_SCHADEN && !isset($schadenText[$eingabe['schaden']])) ? 'checked' : '' ?>>
                                 <?= e($text) ?>
                             </label>
                         <?php endforeach; ?>
@@ -274,7 +233,7 @@ require_once __DIR__ . '/includes/header.php';
                         <?php if ($luxus): ?>
                             Dies ist ein Luxusauto: Jeder Schaden, auch ein Kleinschaden, sperrt es, bis
                             der Fuhrparkleiter es nach der Reparatur wieder freigibt.
-                            <?php if ($vorhandeneSchaeden !== []): ?>
+                            <?php if ($schadenBeiUebernahme): ?>
                                 Wegen des bei Fahrtbeginn notierten Schadens geht es nach dieser
                                 Rückgabe ohnehin in die Wartung.
                             <?php endif; ?>
@@ -289,7 +248,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <div class="form__row" data-nur-bei-schaden>
                 <label class="form__label" for="beschreibung">Beschreibung des Schadens</label>
-                <textarea class="form__input" id="beschreibung" name="beschreibung" rows="2"
+                <textarea class="form__input" id="beschreibung" name="beschreibung" rows="2" maxlength="200"
                           placeholder="z. B. Delle hinten links, Tür schließt schwer"><?= e($eingabe['beschreibung']) ?></textarea>
                 <span class="form__hinweis">Nur bei einem Schaden, dann Pflicht: Was ist beschädigt?</span>
             </div>
@@ -306,7 +265,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <div class="form__row">
                 <label class="form__label" for="bemerkung">Bemerkung zum Zustand (optional)</label>
-                <textarea class="form__input" id="bemerkung" name="bemerkung" rows="2"
+                <textarea class="form__input" id="bemerkung" name="bemerkung" rows="2" maxlength="500"
                           placeholder="z. B. Innenraum verschmutzt, Akku fast leer"><?= e($eingabe['bemerkung']) ?></textarea>
                 <span class="form__hinweis">Steht im Fahrtenbuch und sperrt das Fahrzeug nicht.</span>
             </div>

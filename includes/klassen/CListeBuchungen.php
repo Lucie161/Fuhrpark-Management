@@ -45,6 +45,18 @@ class CListeBuchungen
     }
 
     /**
+     * Lädt die laufenden Fahrten des Fahrers (unterwegs), für die Rückgabe,
+     * die älteste zuerst.
+     */
+    public function LadenLaufendeFahrten(int $in_FahrerID): void
+    {
+        $this->Laden(
+            CBuchung::SQL_OHNE_NAMEN . ' WHERE b.fahrer_id = ? AND b.status_id = ? ORDER BY b.start, b.id',
+            [$in_FahrerID, STATUS_UNTERWEGS]
+        );
+    }
+
+    /**
      * Lädt die offenen Anträge für den Fuhrparkleiter, die ältesten zuerst.
      */
     public function LadenOffeneAntraege(): void

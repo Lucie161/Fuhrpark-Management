@@ -194,24 +194,6 @@ function wartung_sperrt(array $fahrzeug, DateTimeImmutable $von, DateTimeImmutab
 }
 
 /**
- * Warum die Fahrt nicht beginnen kann, sonst null: bei eigener überfälliger
- * Rückgabe, wenn das Fahrzeug selbst noch nicht zurückgegeben ist oder wenn
- * es noch in Wartung steht (etwa weil die Reparatur länger dauert).
- */
-function sperre_fahrtbeginn(int $fahrerId, int $fahrzeugId): ?string
-{
-    return match (true) {
-        hat_ueberfaellige_rueckgabe($fahrerId) => 'Bitte geben Sie zuerst Ihr überfälliges Fahrzeug zurück.',
-        fahrzeug_ueberfaellig($fahrzeugId)     => 'Das Fahrzeug ist vom vorigen Fahrer noch nicht zurückgegeben.',
-        beispiel_fahrzeuge()[$fahrzeugId]['in_wartung']
-                                               => 'Das Fahrzeug ist noch in Wartung.',
-        fehlt_luxusfreigabe($fahrerId, beispiel_fahrzeuge()[$fahrzeugId])
-                                               => 'Sie sind für Luxusautos nicht freigegeben.',
-        default                                => null,
-    };
-}
-
-/**
  * Warum ein Antrag nicht genehmigt werden kann, sonst null: Das
  * Fahrzeug ist ein Luxusauto und der Fahrer nicht freigegeben, es ist im
  * Zeitraum in Wartung, seine Rückgabe ist überfällig, oder es ist im Zeitraum

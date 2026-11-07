@@ -31,6 +31,13 @@ class CBuchung
 
     private const MAX_KOMMENTAR = 500;
 
+    // Eine Schadensbeschreibung wird bei einer Sperre zum Grund der Wartung
+    // (wartungen.grund), deshalb dieselbe Grenze.
+    private const MAX_BESCHREIBUNG = 200;
+
+    // „Neuer Schaden?“ bei der Rückgabe: 0 heißt nein, sonst die schwere_id.
+    public const KEIN_SCHADEN = 0;
+
     private int $m_ID;
     private int $m_FahrzeugID;
     private int $m_AntragstellerID;
@@ -357,7 +364,304 @@ class CBuchung
         $this->m_EntscheidungKommentar = $in_Kommentar ?? '';
     }
 
+    // --- Ablauf der Fahrt ---------------------------------------------------
+
+    /**
+     * Storniert die Buchung. Das dürfen Antragsteller und Fahrer, solange die
+     * Fahrt nicht begonnen hat. Steht etwas im Weg, wirft sie CFachlicherFehler.
+     */
+    public function Stornieren(int $in_NutzerID): void
+    {
+        if (!$this->KannStornieren($in_NutzerID)) {
+            throw new CFachlicherFehler('Diese Buchung können Sie nicht stornieren.');
+        }
+
+        // Nur ändern, solange sie noch beantragt oder genehmigt ist; vielleicht
+        // hat die Fahrt inzwischen begonnen.
+        $Statement = db()->prepare('UPDATE buchungen SET status_id = ? WHERE id = ? AND status_id IN (?, ?)');
+        $Statement->execute([STATUS_STORNIERT, $this->m_ID, STATUS_OFFEN, STATUS_GENEHMIGT]);
+
+        if ($Statement->rowCount() === 0) {
+            throw new CFachlicherFehler('Die Buchung lässt sich nicht mehr stornieren. Vielleicht hat die Fahrt schon begonnen.');
+        }
+
+        $this->m_StatusID = STATUS_STORNIERT;
+    }
+
+    /**
+     * Beginnt die Fahrt: Der Fahrer übernimmt das Fahrzeug.
+     *
+     * Prüft in einer Transaktion noch einmal GetSperreFahrtbeginn(), übernimmt
+     * den km-Stand des Fahrzeugs und speichert einen Schaden, den der Fahrer
+     * bei der Übernahme notiert hat (optional). Steht etwas im Weg, wirft sie
+     * CFachlicherFehler.
+     */
+    public function FahrtBeginnen(int $in_NutzerID, string $in_Schaden): void
+    {
+        if (!$this->KannBeginnen($in_NutzerID)) {
+            throw new CFachlicherFehler('Diese Fahrt können Sie heute nicht beginnen.');
+        }
+
+        $Schaden = self::PruefeBeschreibung($in_Schaden);
+
+        db()->beginTransaction();
+
+        try {
+            // Fahrzeug sperren, dann mit dem aktuellen Stand prüfen
+            self::SperreFahrzeug($this->m_FahrzeugID);
+
+            $Sperre = $this->GetSperreFahrtbeginn();
+
+            if ($Sperre !== null) {
+                throw new CFachlicherFehler('Die Fahrt kann nicht beginnen. ' . $Sperre);
+            }
+
+            // Fahrt beginnen, aber nur, solange die Buchung noch genehmigt ist
+            $KmStart = CFahrzeug::LoadByID($this->m_FahrzeugID)->GetKmStand();
+
+            $Statement = db()->prepare(
+                'UPDATE buchungen SET status_id = ?, begonnen_am = NOW(), km_start = ?
+                  WHERE id = ? AND status_id = ?'
+            );
+            $Statement->execute([STATUS_UNTERWEGS, $KmStart, $this->m_ID, STATUS_GENEHMIGT]);
+
+            if ($Statement->rowCount() === 0) {
+                throw new CFachlicherFehler('Die Fahrt lässt sich nicht mehr beginnen. Vielleicht wurde die Buchung storniert.');
+            }
+
+            // Notierter Schaden: schon vorhanden, also kein Schaden dieses Fahrers
+            if ($Schaden !== '') {
+                $this->SpeichereSchaden(ANLASS_UEBERNAHME, SCHWERE_KLEIN, $Schaden);
+            }
+
+            db()->commit();
+        } catch (Throwable $Fehler) {
+            db()->rollBack();
+            throw $Fehler;
+        }
+
+        $this->m_StatusID = STATUS_UNTERWEGS;
+        $this->m_BegonnenAm = new DateTimeImmutable();
+        $this->m_KmStart = $KmStart;
+    }
+
+    /**
+     * Gibt das Fahrzeug zurück und schließt die Fahrt ab.
+     *
+     * Speichert in einer Transaktion km-Stand (auch am Fahrzeug), Bemerkung
+     * und einen neuen Schaden. Sperrt ein Schaden das Fahrzeug, kommt es in
+     * die Wartung, siehe SetzeInWartung(). $in_KmEnde entfällt bei Fahrzeugen
+     * ohne km-Stand, $in_SchwereID ist KEIN_SCHADEN oder eine schwere_id.
+     * Steht etwas im Weg, wirft sie CFachlicherFehler.
+     */
+    public function Zurueckgeben(
+        int $in_NutzerID,
+        ?int $in_KmEnde,
+        int $in_SchwereID,
+        string $in_Beschreibung,
+        string $in_Bemerkung
+    ): void {
+        // Eingaben prüfen; das geht ohne Datenbank, deshalb vor der Transaktion
+        $this->PruefeRueckgabe($in_NutzerID, $in_KmEnde);
+        $Beschreibung = self::PruefeSchaden($in_SchwereID, $in_Beschreibung);
+        $Bemerkung = trim($in_Bemerkung);
+
+        if (mb_strlen($Bemerkung) > self::MAX_KOMMENTAR) {
+            throw new CFachlicherFehler('Die Bemerkung darf höchstens ' . self::MAX_KOMMENTAR . ' Zeichen lang sein.');
+        }
+
+        // Ohne km-Stand (Fahrrad) wird auch keiner gespeichert
+        $KmEnde = $this->m_KmStart !== null ? $in_KmEnde : null;
+
+        db()->beginTransaction();
+
+        try {
+            self::SperreFahrzeug($this->m_FahrzeugID);
+
+            // Fahrt abschließen, aber nur, solange sie noch läuft
+            $Statement = db()->prepare(
+                'UPDATE buchungen SET status_id = ?, zurueckgegeben_am = NOW(), km_ende = ?, bemerkung = ?
+                  WHERE id = ? AND status_id = ?'
+            );
+            $Statement->execute([
+                STATUS_ABGESCHLOSSEN,
+                $KmEnde,
+                $Bemerkung !== '' ? $Bemerkung : null,
+                $this->m_ID,
+                STATUS_UNTERWEGS,
+            ]);
+
+            if ($Statement->rowCount() === 0) {
+                throw new CFachlicherFehler('Diese Fahrt ist schon abgeschlossen.');
+            }
+
+            // Neuen km-Stand am Fahrzeug merken, die nächste Fahrt beginnt damit
+            if ($KmEnde !== null) {
+                $Statement = db()->prepare('UPDATE fahrzeuge SET kmstand = ? WHERE id = ?');
+                $Statement->execute([$KmEnde, $this->m_FahrzeugID]);
+            }
+
+            // Neuen Schaden speichern und das Fahrzeug bei Bedarf sperren
+            $SchadenID = null;
+
+            if ($in_SchwereID !== self::KEIN_SCHADEN) {
+                $SchadenID = $this->SpeichereSchaden(ANLASS_RUECKGABE, $in_SchwereID, $Beschreibung);
+            }
+
+            $this->SetzeInWartung($SchadenID, $in_SchwereID, $Beschreibung);
+
+            db()->commit();
+        } catch (Throwable $Fehler) {
+            db()->rollBack();
+            throw $Fehler;
+        }
+
+        $this->m_StatusID = STATUS_ABGESCHLOSSEN;
+        $this->m_ZurueckgegebenAm = new DateTimeImmutable();
+        $this->m_KmEnde = $KmEnde;
+        $this->m_Bemerkung = $Bemerkung;
+    }
+
+    /**
+     * Zurückgeben darf nur der Fahrer eine laufende Fahrt. Der km-Stand muss
+     * angegeben sein und darf nicht kleiner sein als bei Fahrtbeginn, außer das
+     * Fahrzeug hat keinen.
+     */
+    private function PruefeRueckgabe(int $in_NutzerID, ?int $in_KmEnde): void
+    {
+        if ($this->m_StatusID !== STATUS_UNTERWEGS || $in_NutzerID !== $this->m_FahrerID) {
+            throw new CFachlicherFehler('Diese Fahrt können Sie nicht zurückgeben.');
+        }
+
+        if ($this->m_KmStart === null) {
+            return;
+        }
+
+        if ($in_KmEnde === null) {
+            throw new CFachlicherFehler('Bitte geben Sie den Kilometerstand als ganze Zahl ein.');
+        }
+
+        if ($in_KmEnde < $this->m_KmStart) {
+            throw new CFachlicherFehler(
+                'Der Kilometerstand darf nicht kleiner sein als bei Fahrtbeginn ('
+                    . number_format($this->m_KmStart, 0, ',', '.') . ' km).'
+            );
+        }
+    }
+
+    /**
+     * Prüft die Angabe „Neuer Schaden?“. Bei einem Schaden ist die
+     * Beschreibung Pflicht, ohne Schaden wird sie ignoriert. Liefert die
+     * bereinigte Beschreibung.
+     */
+    private static function PruefeSchaden(int $in_SchwereID, string $in_Beschreibung): string
+    {
+        if (!in_array($in_SchwereID, [self::KEIN_SCHADEN, SCHWERE_KLEIN, SCHWERE_WARTUNG], true)) {
+            throw new CFachlicherFehler('Bitte geben Sie an, ob ein neuer Schaden entstanden ist.');
+        }
+
+        if ($in_SchwereID === self::KEIN_SCHADEN) {
+            return '';
+        }
+
+        $Beschreibung = self::PruefeBeschreibung($in_Beschreibung);
+
+        if ($Beschreibung === '') {
+            throw new CFachlicherFehler('Bitte beschreiben Sie den Schaden.');
+        }
+
+        return $Beschreibung;
+    }
+
+    /**
+     * Kürzt die Schadensbeschreibung um Leerzeichen und prüft ihre Länge.
+     */
+    private static function PruefeBeschreibung(string $in_Beschreibung): string
+    {
+        $Beschreibung = trim($in_Beschreibung);
+
+        if (mb_strlen($Beschreibung) > self::MAX_BESCHREIBUNG) {
+            throw new CFachlicherFehler(
+                'Die Beschreibung des Schadens darf höchstens ' . self::MAX_BESCHREIBUNG . ' Zeichen lang sein.'
+            );
+        }
+
+        return $Beschreibung;
+    }
+
+    /**
+     * Trägt einen Schaden zu dieser Buchung ein und liefert seine ID. Läuft in
+     * der Transaktion des Aufrufers.
+     */
+    private function SpeichereSchaden(int $in_AnlassID, int $in_SchwereID, string $in_Beschreibung): int
+    {
+        $Statement = db()->prepare(
+            'INSERT INTO schaeden (buchung_id, anlass_id, schwere_id, beschreibung, gemeldet_am)
+             VALUES (?, ?, ?, ?, NOW())'
+        );
+        $Statement->execute([$this->m_ID, $in_AnlassID, $in_SchwereID, $in_Beschreibung]);
+
+        return (int) db()->lastInsertId();
+    }
+
+    /**
+     * Setzt das Fahrzeug nach der Rückgabe in die Wartung, wenn ein Schaden es
+     * sperrt: der neue Schaden (schaden_sperrt()) oder, bei einem Luxusauto,
+     * der bei der Übernahme notierte. Das Ende bleibt offen, bis der
+     * Fuhrparkleiter es festlegt. Läuft schon eine Wartung, bleibt es bei ihr.
+     * Läuft in der Transaktion von Zurueckgeben().
+     */
+    private function SetzeInWartung(?int $in_SchadenID, int $in_SchwereID, string $in_Beschreibung): void
+    {
+        $Fahrzeug = CFahrzeug::LoadByID($this->m_FahrzeugID);
+
+        // Welcher Schaden sperrt? Zuerst der neue, dann der bei der Übernahme
+        $Sperrend = null;
+
+        if ($in_SchadenID !== null && schaden_sperrt($in_SchwereID, $Fahrzeug->GetArtID())) {
+            $Sperrend = ['id' => $in_SchadenID, 'beschreibung' => $in_Beschreibung];
+        } elseif ($Fahrzeug->IstLuxus()) {
+            $Sperrend = $this->LadeUebernahmeSchaden();
+        }
+
+        if ($Sperrend === null || $Fahrzeug->IstInWartung()) {
+            return;
+        }
+
+        // Wartung ab heute, ohne Ende und ohne Fuhrparkleiter
+        $Statement = db()->prepare(
+            'INSERT INTO wartungen (fahrzeug_id, schaden_id, grund, begonnen_am) VALUES (?, ?, ?, CURDATE())'
+        );
+        $Statement->execute([$this->m_FahrzeugID, $Sperrend['id'], $Sperrend['beschreibung']]);
+    }
+
+    /**
+     * Der noch offene Schaden, den der Fahrer bei der Übernahme notiert hat,
+     * mit id und beschreibung; sonst null.
+     */
+    private function LadeUebernahmeSchaden(): ?array
+    {
+        $Statement = db()->prepare(
+            'SELECT id, beschreibung FROM schaeden
+              WHERE buchung_id = ? AND anlass_id = ? AND behoben_am IS NULL
+              ORDER BY id LIMIT 1'
+        );
+        $Statement->execute([$this->m_ID, ANLASS_UEBERNAHME]);
+        $Zeile = $Statement->fetch();
+
+        return $Zeile !== false ? ['id' => (int) $Zeile['id'], 'beschreibung' => $Zeile['beschreibung']] : null;
+    }
+
     // --- Fachfunktionen -----------------------------------------------------
+
+    /**
+     * Hat der Fahrer bei der Übernahme einen Schaden notiert, der noch offen
+     * ist? Bei einem Luxusauto geht es dann nach der Rückgabe in die Wartung.
+     */
+    public function HatSchadenBeiUebernahme(): bool
+    {
+        return $this->LadeUebernahmeSchaden() !== null;
+    }
 
     /**
      * Belegt die Buchung ihr Fahrzeug? Ja, solange sie beantragt, genehmigt

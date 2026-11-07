@@ -5,18 +5,11 @@
  * Zeigt die aktuellen Buchungen (beantragt, genehmigt, unterwegs), die ich
  * beantragt habe oder bei denen ich Fahrer bin, die nächste zuerst. Von hier
  * aus wird storniert und die Fahrt begonnen; „Fahrt beginnen“ hat keine
- * eigene Seite. Frühere und
- * abgesagte Buchungen stehen in fruehere-buchungen.php, verlinkt unter der
- * Tabelle.
+ * eigene Seite, das Formular (includes/fahrt-beginnen.php) schickt auch von
+ * index.php hierher. Frühere und abgesagte Buchungen stehen in
+ * fruehere-buchungen.php, verlinkt unter der Tabelle.
  *
- * Prototyp: Die Buchungen kommen aus includes/beispieldaten.php, die
- * Schaltflächen lösen noch nichts aus. Mit Datenbank:
- *
- *   SELECT b.*, f.hersteller, f.modell, f.kennzeichen, ...
- *     FROM buchungen b JOIN fahrzeuge f ON f.id = b.fahrzeug_id
- *    WHERE (b.antragsteller_id = :ich OR b.fahrer_id = :ich)
- *      AND b.status_id <= STATUS_UNTERWEGS
- *    ORDER BY b.start
+ * Laden und Speichern laufen über CListeBuchungen und CBuchung.
  */
 
 declare(strict_types=1);
@@ -29,37 +22,63 @@ $pageTitle = 'Meine Buchungen';
 
 $ich = aktueller_nutzer();
 
-$heute = new DateTimeImmutable('today');
+$ListeBuchungen = new CListeBuchungen();
+$ListeBuchungen->LadenAktuelle($ich);
 
-// --- Buchungen aufbereiten --------------------------------------------------
-// Je Buchung wird festgehalten, welche Aktionen möglich sind.
+$Zwecke = new CListeSchluessel('zwecke');
+$Status = new CListeSchluessel('buchungsstatus');
 
-$aktuelle = [];
+// --- Aktion verarbeiten -----------------------------------------------------
+// Läuft vor header.php, damit die Weiterleitung möglich ist. Nach Erfolg geht
+// es zur aufrufenden Seite zurück (zurueck=index: Übersicht); nach einem
+// Fehler bleibt es hier, mit Meldung und der Eingabe im Feld.
 
-foreach (beispiel_buchungen() as $buchung) {
-    if (($buchung['antragsteller_id'] !== $ich && $buchung['fahrer_id'] !== $ich)
-        || !belegt_fahrzeug($buchung)) {
-        continue;
+$fehler = [];
+
+// Bei einem Fehler beim Fahrtbeginn bleibt das Formular dieser Buchung offen
+// und behält die Eingabe.
+$offeneFahrt = null;
+$schadenEingabe = '';
+$zurueck = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = (int) (is_string($_POST['buchung'] ?? null) ? $_POST['buchung'] : 0);
+    $aktion = is_string($_POST['aktion'] ?? null) ? $_POST['aktion'] : '';
+    $schadenEingabe = is_string($_POST['schaden'] ?? null) ? trim($_POST['schaden']) : '';
+    $zurueck = ($_POST['zurueck'] ?? '') === 'index' ? 'index' : '';
+
+    // Nur Buchungen aus meiner Liste, also eigene
+    $Buchung = $ListeBuchungen->GetByID($id);
+
+    try {
+        if ($Buchung === null) {
+            throw new CFachlicherFehler('Diese Buchung gibt es nicht mehr. Vielleicht ist sie schon erledigt.');
+        }
+
+        if ($aktion === 'stornieren') {
+            $Buchung->Stornieren($ich);
+            merke_meldung(
+                'Buchung für ' . $Buchung->GetFahrzeugName() . ', '
+                    . zeitraum_text($Buchung->GetStart(), $Buchung->GetEnde())
+                    . ', storniert. Das Fahrzeug ist für den Zeitraum wieder frei.',
+                'hinweis',
+            );
+        } elseif ($aktion === 'beginnen') {
+            $offeneFahrt = $id;
+            $Buchung->FahrtBeginnen($ich, $schadenEingabe);
+            merke_meldung(
+                'Fahrt mit ' . $Buchung->GetFahrzeugName() . ' begonnen. Gute Fahrt!'
+                    . ($schadenEingabe !== '' ? ' Der notierte Schaden ist gespeichert.' : '')
+            );
+        } else {
+            throw new CFachlicherFehler('Diese Aktion gibt es nicht.');
+        }
+
+        redirect($zurueck === 'index' ? 'index.php' : 'meine-buchungen.php');
+    } catch (CFachlicherFehler $Fehler) {
+        $fehler[] = $Fehler->getMessage();
     }
-
-    // Aktiv: genehmigt, heute liegt im Zeitraum, ich bin der Fahrer. Ob die
-    // Fahrt wirklich beginnen kann, sagt 'sperre' (überfällige Rückgabe).
-    $buchung['kann_beginnen'] = $buchung['status_id'] === STATUS_GENEHMIGT
-        && $buchung['start'] <= $heute && $heute <= $buchung['ende']
-        && $buchung['fahrer_id'] === $ich;
-    $buchung['sperre'] = $buchung['kann_beginnen'] ? sperre_fahrtbeginn($ich, $buchung['fahrzeug_id']) : null;
-
-    // Stornieren nur, solange die Fahrt nicht begonnen hat; Antragsteller
-    // und Fahrer dürfen beide.
-    $buchung['kann_stornieren'] = in_array($buchung['status_id'], [STATUS_OFFEN, STATUS_GENEHMIGT], true);
-
-    $buchung['ueberfaellig'] = $buchung['status_id'] === STATUS_UNTERWEGS && $buchung['ende'] < $heute;
-
-    $aktuelle[] = $buchung;
 }
-
-// Nächste zuerst.
-usort($aktuelle, fn (array $a, array $b): int => $a['start'] <=> $b['start']);
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -68,6 +87,14 @@ require_once __DIR__ . '/includes/header.php';
     Ihre aktuellen Buchungen: beantragt, genehmigt oder unterwegs, die nächste zuerst. Dazu
     gehören auch Buchungen, die jemand anderes für Sie als Fahrer angelegt hat.
 </p>
+
+<?php if ($fehler !== []): ?>
+    <div class="alert">
+        <?php foreach ($fehler as $meldung): ?>
+            <p class="alert__zeile"><?= e($meldung) ?></p>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
 
 <section class="section">
     <h2>Aktuelle Buchungen</h2>
@@ -84,50 +111,52 @@ require_once __DIR__ . '/includes/header.php';
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($aktuelle as $buchung): ?>
+            <?php foreach ($ListeBuchungen->GetAlle() as $Buchung): ?>
                 <tr>
-                    <td><?= e(zeitraum_text($buchung['start'], $buchung['ende'])) ?></td>
+                    <td><?= e(zeitraum_text($Buchung->GetStart(), $Buchung->GetEnde())) ?></td>
                     <td>
-                        <a href="<?= url('fahrzeug.php?id=' . $buchung['fahrzeug_id']) ?>"><?= e(fahrzeug_name($buchung['fahrzeug_id'])) ?></a>
-                        <?php if ($buchung['antragsteller_id'] !== $ich): ?>
-                            <span class="table__zusatz">gebucht von <?= e(nutzer_name($buchung['antragsteller_id'])) ?></span>
+                        <a href="<?= url('fahrzeug.php?id=' . $Buchung->GetFahrzeugID()) ?>"><?= e($Buchung->GetFahrzeugName()) ?></a>
+                        <?php if ($Buchung->GetAntragstellerID() !== $ich): ?>
+                            <span class="table__zusatz">gebucht von <?= e($Buchung->GetAntragstellerName()) ?></span>
                         <?php endif; ?>
-                        <?php if ($buchung['fahrer_id'] !== $ich): ?>
-                            <span class="table__zusatz">Fahrer: <?= e(nutzer_name($buchung['fahrer_id'])) ?></span>
+                        <?php if ($Buchung->GetFahrerID() !== $ich): ?>
+                            <span class="table__zusatz">Fahrer: <?= e($Buchung->GetFahrerName()) ?></span>
                         <?php endif; ?>
                     </td>
-                    <td><?= e(ZWECKE[$buchung['zweck_id']]) ?></td>
-                    <td class="table__num"><?= e((string) $buchung['personenanzahl']) ?></td>
+                    <td><?= e($Zwecke->GetBezeichnung($Buchung->GetZweckID())) ?></td>
+                    <td class="table__num"><?= e((string) $Buchung->GetPersonenanzahl()) ?></td>
                     <td>
-                        <span class="badge badge--<?= e(BUCHUNGSSTATUS_KLASSE[$buchung['status_id']]) ?>">
-                            <?= e(BUCHUNGSSTATUS[$buchung['status_id']]) ?>
+                        <span class="badge badge--<?= e(BUCHUNGSSTATUS_KLASSE[$Buchung->GetStatusID()]) ?>">
+                            <?= e($Status->GetBezeichnung($Buchung->GetStatusID())) ?>
                         </span>
-                        <?php if ($buchung['ueberfaellig']): ?>
+                        <?php if ($Buchung->IstUeberfaellig()): ?>
                             <span class="badge badge--abgelehnt">Rückgabe überfällig</span>
                         <?php endif; ?>
                     </td>
                     <td>
                         <div class="aktionen">
-                            <?php if ($buchung['kann_beginnen']): ?>
+                            <?php if ($Buchung->KannBeginnen($ich)): ?>
                                 <?php require __DIR__ . '/includes/fahrt-beginnen.php'; ?>
                             <?php endif; ?>
 
-                            <?php if ($buchung['status_id'] === STATUS_UNTERWEGS): ?>
+                            <?php if ($Buchung->GetStatusID() === STATUS_UNTERWEGS && $Buchung->GetFahrerID() === $ich): ?>
                                 <a class="button button--klein"
-                                   href="<?= url('rueckgabe.php?buchung=' . $buchung['id']) ?>">Zurückgeben</a>
+                                   href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>">Zurückgeben</a>
                             <?php endif; ?>
 
-                            <?php if ($buchung['kann_stornieren']): ?>
+                            <?php if ($Buchung->KannStornieren($ich)): ?>
                                 <details class="klappaktion">
                                     <summary class="button button--klein button--gefahr">Stornieren</summary>
 
-                                    <div class="klappaktion__form">
+                                    <form class="klappaktion__form" method="post" action="<?= url('meine-buchungen.php') ?>">
+                                        <input type="hidden" name="buchung" value="<?= e((string) $Buchung->GetID()) ?>">
+                                        <input type="hidden" name="aktion" value="stornieren">
                                         <p class="klappaktion__frage">
                                             Buchung wirklich stornieren? Das Fahrzeug wird für den
                                             Zeitraum wieder freigegeben.
                                         </p>
-                                        <button class="button button--klein button--gefahr" type="button">Ja, stornieren</button>
-                                    </div>
+                                        <button class="button button--klein button--gefahr" type="submit">Ja, stornieren</button>
+                                    </form>
                                 </details>
                             <?php endif; ?>
                         </div>
@@ -135,7 +164,7 @@ require_once __DIR__ . '/includes/header.php';
                 </tr>
             <?php endforeach; ?>
 
-            <?php if ($aktuelle === []): ?>
+            <?php if ($ListeBuchungen->Count() === 0): ?>
                 <tr>
                     <td colspan="6" class="table__empty">Keine aktuellen Buchungen.</td>
                 </tr>
