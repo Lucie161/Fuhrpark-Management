@@ -152,7 +152,7 @@ class CBuchung
                 $in_Ende->format('Y-m-d'),
                 $in_ZweckID,
                 $in_Personenanzahl,
-                braucht_genehmigung($Fahrzeug['art_id']) ? STATUS_OFFEN : STATUS_GENEHMIGT,
+                $Fahrzeug->BrauchtGenehmigung() ? STATUS_OFFEN : STATUS_GENEHMIGT,
             ]);
 
             $ID = (int) db()->lastInsertId();
@@ -208,33 +208,33 @@ class CBuchung
 
     /**
      * Das Fahrzeug muss im Bestand sein, zum Fahrer passen und im Zeitraum frei
-     * sein. Liefert die Angaben zum Fahrzeug.
+     * sein. Liefert das Fahrzeug.
      */
     private static function PruefeFahrzeug(
         int $in_FahrzeugID,
         CNutzer $in_Fahrer,
         DateTimeImmutable $in_Start,
         DateTimeImmutable $in_Ende
-    ): array {
-        $Fahrzeug = self::LadeFahrzeug($in_FahrzeugID);
+    ): CFahrzeug {
+        $Fahrzeug = CFahrzeug::LoadByID($in_FahrzeugID);
 
-        if ($Fahrzeug === null || $Fahrzeug['geloescht_am'] !== null) {
+        if ($Fahrzeug === null || $Fahrzeug->IstAusgemustert()) {
             throw new CFachlicherFehler('Dieses Fahrzeug gibt es nicht mehr.');
         }
 
-        if (!$in_Fahrer->HatFuehrerschein($Fahrzeug['fuehrerschein'])) {
+        if (!$in_Fahrer->HatFuehrerschein($Fahrzeug->GetFuehrerschein())) {
             throw new CFachlicherFehler('Das Fahrzeug braucht einen Führerschein, den der Fahrer nicht hat.');
         }
 
-        if (self::FehltLuxusfreigabe($Fahrzeug, $in_Fahrer)) {
+        if ($Fahrzeug->FehltFreigabe($in_Fahrer)) {
             throw new CFachlicherFehler('Das Fahrzeug ist ein Luxusauto, für das der Fahrer nicht freigegeben ist.');
         }
 
-        if (wartung_sperrt($Fahrzeug, $in_Start, $in_Ende)) {
+        if ($Fahrzeug->SperrtWartung($in_Start, $in_Ende)) {
             throw new CFachlicherFehler('Das Fahrzeug ist im gewählten Zeitraum in Wartung.');
         }
 
-        if (self::IstFahrzeugUeberfaellig($in_FahrzeugID)) {
+        if ($Fahrzeug->IstUeberfaellig()) {
             throw new CFachlicherFehler('Das Fahrzeug ist noch nicht zurückgegeben.');
         }
 
@@ -249,7 +249,7 @@ class CBuchung
     /**
      * Zweck und Personenzahl müssen zum Fahrzeug passen.
      */
-    private static function PruefeFahrt(array $in_Fahrzeug, int $in_ZweckID, int $in_Personenanzahl): void
+    private static function PruefeFahrt(CFahrzeug $in_Fahrzeug, int $in_ZweckID, int $in_Personenanzahl): void
     {
         $Zwecke = new CListeSchluessel('zwecke');
 
@@ -257,11 +257,11 @@ class CBuchung
             throw new CFachlicherFehler('Bitte wählen Sie den Zweck der Fahrt.');
         }
 
-        if (!self::PasstZweck($in_ZweckID, $in_Fahrzeug['art_id'])) {
+        if (!self::PasstZweck($in_ZweckID, $in_Fahrzeug->GetArtID())) {
             throw new CFachlicherFehler('Für diesen Zweck kommen nur Autos und Transporter in Frage.');
         }
 
-        if ($in_Personenanzahl < 1 || $in_Personenanzahl > $in_Fahrzeug['sitzplaetze']) {
+        if ($in_Personenanzahl < 1 || $in_Personenanzahl > $in_Fahrzeug->GetSitzplaetze()) {
             throw new CFachlicherFehler('Das Fahrzeug hat nicht genug Sitzplätze.');
         }
     }
@@ -673,16 +673,15 @@ class CBuchung
      */
     public function GetSperreFahrtbeginn(): ?string
     {
-        $Fahrzeug = self::LadeFahrzeug($this->m_FahrzeugID);
+        $Fahrzeug = CFahrzeug::LoadByID($this->m_FahrzeugID);
         $Fahrer = CNutzer::LoadByID($this->m_FahrerID);
 
         return match (true) {
             $Fahrer->HatUeberfaelligeRueckgabe() => 'Bitte geben Sie zuerst Ihr überfälliges Fahrzeug zurück.',
-            self::IstFahrzeugUeberfaellig($this->m_FahrzeugID)
-                => 'Das Fahrzeug ist vom vorigen Fahrer noch nicht zurückgegeben.',
-            $Fahrzeug['in_wartung'] => 'Das Fahrzeug ist noch in Wartung.',
-            self::FehltLuxusfreigabe($Fahrzeug, $Fahrer) => 'Sie sind für Luxusautos nicht freigegeben.',
-            default => null,
+            $Fahrzeug->IstUeberfaellig()         => 'Das Fahrzeug ist vom vorigen Fahrer noch nicht zurückgegeben.',
+            $Fahrzeug->IstInWartung()            => 'Das Fahrzeug ist noch in Wartung.',
+            $Fahrzeug->FehltFreigabe($Fahrer)    => 'Sie sind für Luxusautos nicht freigegeben.',
+            default                              => null,
         };
     }
 
@@ -692,22 +691,20 @@ class CBuchung
      */
     public function GetGenehmigungHindernis(): ?string
     {
-        $Fahrzeug = self::LadeFahrzeug($this->m_FahrzeugID);
+        $Fahrzeug = CFahrzeug::LoadByID($this->m_FahrzeugID);
         $Fahrer = CNutzer::LoadByID($this->m_FahrerID);
 
         return match (true) {
-            self::FehltLuxusfreigabe($Fahrzeug, $Fahrer) => 'Der Fahrer ist für Luxusautos nicht freigegeben.',
-            wartung_sperrt($Fahrzeug, $this->m_Start, $this->m_Ende) => 'Das Fahrzeug ist im Zeitraum in Wartung.',
-            self::IstFahrzeugUeberfaellig($this->m_FahrzeugID) => 'Die Rückgabe des Fahrzeugs ist überfällig.',
+            $Fahrzeug->FehltFreigabe($Fahrer) => 'Der Fahrer ist für Luxusautos nicht freigegeben.',
+            $Fahrzeug->SperrtWartung($this->m_Start, $this->m_Ende) => 'Das Fahrzeug ist im Zeitraum in Wartung.',
+            $Fahrzeug->IstUeberfaellig() => 'Die Rückgabe des Fahrzeugs ist überfällig.',
             self::IstVergeben($this->m_FahrzeugID, $this->m_Start, $this->m_Ende, STATUS_GENEHMIGT, $this->m_ID)
                 => 'Das Fahrzeug ist im Zeitraum bereits vergeben.',
             default => null,
         };
     }
 
-    // --- Angaben zum Fahrzeug -----------------------------------------------
-    // Übergang: LadeFahrzeug(), IstFahrzeugUeberfaellig() und
-    // FehltLuxusfreigabe() werden durch CFahrzeug ersetzt.
+    // --- Belegung des Fahrzeugs ---------------------------------------------
 
     /**
      * Sperrt die Zeile des Fahrzeugs bis zum Ende der Transaktion. Wer dasselbe
@@ -718,55 +715,6 @@ class CBuchung
     {
         $Statement = db()->prepare('SELECT id FROM fahrzeuge WHERE id = ? FOR UPDATE');
         $Statement->execute([$in_FahrzeugID]);
-    }
-
-    /**
-     * Die Angaben zum Fahrzeug für die Fachregeln, mit der laufenden Wartung.
-     * Gibt es das Fahrzeug nicht, null.
-     */
-    private static function LadeFahrzeug(int $in_FahrzeugID): ?array
-    {
-        $Statement = db()->prepare(
-            'SELECT f.art_id, f.sitzplaetze, f.fuehrerschein, f.geloescht_am,
-                    w.id IS NOT NULL AS in_wartung, w.voraussichtlich_bis AS wartung_bis
-               FROM fahrzeuge f
-               LEFT JOIN wartungen w ON w.fahrzeug_id = f.id AND w.freigegeben_am IS NULL
-              WHERE f.id = ?'
-        );
-        $Statement->execute([$in_FahrzeugID]);
-        $Zeile = $Statement->fetch();
-
-        if ($Zeile === false) {
-            return null;
-        }
-
-        $Zeile['art_id'] = (int) $Zeile['art_id'];
-        $Zeile['sitzplaetze'] = (int) $Zeile['sitzplaetze'];
-        $Zeile['in_wartung'] = (bool) $Zeile['in_wartung'];
-        $Zeile['wartung_bis'] = self::DatumOderNull($Zeile['wartung_bis']);
-
-        return $Zeile;
-    }
-
-    /**
-     * Ist eine Fahrt mit dem Fahrzeug überfällig?
-     */
-    private static function IstFahrzeugUeberfaellig(int $in_FahrzeugID): bool
-    {
-        $Statement = db()->prepare(
-            'SELECT COUNT(*) FROM buchungen WHERE fahrzeug_id = ? AND status_id = ? AND ende < CURDATE()'
-        );
-        $Statement->execute([$in_FahrzeugID, STATUS_UNTERWEGS]);
-
-        return (int) $Statement->fetchColumn() > 0;
-    }
-
-    /**
-     * Luxusautos dürfen nur Nutzer mit darf_luxus fahren.
-     */
-    private static function FehltLuxusfreigabe(array $in_Fahrzeug, CNutzer $in_Fahrer): bool
-    {
-        return $in_Fahrzeug['art_id'] === ART_LUXUS && !$in_Fahrer->DarfLuxus();
     }
 
     /**

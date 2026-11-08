@@ -11,18 +11,11 @@
  * Schäden, zuletzt „Fuhrpark“ mit den Fahrzeugen nach Status. Er bucht nicht
  * selbst und hat daher keine eigenen Fahrten.
  *
- * Prototyp: Die Daten kommen aus includes/beispieldaten.php. Mit Datenbank:
- *
- *   Mitarbeiter:
- *   SELECT ... FROM buchungen WHERE (antragsteller_id = :ich OR fahrer_id = :ich)
- *      AND status_id <= STATUS_UNTERWEGS
- *   Fuhrparkleiter:
- *   SELECT COUNT(*) FROM fahrzeuge WHERE geloescht_am IS NULL
- *   SELECT COUNT(*) FROM wartungen WHERE freigegeben_am IS NULL
- *   SELECT ... FROM buchungen WHERE status_id = STATUS_UNTERWEGS
- *   offene Anträge wie in genehmigungen.php
- *   SELECT COUNT(*) FROM schaeden
- *    WHERE schwere_id = SCHWERE_WARTUNG AND behoben_am IS NULL
+ * Mitarbeiter: eigene Buchungen aus CListeBuchungen::LadenAktuelle().
+ * Fuhrparkleiter: Fahrzeuge aus CListeFahrzeuge::LadenImBestand(),
+ * überfällige Rückgaben aus CListeBuchungen::LadenUeberfaellige(), offene
+ * Anträge aus LadenOffeneAntraege() mit CBuchung::GetGenehmigungHindernis(),
+ * die Schäden aus CListeSchaeden::CountSperrende().
  */
 
 declare(strict_types=1);
@@ -43,10 +36,13 @@ $antraegeAufUebersicht = 3;
 
 $heute = new DateTimeImmutable('today');
 
+$Zwecke = new CListeSchluessel('zwecke');
+
 // --- Meine Buchungen (nur Mitarbeiter) --------------------------------------
 // Aktiv (Fahrt kann beginnen): genehmigt, heute im Zeitraum, ich bin Fahrer.
-// Laufend: unterwegs. Beantragt: noch nicht bestätigt (Status „offen“).
-// Genehmigte Fahrten, die noch nicht begonnen haben, stehen nur in
+// Laufend: unterwegs, ich bin Fahrer (nur er gibt zurück). Beantragt: noch
+// nicht bestätigt (Status „offen“). Genehmigte Fahrten, die noch nicht
+// begonnen haben, und Fahrten, die ich für andere gebucht habe, stehen nur in
 // meine-buchungen.php.
 
 $aktive     = [];
@@ -54,90 +50,74 @@ $laufende   = [];
 $beantragte = [];
 
 if (!ist_fuhrparkleiter()) {
-    foreach (beispiel_buchungen() as $buchung) {
-        if (($buchung['antragsteller_id'] !== $ich && $buchung['fahrer_id'] !== $ich)
-            || !belegt_fahrzeug($buchung)) {
-            continue;
-        }
+    // Eigene Buchungen, die nächste zuerst; Namen sind erlaubt
+    $ListeMeine = new CListeBuchungen();
+    $ListeMeine->LadenAktuelle($ich);
 
-        if ($buchung['status_id'] === STATUS_UNTERWEGS) {
-            $buchung['ueberfaellig'] = $buchung['ende'] < $heute;
-            $laufende[] = $buchung;
-        } elseif ($buchung['status_id'] === STATUS_GENEHMIGT && $buchung['fahrer_id'] === $ich
-            && $buchung['start'] <= $heute && $heute <= $buchung['ende']) {
-            $aktive[] = $buchung;
-        } elseif ($buchung['status_id'] === STATUS_OFFEN) {
-            $beantragte[] = $buchung;
+    foreach ($ListeMeine->GetAlle() as $Buchung) {
+        if ($Buchung->GetStatusID() === STATUS_UNTERWEGS && $Buchung->GetFahrerID() === $ich) {
+            $laufende[] = $Buchung;
+        } elseif ($Buchung->KannBeginnen($ich)) {
+            $aktive[] = $Buchung;
+        } elseif ($Buchung->GetStatusID() === STATUS_OFFEN) {
+            $beantragte[] = $Buchung;
         }
     }
-
-    usort($beantragte, fn (array $a, array $b): int => $a['start'] <=> $b['start']);
 }
 
 $anzahlBeantragte = count($beantragte);
 $beantragte = array_slice($beantragte, 0, $antraegeAufUebersicht);
 
 // Eigene überfällige Rückgaben (nur Mitarbeiter), für das rote Banner.
-$meineUeberfaelligen = array_filter($laufende, fn (array $b): bool => $b['ueberfaellig']);
+$meineUeberfaelligen = array_filter($laufende, fn (CBuchung $Buchung): bool => $Buchung->IstUeberfaellig());
 
 // --- Fuhrpark (nur Fuhrparkleiter) ------------------------------------------
 
 $fuhrpark = null;
 
 if (ist_fuhrparkleiter()) {
-    $fahrzeuge = fahrzeuge_im_bestand();
+    $ListeFahrzeuge = new CListeFahrzeuge();
+    $ListeFahrzeuge->LadenImBestand();
+    $fahrzeuge = $ListeFahrzeuge->GetAlle();
 
-    $unterwegs = array_filter(beispiel_buchungen(), fn (array $b): bool => $b['status_id'] === STATUS_UNTERWEGS);
+    // Überfällige Rückgaben mit Fahrernamen, die älteste zuerst
+    $ListeUeberfaellige = new CListeBuchungen();
+    $ListeUeberfaellige->LadenUeberfaellige(true);
 
-    // Überfällige Rückgaben mit der Zahl der Tage seit dem Ende.
-    $ueberfaellig = [];
-
-    foreach (ueberfaellige_rueckgaben() as $fahrt) {
-        $fahrt['tage'] = $fahrt['ende']->diff($heute)->days;
-        $ueberfaellig[] = $fahrt;
-    }
-
-    // Offene Anträge, älteste zuerst, wie in genehmigungen.php. 'hindernis':
-    // warum Genehmigen nicht geht, sonst null.
-    $antraege = array_filter(beispiel_buchungen(), fn (array $b): bool => $b['status_id'] === STATUS_OFFEN);
-    uasort($antraege, fn (array $a, array $b): int => $a['beantragt_am'] <=> $b['beantragt_am']);
-
-    foreach ($antraege as &$antrag) {
-        $antrag['hindernis'] = genehmigung_hindernis($antrag);
-    }
-    unset($antrag);
+    // Offene Anträge, älteste zuerst, wie in genehmigungen.php
+    $ListeAntraege = new CListeBuchungen();
+    $ListeAntraege->LadenOffeneAntraege();
 
     // Zu erledigen sind nur Schäden, mit denen ein Fahrzeug in Wartung steht.
     // Kleinschäden sperren nichts und müssen nicht sofort behoben werden; sie
-    // stehen in schaeden.php.
-    // Bei Luxusautos sperrt auch ein Kleinschaden (schaden_sperrt()), aber erst
-    // ab der Rückgabe; gezählt wird, was das Fahrzeug schon in Wartung hält.
-    $offeneSchaeden = array_filter(
-        beispiel_schaeden(),
-        fn (array $s): bool => $s['behoben_am'] === null
-            && beispiel_fahrzeuge()[$s['fahrzeug_id']]['in_wartung']
-            && schaden_sperrt($s['schwere_id'], beispiel_fahrzeuge()[$s['fahrzeug_id']]['art_id']),
-    );
+    // stehen in schaeden.php. Bei Luxusautos sperrt auch ein Kleinschaden,
+    // aber erst ab der Rückgabe; gezählt wird, was das Fahrzeug schon in
+    // Wartung hält.
+    $ListeSchaeden = new CListeSchaeden();
+    $ListeSchaeden->LadenAlle();
 
-    // „Unterwegs“ ist kein gespeicherter Status, sondern ergibt sich aus den
-    // laufenden Fahrten.
-    $anzahlWartung   = count(array_filter($fahrzeuge, fn (array $f): bool => $f['in_wartung']));
-    $anzahlUnterwegs = count(array_unique(array_column($unterwegs, 'fahrzeug_id')));
+    // Status je Fahrzeug wie in fahrzeuge.php: Wartung geht vor unterwegs,
+    // so zählt jedes Fahrzeug genau einmal.
+    $proStand = ['verfuegbar' => 0, 'unterwegs' => 0, 'wartung' => 0];
+
+    foreach ($fahrzeuge as $Fahrzeug) {
+        $proStand[$Fahrzeug->GetStand()]++;
+    }
 
     $fuhrpark = [
         'status' => [
-            ['wert' => count($fahrzeuge) - $anzahlWartung - $anzahlUnterwegs, 'label' => 'Fahrzeuge frei'],
-            ['wert' => $anzahlUnterwegs, 'label' => 'unterwegs'],
-            ['wert' => $anzahlWartung,   'label' => 'in Wartung'],
+            ['wert' => $proStand['verfuegbar'], 'label' => 'Fahrzeuge frei'],
+            ['wert' => $proStand['unterwegs'],  'label' => 'unterwegs'],
+            ['wert' => $proStand['wartung'],    'label' => 'in Wartung'],
         ],
-        'antraege'        => array_slice($antraege, 0, $antraegeAufUebersicht, true),
-        'anzahl_antraege' => count($antraege),
-        'schaeden'        => count($offeneSchaeden),
-        'ueberfaellig'    => $ueberfaellig,
+        'antraege'        => array_slice($ListeAntraege->GetAlle(), 0, $antraegeAufUebersicht),
+        'anzahl_antraege' => $ListeAntraege->Count(),
+        'schaeden'        => $ListeSchaeden->CountSperrende(),
+        'ueberfaellig'    => $ListeUeberfaellige->GetAlle(),
         // Wartungen mit offenem Ende: nach einer Rückgabe mit Schaden noch
         // nicht festgelegt oder das voraussichtliche Ende ist vorbei. Der
         // Fuhrparkleiter legt das Ende fest oder gibt das Fahrzeug frei.
-        'wartung_ende_offen' => array_filter($fahrzeuge, fn (array $f): bool => wartung_ende_offen($f)),
+        'wartung_ende_offen' => array_filter($fahrzeuge, fn (CFahrzeug $Fahrzeug): bool => $Fahrzeug->IstWartungEndeOffen()),
     ];
 
     // Für das Formular aus includes/antrag-entscheidung.php: nach der
@@ -164,12 +144,13 @@ require_once __DIR__ . '/includes/header.php';
             <summary>Details</summary>
 
             <ul class="banner__liste">
-                <?php foreach ($fuhrpark['ueberfaellig'] as $fahrt): ?>
+                <?php foreach ($fuhrpark['ueberfaellig'] as $Fahrt): ?>
+                    <?php $tage = $Fahrt->GetEnde()->diff($heute)->days; ?>
                     <li>
-                        <?= e(nutzer_name($fahrt['fahrer_id'])) ?>,
-                        <a href="<?= url('fahrzeug.php?id=' . $fahrt['fahrzeug_id']) ?>"><?= e(fahrzeug_name($fahrt['fahrzeug_id'])) ?></a>,
-                        fällig am <?= e($fahrt['ende']->format('d.m.Y')) ?>,
-                        seit <?= e((string) $fahrt['tage']) ?> <?= $fahrt['tage'] === 1 ? 'Tag' : 'Tagen' ?> überfällig
+                        <?= e($Fahrt->GetFahrerName()) ?>,
+                        <a href="<?= url('fahrzeug.php?id=' . $Fahrt->GetFahrzeugID()) ?>"><?= e($Fahrt->GetFahrzeugName()) ?></a>,
+                        fällig am <?= e($Fahrt->GetEnde()->format('d.m.Y')) ?>,
+                        seit <?= e((string) $tage) ?> <?= $tage === 1 ? 'Tag' : 'Tagen' ?> überfällig
                     </li>
                 <?php endforeach; ?>
             </ul>
@@ -178,14 +159,14 @@ require_once __DIR__ . '/includes/header.php';
 <?php endif; ?>
 
 <?php if ($fuhrpark === null): ?>
-    <?php foreach ($meineUeberfaelligen as $buchung): ?>
+    <?php foreach ($meineUeberfaelligen as $Buchung): ?>
         <div class="banner">
             <p class="banner__text">
                 <strong>Ihre Rückgabe ist überfällig.</strong>
-                <?= e(fahrzeug_name($buchung['fahrzeug_id'])) ?> war am <?= e($buchung['ende']->format('d.m.Y')) ?> fällig.
+                <?= e($Buchung->GetFahrzeugName()) ?> war am <?= e($Buchung->GetEnde()->format('d.m.Y')) ?> fällig.
                 Bis zur Rückgabe können Sie nichts Neues buchen und keine andere Fahrt beginnen.
             </p>
-            <a class="button button--klein banner__knopf" href="<?= url('rueckgabe.php?buchung=' . $buchung['id']) ?>">Jetzt zurückgeben</a>
+            <a class="button button--klein banner__knopf" href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>">Jetzt zurückgeben</a>
         </div>
     <?php endforeach; ?>
 <?php endif; ?>
@@ -222,21 +203,25 @@ require_once __DIR__ . '/includes/header.php';
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($fuhrpark['antraege'] as $id => $antrag): ?>
+                    <?php foreach ($fuhrpark['antraege'] as $Antrag): ?>
                         <tr>
                             <td>
-                                <?= e(nutzer_name($antrag['antragsteller_id'])) ?>
-                                <?php if ($antrag['fahrer_id'] !== $antrag['antragsteller_id']): ?>
-                                    <span class="table__zusatz">für <?= e(nutzer_name($antrag['fahrer_id'])) ?></span>
+                                <?= e($Antrag->GetAntragstellerName()) ?>
+                                <?php if ($Antrag->GetFahrerID() !== $Antrag->GetAntragstellerID()): ?>
+                                    <span class="table__zusatz">für <?= e($Antrag->GetFahrerName()) ?></span>
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <a href="<?= url('fahrzeug.php?id=' . $antrag['fahrzeug_id']) ?>"><?= e(fahrzeug_name($antrag['fahrzeug_id'])) ?></a>
+                                <a href="<?= url('fahrzeug.php?id=' . $Antrag->GetFahrzeugID()) ?>"><?= e($Antrag->GetFahrzeugName()) ?></a>
                             </td>
-                            <td><?= e(zeitraum_text($antrag['start'], $antrag['ende'])) ?></td>
-                            <td><?= e(ZWECKE[$antrag['zweck_id']]) ?></td>
+                            <td><?= e(zeitraum_text($Antrag->GetStart(), $Antrag->GetEnde())) ?></td>
+                            <td><?= e($Zwecke->GetBezeichnung($Antrag->GetZweckID())) ?></td>
                             <td>
-                                <?php $hindernis = $antrag['hindernis']; ?>
+                                <?php
+                                // Für das Formular: Nummer und Hindernis des Antrags
+                                $id = $Antrag->GetID();
+                                $hindernis = $Antrag->GetGenehmigungHindernis();
+                                ?>
                                 <?php require __DIR__ . '/includes/antrag-entscheidung.php'; ?>
                             </td>
                         </tr>
@@ -268,10 +253,10 @@ require_once __DIR__ . '/includes/header.php';
             <h3>Wartung: Ende festlegen</h3>
 
             <ul>
-                <?php foreach ($fuhrpark['wartung_ende_offen'] as $id => $fahrzeug): ?>
+                <?php foreach ($fuhrpark['wartung_ende_offen'] as $Fahrzeug): ?>
                     <li>
-                        <a href="<?= url('fahrzeug.php?id=' . $id) ?>"><?= e(fahrzeug_name($id)) ?></a>:
-                        <?= e(wartung_text($fahrzeug)) ?>. Das Fahrzeug bleibt gesperrt, bis Sie das Ende
+                        <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>"><?= e($Fahrzeug->GetName()) ?></a>:
+                        <?= e($Fahrzeug->GetWartungText()) ?>. Das Fahrzeug bleibt gesperrt, bis Sie das Ende
                         festlegen oder es freigeben.
                     </li>
                 <?php endforeach; ?>
@@ -304,41 +289,38 @@ require_once __DIR__ . '/includes/header.php';
     <section class="section">
         <h2>Meine Fahrten</h2>
 
-        <?php foreach ($aktive as $buchung): ?>
+        <?php foreach ($aktive as $Buchung): ?>
             <div class="aktuell">
                 <p class="aktuell__text">
-                    <strong>Ihre Fahrt mit <?= e(fahrzeug_name($buchung['fahrzeug_id'])) ?> kann beginnen.</strong>
+                    <strong>Ihre Fahrt mit <?= e($Buchung->GetFahrzeugName()) ?> kann beginnen.</strong>
                     <span class="table__zusatz">
-                        <?= e(zeitraum_text($buchung['start'], $buchung['ende'])) ?>, <?= e(ZWECKE[$buchung['zweck_id']]) ?>
+                        <?= e(zeitraum_text($Buchung->GetStart(), $Buchung->GetEnde())) ?>, <?= e($Zwecke->GetBezeichnung($Buchung->GetZweckID())) ?>
                     </span>
                 </p>
 
                 <?php
-                // Das Formular braucht die Buchung als Objekt und schickt
-                // nach dem Fahrtbeginn hierher zurück.
-                $Buchung = CBuchung::LoadByID($buchung['id']);
+                // Das Formular schickt nach dem Fahrtbeginn hierher zurück.
                 $zurueck = 'index';
+                require __DIR__ . '/includes/fahrt-beginnen.php';
                 ?>
-                <?php if ($Buchung !== null && $Buchung->KannBeginnen($ich)): ?>
-                    <?php require __DIR__ . '/includes/fahrt-beginnen.php'; ?>
-                <?php endif; ?>
             </div>
         <?php endforeach; ?>
 
-        <?php foreach ($laufende as $buchung): ?>
-            <div class="aktuell<?= $buchung['ueberfaellig'] ? ' aktuell--ueberfaellig' : '' ?>">
+        <?php foreach ($laufende as $Buchung): ?>
+            <?php $ueberfaellig = $Buchung->IstUeberfaellig(); ?>
+            <div class="aktuell<?= $ueberfaellig ? ' aktuell--ueberfaellig' : '' ?>">
                 <p class="aktuell__text">
-                    <strong>Sie sind unterwegs mit <?= e(fahrzeug_name($buchung['fahrzeug_id'])) ?>.</strong>
+                    <strong>Sie sind unterwegs mit <?= e($Buchung->GetFahrzeugName()) ?>.</strong>
                     <span class="table__zusatz">
-                        Rückgabe <?= $buchung['ueberfaellig'] ? 'war' : 'ist' ?> fällig am
-                        <?= e($buchung['ende']->format('d.m.Y')) ?>.
+                        Rückgabe <?= $ueberfaellig ? 'war' : 'ist' ?> fällig am
+                        <?= e($Buchung->GetEnde()->format('d.m.Y')) ?>.
                     </span>
-                    <?php if ($buchung['ueberfaellig']): ?>
+                    <?php if ($ueberfaellig): ?>
                         <span class="badge badge--abgelehnt">Rückgabe überfällig</span>
                     <?php endif; ?>
                 </p>
 
-                <a class="button button--klein" href="<?= url('rueckgabe.php?buchung=' . $buchung['id']) ?>">Zurückgeben</a>
+                <a class="button button--klein" href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>">Zurückgeben</a>
             </div>
         <?php endforeach; ?>
 
@@ -353,16 +335,16 @@ require_once __DIR__ . '/includes/header.php';
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($beantragte as $buchung): ?>
+                <?php foreach ($beantragte as $Buchung): ?>
                     <tr>
-                        <td><?= e(zeitraum_text($buchung['start'], $buchung['ende'])) ?></td>
+                        <td><?= e(zeitraum_text($Buchung->GetStart(), $Buchung->GetEnde())) ?></td>
                         <td>
-                            <a href="<?= url('fahrzeug.php?id=' . $buchung['fahrzeug_id']) ?>"><?= e(fahrzeug_name($buchung['fahrzeug_id'])) ?></a>
-                            <?php if ($buchung['fahrer_id'] !== $ich): ?>
-                                <span class="table__zusatz">Fahrer: <?= e(nutzer_name($buchung['fahrer_id'])) ?></span>
+                            <a href="<?= url('fahrzeug.php?id=' . $Buchung->GetFahrzeugID()) ?>"><?= e($Buchung->GetFahrzeugName()) ?></a>
+                            <?php if ($Buchung->GetFahrerID() !== $ich): ?>
+                                <span class="table__zusatz">Fahrer: <?= e($Buchung->GetFahrerName()) ?></span>
                             <?php endif; ?>
                         </td>
-                        <td><?= e(ZWECKE[$buchung['zweck_id']]) ?></td>
+                        <td><?= e($Zwecke->GetBezeichnung($Buchung->GetZweckID())) ?></td>
                     </tr>
                 <?php endforeach; ?>
 

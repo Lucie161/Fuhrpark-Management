@@ -73,6 +73,3 @@ spl_autoload_register(function (string $klasse): void {
         require_once $datei;
     }
 });
-
-// Prototyp: Beispieldaten für alle Seiten, bis sie aus der Datenbank lesen.
-require_once __DIR__ . '/beispieldaten.php';

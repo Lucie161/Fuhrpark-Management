@@ -12,7 +12,7 @@
  * Fahrzeugliste haben Mitarbeiter nicht.
  *
  * Ampel: Autos und Transporter werden beantragt (Status „offen“), Roller und
- * Fahrräder sind sofort bestätigt („genehmigt“), siehe braucht_genehmigung().
+ * Fahrräder sind sofort bestätigt („genehmigt“), siehe CFahrzeug::BrauchtGenehmigung().
  *
  * Überfällige Rückgabe: Wer selbst eine hat, kann nichts buchen; wer eine hat, kann nicht als Fahrer eingetragen
  * werden; ein Fahrzeug mit überfälliger Rückgabe ist nicht wählbar.
@@ -21,9 +21,8 @@
  * steht in der Adresse, z. B. buchen.php?beginn=2026-10-07&ende=2026-10-08&zweck=1
  * (Zweck und Fahrzeugart als ID aus den Schlüsseltabellen).
  *
- * Nutzer, Belegung und Speichern laufen über CListeNutzer, CListeBuchungen und
- * CBuchung::Create(). Die Fahrzeuge kommen noch aus includes/beispieldaten.php;
- * die IDs stimmen mit der Datenbank überein.
+ * Nutzer, Fahrzeuge, Belegung und Speichern laufen über CListeNutzer,
+ * CListeFahrzeuge::LadenFuerBuchung(), CListeBuchungen und CBuchung::Create().
  */
 
 declare(strict_types=1);
@@ -50,8 +49,6 @@ foreach ($ListeNutzer->GetAlle() as $Eintrag) {
 
 $Zwecke = new CListeSchluessel('zwecke');
 $Fahrzeugarten = new CListeSchluessel('fahrzeugarten');
-
-$fahrzeuge = fahrzeuge_im_bestand();
 
 $heute = new DateTimeImmutable('today');
 
@@ -134,9 +131,10 @@ $suche = $fehler === [] && $meineSperre === null ? array_filter([
 
 // --- Fahrzeugliste ----------------------------------------------------------
 // Personen, Fahrzeugart und Zweck schränken die passenden Fahrzeuge ein
-// (WHERE). Je Fahrzeug 'stand': frei, vergeben, wartung, ueberfaellig,
-// fuehrerschein oder luxus. Angezeigt werden nur die freien ($liste); der Stand der
-// übrigen dient der Prüfung beim Absenden und dem Hinweis zur Vorauswahl.
+// (LadenFuerBuchung). Je Fahrzeug ein Stand ($stand): frei, vergeben,
+// wartung, ueberfaellig, fuehrerschein oder luxus. Angezeigt werden nur die
+// freien ($liste); der Stand der übrigen dient der Prüfung beim Absenden und
+// dem Hinweis zur Vorauswahl.
 
 // Stand => Grund, warum das Fahrzeug nicht gebucht werden kann.
 $grundText = [
@@ -147,9 +145,13 @@ $grundText = [
     'luxus'         => 'ist ein Luxusauto, für das der Fahrer nicht freigegeben ist',
 ];
 
-$passende = [];
+$ListeFahrzeuge = new CListeFahrzeuge();
+$stand = [];   // Fahrzeug-ID => Stand, für alle passenden
+$liste = [];   // Fahrzeug-ID => CFahrzeug, nur die freien
 
 if ($suche !== []) {
+    $ListeFahrzeuge->LadenFuerBuchung($personen, $art, $zweck);
+
     // Belegende Buchungen im Zeitraum (offen, genehmigt, unterwegs). Namen
     // braucht die Seite nicht.
     $ListeBelegung = new CListeBuchungen();
@@ -159,33 +161,29 @@ if ($suche !== []) {
     $ueberfaelligeFahrzeuge = $ListeUeberfaellige->GetFahrzeugIDs();
     $Fahrer = $nutzer[$fahrer];
 
-    foreach ($fahrzeuge as $id => $fahrzeug) {
-        if ($fahrzeug['sitzplaetze'] < $personen
-            || ($art !== 0 && $fahrzeug['art_id'] !== $art)
-            || !CBuchung::PasstZweck($zweck, $fahrzeug['art_id'])) {
-            continue;
-        }
+    foreach ($ListeFahrzeuge->GetAlle() as $Fahrzeug) {
+        $id = $Fahrzeug->GetID();
 
         // Zuerst, was am Fahrer liegt: Das gilt für jeden Zeitraum.
-        $fahrzeug['stand'] = match (true) {
-            !$Fahrer->HatFuehrerschein($fahrzeug['fuehrerschein'])     => 'fuehrerschein',
-            $fahrzeug['art_id'] === ART_LUXUS && !$Fahrer->DarfLuxus() => 'luxus',
-            wartung_sperrt($fahrzeug, $zeitraum['beginn'], $zeitraum['ende']) => 'wartung',
-            in_array($id, $ueberfaelligeFahrzeuge, true) => 'ueberfaellig',
-            in_array($id, $belegteFahrzeuge, true)       => 'vergeben',
-            default                                      => 'frei',
+        $stand[$id] = match (true) {
+            !$Fahrer->HatFuehrerschein($Fahrzeug->GetFuehrerschein())         => 'fuehrerschein',
+            $Fahrzeug->FehltFreigabe($Fahrer)                                 => 'luxus',
+            $Fahrzeug->SperrtWartung($zeitraum['beginn'], $zeitraum['ende']) => 'wartung',
+            in_array($id, $ueberfaelligeFahrzeuge, true)                      => 'ueberfaellig',
+            in_array($id, $belegteFahrzeuge, true)                            => 'vergeben',
+            default                                                           => 'frei',
         };
 
-        $passende[$id] = $fahrzeug;
+        if ($stand[$id] === 'frei') {
+            $liste[$id] = $Fahrzeug;
+        }
     }
 }
 
-$liste = array_filter($passende, fn (array $f): bool => $f['stand'] === 'frei');
-
 // Aus dem Steckbrief vorgewählt, aber im Zeitraum nicht buchbar: Hinweis
 // statt stillem Fehlen.
-$auswahlHinweis = isset($passende[$auswahl]) && $passende[$auswahl]['stand'] !== 'frei'
-    ? fahrzeug_name($auswahl) . ' ' . $grundText[$passende[$auswahl]['stand']] . '.'
+$auswahlHinweis = isset($stand[$auswahl]) && $stand[$auswahl] !== 'frei'
+    ? $ListeFahrzeuge->GetByID($auswahl)->GetName() . ' ' . $grundText[$stand[$auswahl]] . '.'
     : null;
 
 // --- Buchung absenden (POST) ------------------------------------------------
@@ -203,8 +201,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fehler[] = 'Bitte wählen Sie oben den Zweck der Fahrt.';
         }
 
-        if (isset($passende[$auswahl]) && $passende[$auswahl]['stand'] !== 'frei') {
-            $fehler[] = 'Das Fahrzeug ' . $grundText[$passende[$auswahl]['stand']]
+        if (isset($stand[$auswahl]) && $stand[$auswahl] !== 'frei') {
+            $fehler[] = 'Das Fahrzeug ' . $grundText[$stand[$auswahl]]
                 . ' und kann nicht gebucht werden.';
         } elseif (!isset($liste[$auswahl])) {
             $fehler[] = 'Bitte wählen Sie ein Fahrzeug aus der Liste.';
@@ -363,34 +361,34 @@ require_once __DIR__ . '/includes/header.php';
             <?php endif; ?>
 
             <div class="fahrzeugwahl">
-                <?php foreach ($liste as $id => $fahrzeug): ?>
+                <?php foreach ($liste as $id => $Fahrzeug): ?>
                     <label class="fahrzeugkarte">
                         <input class="fahrzeugkarte__auswahl" type="radio" name="fahrzeug" required
                                value="<?= e((string) $id) ?>"
                                <?= $id === $auswahl ? 'checked' : '' ?>>
 
-                        <?php if ($fahrzeug['bild'] !== null && is_file(__DIR__ . '/assets/img/' . $fahrzeug['bild'])): ?>
-                            <img class="fahrzeugkarte__bild" src="<?= url('assets/img/' . $fahrzeug['bild']) ?>"
+                        <?php if ($Fahrzeug->GetBild() !== null && is_file(__DIR__ . '/assets/img/' . $Fahrzeug->GetBild())): ?>
+                            <img class="fahrzeugkarte__bild" src="<?= url('assets/img/' . $Fahrzeug->GetBild()) ?>"
                                  alt="" loading="lazy">
                         <?php else: ?>
-                            <span class="fahrzeugkarte__bild fahrzeugkarte__bild--platzhalter"><?= e($fahrzeug['typ']) ?></span>
+                            <span class="fahrzeugkarte__bild fahrzeugkarte__bild--platzhalter"><?= e($Fahrzeug->GetTyp()) ?></span>
                         <?php endif; ?>
 
                         <span class="fahrzeugkarte__kopf">
-                            <strong><?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']) ?></strong>
+                            <strong><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></strong>
                         </span>
 
                         <span class="fahrzeugkarte__daten">
-                            <?= e($fahrzeug['kennzeichen']) ?> &middot;
-                            <?= e($Fahrzeugarten->GetBezeichnung($fahrzeug['art_id'])) ?> &middot;
-                            <?= e((string) $fahrzeug['sitzplaetze']) ?> <?= $fahrzeug['sitzplaetze'] === 1 ? 'Sitz' : 'Sitze' ?>
-                            <?php if ($fahrzeug['fuehrerschein'] !== null): ?>
-                                &middot; Klasse <?= e($fahrzeug['fuehrerschein']) ?>
+                            <?= e($Fahrzeug->GetKennzeichen()) ?> &middot;
+                            <?= e($Fahrzeugarten->GetBezeichnung($Fahrzeug->GetArtID())) ?> &middot;
+                            <?= e((string) $Fahrzeug->GetSitzplaetze()) ?> <?= $Fahrzeug->GetSitzplaetze() === 1 ? 'Sitz' : 'Sitze' ?>
+                            <?php if ($Fahrzeug->GetFuehrerschein() !== null): ?>
+                                &middot; Klasse <?= e($Fahrzeug->GetFuehrerschein()) ?>
                             <?php endif; ?>
                         </span>
 
                         <span class="fahrzeugkarte__fuss">
-                            <span><?= braucht_genehmigung($fahrzeug['art_id']) ? 'Antrag nötig' : 'sofort bestätigt' ?></span>
+                            <span><?= $Fahrzeug->BrauchtGenehmigung() ? 'Antrag nötig' : 'sofort bestätigt' ?></span>
                             <a href="<?= url('fahrzeug.php?id=' . $id) ?>">Steckbrief</a>
                         </span>
                     </label>

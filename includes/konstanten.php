@@ -6,15 +6,14 @@
  * In der Datenbank stehen nur Zahlen (z. B. buchungen.status_id = 3). Im Code
  * wird nie mit der Zahl oder einem Wort verglichen, sondern immer mit der
  * Konstante:
- *   if ($buchung['status_id'] === STATUS_UNTERWEGS) { … }
+ *   if ($Buchung->GetStatusID() === STATUS_UNTERWEGS) { … }
  * Ein Tippfehler im Namen fällt dann sofort auf (PHP: „Undefined constant“),
  * ein Tippfehler in einem Wort wie 'untewegs' dagegen nie.
  *
  * Die IDs müssen mit den INSERTs in datenbank/schema.sql übereinstimmen.
  *
- * Die Bezeichnungen kommen aus der Datenbank über CListeSchluessel. Die Listen
- * ID => Bezeichnung hier (ZWECKE usw.) gelten nur noch, bis die letzte Seite
- * umgestellt ist; neuer Code nutzt sie nicht mehr. Die Konstanten bleiben.
+ * Die Bezeichnungen (z. B. „Kundentermin“) kommen aus der Datenbank über
+ * CListeSchluessel, hier stehen nur die IDs.
  */
 
 declare(strict_types=1);
@@ -39,41 +38,17 @@ const ART_TRANSPORTER = 3;
 const ART_ROLLER      = 4;
 const ART_FAHRRAD     = 5;
 
-const FAHRZEUGARTEN = [
-    ART_AUTO        => 'Auto',
-    ART_LUXUS       => 'Luxusauto',
-    ART_TRANSPORTER => 'Transporter',
-    ART_ROLLER      => 'Roller',
-    ART_FAHRRAD     => 'Fahrrad',
-];
-
-// Mehrzahl für Filter und Gruppenüberschriften; neuer Code liest sie aus
-// fahrzeugarten.plural (CListeSchluessel::GetPlural()).
-const FAHRZEUGARTEN_MEHRZAHL = [
-    ART_AUTO        => 'Autos',
-    ART_LUXUS       => 'Luxusautos',
-    ART_TRANSPORTER => 'Transporter',
-    ART_ROLLER      => 'Roller',
-    ART_FAHRRAD     => 'Fahrräder',
-];
-
 // --- antriebe ---------------------------------------------------------------
 
 const ANTRIEB_BENZIN  = 1;
 const ANTRIEB_DIESEL  = 2;
 const ANTRIEB_ELEKTRO = 3;
 
-const ANTRIEBE = [
-    ANTRIEB_BENZIN  => 'Benzin',
-    ANTRIEB_DIESEL  => 'Diesel',
-    ANTRIEB_ELEKTRO => 'Elektro',
-];
-
 // --- buchungsstatus ---------------------------------------------------------
 // Geordnet nach dem Ablauf: 1–3 sind laufend (die Buchung belegt das
 // Fahrzeug), 4–6 erledigt. Damit gehen auch Vergleiche mit kleiner/größer:
-//   $b['status_id'] <= STATUS_UNTERWEGS     – offen, genehmigt oder unterwegs
-//   $b['status_id'] >= STATUS_ABGESCHLOSSEN – abgeschlossen, abgelehnt, storniert
+//   $Buchung->GetStatusID() <= STATUS_UNTERWEGS     – offen, genehmigt oder unterwegs
+//   $Buchung->GetStatusID() >= STATUS_ABGESCHLOSSEN – abgeschlossen, abgelehnt, storniert
 
 const STATUS_OFFEN         = 1;
 const STATUS_GENEHMIGT     = 2;
@@ -81,16 +56,6 @@ const STATUS_UNTERWEGS     = 3;
 const STATUS_ABGESCHLOSSEN = 4;
 const STATUS_ABGELEHNT     = 5;
 const STATUS_STORNIERT     = 6;
-
-// „offen“ heißt in der Oberfläche „beantragt“.
-const BUCHUNGSSTATUS = [
-    STATUS_OFFEN         => 'beantragt',
-    STATUS_GENEHMIGT     => 'genehmigt',
-    STATUS_UNTERWEGS     => 'unterwegs',
-    STATUS_ABGESCHLOSSEN => 'abgeschlossen',
-    STATUS_ABGELEHNT     => 'abgelehnt',
-    STATUS_STORNIERT     => 'storniert',
-];
 
 // CSS-Modifier der Badges (.badge--offen usw.); steht nicht in der Datenbank.
 const BUCHUNGSSTATUS_KLASSE = [
@@ -114,17 +79,6 @@ const ZWECK_LIEFERANT         = 6;
 const ZWECK_SCHULUNG          = 7;
 const ZWECK_SONSTIGES         = 8;
 
-const ZWECKE = [
-    ZWECK_MONTAGE           => 'Montage',
-    ZWECK_SERVICE           => 'Wartung/Service',
-    ZWECK_KUNDENTERMIN      => 'Kundentermin',
-    ZWECK_AUFMASS           => 'Aufmaß',
-    ZWECK_MATERIALTRANSPORT => 'Materialtransport',
-    ZWECK_LIEFERANT         => 'Lieferantenbesuch',
-    ZWECK_SCHULUNG          => 'Schulung',
-    ZWECK_SONSTIGES         => 'Sonstiges',
-];
-
 // --- schadensanlaesse -------------------------------------------------------
 // Wann der Schaden gemeldet wurde: bei Fahrtbeginn (schon vorhanden) oder bei
 // der Rückgabe. Ein Schaden gehört immer zu einer Buchung.
@@ -132,19 +86,9 @@ const ZWECKE = [
 const ANLASS_UEBERNAHME = 1;
 const ANLASS_RUECKGABE  = 2;
 
-const SCHADENSANLAESSE = [
-    ANLASS_UEBERNAHME => 'bei Übernahme',
-    ANLASS_RUECKGABE  => 'bei Rückgabe',
-];
-
 // --- schweregrade -----------------------------------------------------------
 // Ein Kleinschaden sperrt nichts; ein Schaden mit Wartung sperrt das Fahrzeug,
 // bis der Fuhrparkleiter es freigibt.
 
 const SCHWERE_KLEIN   = 1;
 const SCHWERE_WARTUNG = 2;
-
-const SCHWEREGRADE = [
-    SCHWERE_KLEIN   => 'Kleinschaden',
-    SCHWERE_WARTUNG => 'Schaden',
-];

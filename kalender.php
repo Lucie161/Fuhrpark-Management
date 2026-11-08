@@ -21,8 +21,9 @@
  *
  * Die Buchungen laden CListeBuchungen::LadenBelegung() und
  * LadenEigeneBelegung(); überfällige Fahrten sind in der Ansicht ab heute dabei.
- * Fahrzeuge und Wartungen kommen noch aus includes/beispieldaten.php, die
- * Überschriften aus FAHRZEUGARTEN_MEHRZAHL.
+ * Die Fahrzeuge mit ihrer laufenden Wartung lädt
+ * CListeFahrzeuge::LadenImBestand(), die Gruppenüberschriften kommen aus
+ * CListeSchluessel::GetPlural().
  */
 
 declare(strict_types=1);
@@ -42,7 +43,6 @@ $maxWochen  = 4;
 
 // Stand einer belegenden Buchung => [Zustand der Zelle, Beschriftung]. Der
 // Zustand dient zugleich als CSS-Modifier (.kalender__zelle--beantragt).
-// Gruppenüberschriften: FAHRZEUGARTEN_MEHRZAHL, in der Reihenfolge der IDs.
 $standText = [
     STATUS_OFFEN     => ['beantragt', 'beantragt'],
     STATUS_GENEHMIGT => ['vergeben',  'vergeben'],
@@ -59,9 +59,18 @@ $woche = $woche === false ? 0 : max(0, min($maxWochen, $woche));
 $ersterTag = $woche * 7;
 
 $heute = new DateTimeImmutable('today');
-$fahrzeuge = fahrzeuge_im_bestand();
+
+// Fahrzeuge im Bestand, nach ID: Fahrzeug-ID => CFahrzeug
+$ListeFahrzeuge = new CListeFahrzeuge();
+$ListeFahrzeuge->LadenImBestand();
+
+$fahrzeuge = [];
+foreach ($ListeFahrzeuge->GetAlle() as $Fahrzeug) {
+    $fahrzeuge[$Fahrzeug->GetID()] = $Fahrzeug;
+}
 
 $Zwecke = new CListeSchluessel('zwecke');
+$Fahrzeugarten = new CListeSchluessel('fahrzeugarten');
 
 $ansichtVon = $heute->modify('+' . $ersterTag . ' day');
 $ansichtBis = $heute->modify('+' . ($ersterTag + $anzahlTage - 1) . ' day');
@@ -113,14 +122,15 @@ $letzterTag = $tage[$anzahlTage - 1]['datum'];
 
 $zellen = [];
 
-foreach ($fahrzeuge as $id => $fahrzeug) {
+foreach ($fahrzeuge as $id => $Fahrzeug) {
     $wartungBis = null;
+    $endeOffen = $Fahrzeug->IstWartungEndeOffen();
 
-    if ($fahrzeug['in_wartung']) {
-        $wartungBis = wartung_ende_offen($fahrzeug)
+    if ($Fahrzeug->IstInWartung()) {
+        $wartungBis = $endeOffen
             ? PHP_INT_MAX
-            : (int) $heute->diff($fahrzeug['wartung_bis'])->format('%r%a');
-        $wartungHinweis = 'in Wartung, ' . wartung_text($fahrzeug);
+            : (int) $heute->diff($Fahrzeug->GetWartungBis())->format('%r%a');
+        $wartungHinweis = 'in Wartung, ' . $Fahrzeug->GetWartungText();
     }
 
     foreach ($tage as $i => $tagDaten) {
@@ -128,7 +138,7 @@ foreach ($fahrzeuge as $id => $fahrzeug) {
 
         if ($wartungBis !== null && $tag <= $wartungBis) {
             $zellen[$id][$i] = [
-                'zustaende' => wartung_ende_offen($fahrzeug) && $i === 0 ? ['wartung', 'ueberfaellig'] : ['wartung'],
+                'zustaende' => $endeOffen && $i === 0 ? ['wartung', 'ueberfaellig'] : ['wartung'],
                 'text'      => $i === 0 ? 'Wartung' : '',
                 'hinweis'   => $wartungHinweis,
                 'link'      => null,
@@ -212,9 +222,11 @@ foreach ($zellen as $id => $zeile) {
 
 // --- Gruppen, Kennzahl, Legende ---------------------------------------------
 
+// Art-ID => [Fahrzeug-ID => CFahrzeug]; die Reihenfolge der Gruppen gibt
+// fahrzeugarten vor.
 $gruppen = [];
-foreach ($fahrzeuge as $id => $fahrzeug) {
-    $gruppen[$fahrzeug['art_id']][$id] = $fahrzeug;
+foreach ($fahrzeuge as $id => $Fahrzeug) {
+    $gruppen[$Fahrzeug->GetArtID()][$id] = $Fahrzeug;
 }
 
 // Nur für den Fuhrparkleiter und nur in der Ansicht ab heute: Mitarbeiter
@@ -306,18 +318,18 @@ require_once __DIR__ . '/includes/header.php';
                 </tr>
             </thead>
 
-            <?php foreach (FAHRZEUGARTEN_MEHRZAHL as $art => $artBeschriftung): ?>
-                <?php if (isset($gruppen[$art])): ?>
+            <?php foreach ($Fahrzeugarten->GetAlle() as $Art): ?>
+                <?php if (isset($gruppen[$Art->GetID()])): ?>
                     <tbody>
                         <tr class="kalender__gruppe">
-                            <th colspan="<?= $anzahlTage + 1 ?>" scope="colgroup"><?= e($artBeschriftung) ?></th>
+                            <th colspan="<?= $anzahlTage + 1 ?>" scope="colgroup"><?= e($Art->GetPlural() ?? $Art->GetBezeichnung()) ?></th>
                         </tr>
 
-                        <?php foreach ($gruppen[$art] as $id => $fahrzeug): ?>
+                        <?php foreach ($gruppen[$Art->GetID()] as $id => $Fahrzeug): ?>
                             <tr>
                                 <th class="kalender__fahrzeug" scope="row">
-                                    <a href="<?= url('fahrzeug.php?id=' . $id) ?>"><?= e($fahrzeug['kennzeichen']) ?></a>
-                                    <span class="kalender__modell"><?= e($fahrzeug['hersteller'] . ' ' . $fahrzeug['modell']) ?></span>
+                                    <a href="<?= url('fahrzeug.php?id=' . $id) ?>"><?= e($Fahrzeug->GetKennzeichen()) ?></a>
+                                    <span class="kalender__modell"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></span>
                                 </th>
 
                                 <?php foreach ($zellen[$id] as $zelle): ?>
