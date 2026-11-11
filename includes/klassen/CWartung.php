@@ -233,10 +233,13 @@ class CWartung
             $this->m_VoraussichtlichBis->format('Y-m-d'),
         ]);
 
-        // Jede einzeln stornieren, mit Grund für den Fahrer, und für die
-        // Bestätigung merken
+        // Jede einzeln stornieren, mit Grund und Zeitpunkt für den Fahrer
+        // (seine Übersicht zeigt neue Entscheidungen), und für die Bestätigung
+        // merken
         $this->m_Stornierte = [];
-        $Update = db()->prepare('UPDATE buchungen SET status_id = ?, entscheidung_kommentar = ? WHERE id = ?');
+        $Update = db()->prepare(
+            'UPDATE buchungen SET status_id = ?, entscheidung_am = NOW(), entscheidung_kommentar = ? WHERE id = ?'
+        );
 
         foreach ($Statement->fetchAll() as $Zeile) {
             $Buchung = new CBuchung($Zeile);

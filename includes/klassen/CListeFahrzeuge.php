@@ -16,12 +16,12 @@ class CListeFahrzeuge
     private bool $m_ListeGeladen = false;
 
     /**
-     * Lädt die Fahrzeuge im Bestand, ohne ausgemusterte, nach ID. Für
-     * Kalender, Übersicht und die Zahl der Fahrzeuge.
+     * Lädt die Fahrzeuge im Bestand, ohne ausgemusterte, nach Fahrzeugart
+     * und ID. Für Kalender, Übersicht, buchen.php und die Zahl der Fahrzeuge.
      */
     public function LadenImBestand(): void
     {
-        $this->Laden(CFahrzeug::SQL . ' WHERE f.geloescht_am IS NULL ORDER BY f.id', []);
+        $this->Laden(CFahrzeug::SQL . ' WHERE f.geloescht_am IS NULL ORDER BY f.art_id, f.id', []);
     }
 
     /**
@@ -48,7 +48,7 @@ class CListeFahrzeuge
             $Parameter[] = $in_ArtID;
         }
 
-        $this->Laden($SQL . ' ORDER BY f.id', $Parameter);
+        $this->Laden($SQL . ' ORDER BY f.art_id, f.id', $Parameter);
 
         // Ob der Zweck passt, entscheidet CBuchung, deshalb erst nach dem Laden
         $this->Filtern(fn (CFahrzeug $Fahrzeug): bool => CBuchung::PasstZweck($in_ZweckID, $Fahrzeug->GetArtID()));

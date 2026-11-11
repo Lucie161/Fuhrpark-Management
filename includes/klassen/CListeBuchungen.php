@@ -45,6 +45,35 @@ class CListeBuchungen
     }
 
     /**
+     * Lädt die ungelesenen Entscheidungen zu Buchungen des Nutzers: abgelehnt
+     * oder wegen Wartung storniert, noch nicht als gelesen markiert, die
+     * neueste zuerst. Selbst stornierte Buchungen zählen nicht.
+     */
+    public function LadenUngeleseneEntscheidungen(int $in_NutzerID): void
+    {
+        $this->Laden(
+            CBuchung::SQL_MIT_NAMEN . ' WHERE (b.antragsteller_id = ? OR b.fahrer_id = ?)
+               AND (b.status_id = ? OR (b.status_id = ? AND b.entscheidung_kommentar = ?))
+               AND b.entscheidung_gelesen_am IS NULL
+             ORDER BY b.entscheidung_am DESC, b.id DESC',
+            [$in_NutzerID, $in_NutzerID, STATUS_ABGELEHNT, STATUS_STORNIERT, CWartung::STORNO_GRUND]
+        );
+    }
+
+    /**
+     * Lädt die genehmigten und laufenden Buchungen, die heute beginnen oder
+     * enden. Für die Zeile „Heute“ auf der Übersicht des Fuhrparkleiters.
+     */
+    public function LadenHeute(): void
+    {
+        $this->Laden(
+            CBuchung::SQL_OHNE_NAMEN . ' WHERE b.status_id IN (?, ?) AND (b.start = CURDATE() OR b.ende = CURDATE())
+             ORDER BY b.start, b.id',
+            [STATUS_GENEHMIGT, STATUS_UNTERWEGS]
+        );
+    }
+
+    /**
      * Lädt die laufenden Fahrten des Fahrers (unterwegs), für die Rückgabe,
      * die älteste zuerst.
      */
@@ -215,6 +244,45 @@ class CListeBuchungen
         }
 
         return null;
+    }
+
+    /**
+     * Die nächste genehmigte Fahrt, die noch nicht begonnen hat und nach heute
+     * beginnt, sonst null. Für die Liste aus LadenAktuelle(), die nach Beginn
+     * sortiert ist.
+     */
+    public function GetNaechsteGenehmigte(): ?CBuchung
+    {
+        $Heute = new DateTimeImmutable('today');
+
+        foreach ($this->m_Liste as $Buchung) {
+            if ($Buchung->GetStatusID() === STATUS_GENEHMIGT && $Buchung->GetStart() > $Heute) {
+                return $Buchung;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Wie viele Fahrten der Liste heute beginnen. Für die Liste aus LadenHeute().
+     */
+    public function CountBeginnenHeute(): int
+    {
+        $Heute = new DateTimeImmutable('today');
+
+        return count(array_filter($this->m_Liste, fn (CBuchung $Buchung): bool => $Buchung->GetStart() == $Heute));
+    }
+
+    /**
+     * Wie viele Rückgaben der Liste heute fällig sind. Für die Liste aus
+     * LadenHeute().
+     */
+    public function CountRueckgabenHeute(): int
+    {
+        $Heute = new DateTimeImmutable('today');
+
+        return count(array_filter($this->m_Liste, fn (CBuchung $Buchung): bool => $Buchung->GetEnde() == $Heute));
     }
 
     /**

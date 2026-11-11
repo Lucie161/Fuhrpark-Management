@@ -1,91 +1,228 @@
 /**
  * Stylesheet der Anwendung.
  *
- * Aufbau:  1. Farben & Variablen   2. Grundgerüst   3. Kopf & Navigation
- *          4. Bausteine (Karten, Tabelle, Formular)   5. Fuß   6. Mobil
+ * Bild: Typenschilder, wie sie auf Solarmodulen kleben. Weiße Schilder mit
+ * dünnem Rand auf aluminiumgrauem Grund, zellblaue Kopfleiste. Feldlabels in
+ * Versalien, Werte groß darunter. Blau nur auf Bedienbarem, Grün, Gelb und
+ * Rot nur für den Stand (Ampel). Kleine Radien, keine Schatten.
+ *
+ * Aufbau:  1. Schriften   2. Farben & Maße   3. Grundgerüst
+ *          4. Kopfleiste & Navigation   5. Banner & Seitenkopf
+ *          6. Schilder (Feld „Stand“, Marke, Formular-Schild, Kennwerte)
+ *          7. Allgemeine Bausteine (Knopf, Formular, Tabelle, Badge)
+ *          8. Bausteine einzelner Seiten   9. Fuß   10. Schmale Bildschirme
  */
 
-/* --- 1. Farben & Variablen ------------------------------------------------ */
+/* --- 1. Schriften ----------------------------------------------------------- */
+/* Barlow und Barlow Semi Condensed (SIL Open Font License) liegen in
+   assets/fonts/, damit die Seite auch ohne Internet gleich aussieht. */
 
-:root {
-    --farbe-text:      #1c2024;
-    --farbe-gedaempft: #5f6b76;
-    --farbe-hinter:    #f4f6f8;
-    --farbe-flaeche:   #ffffff;
-    --farbe-rand:      #dde3e9;
-    --farbe-akzent:    #1f5f9e;
-
-    --farbe-gruen:     #1c7a4a;
-    --farbe-gelb:      #8a6112;
-    --farbe-rot:       #a32b2b;
-
-    /* Wartung: Kalender, Tagesleiste, Badge und Zeile im Fahrtenbuch */
-    --farbe-wartung:      #fbf2e0;
-    --farbe-wartung-rand: #e3c48a;
-
-    --abstand:         1rem;
-    --radius:          8px;
-    --breite:          1100px;
+@font-face {
+    font-family: "Barlow";
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/barlow-latin-400-normal.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212;
 }
 
-/* --- 2. Grundgerüst ------------------------------------------------------- */
+@font-face {
+    font-family: "Barlow";
+    font-weight: 500;
+    font-display: swap;
+    src: url("../fonts/barlow-latin-500-normal.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212;
+}
+
+@font-face {
+    font-family: "Barlow";
+    font-weight: 600;
+    font-display: swap;
+    src: url("../fonts/barlow-latin-600-normal.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212;
+}
+
+@font-face {
+    font-family: "Barlow";
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/barlow-latin-700-normal.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212;
+}
+
+/* Zusatzzeichen wie das Š in „Škoda“ */
+@font-face {
+    font-family: "Barlow";
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/barlow-latin-ext-400-normal.woff2") format("woff2");
+    unicode-range: U+0100-02AF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "Barlow";
+    font-weight: 500;
+    font-display: swap;
+    src: url("../fonts/barlow-latin-ext-500-normal.woff2") format("woff2");
+    unicode-range: U+0100-02AF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "Barlow";
+    font-weight: 600;
+    font-display: swap;
+    src: url("../fonts/barlow-latin-ext-600-normal.woff2") format("woff2");
+    unicode-range: U+0100-02AF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "Barlow";
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/barlow-latin-ext-700-normal.woff2") format("woff2");
+    unicode-range: U+0100-02AF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "Barlow Semi Condensed";
+    font-weight: 500;
+    font-display: swap;
+    src: url("../fonts/barlow-semi-condensed-latin-500-normal.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Barlow Semi Condensed";
+    font-weight: 600;
+    font-display: swap;
+    src: url("../fonts/barlow-semi-condensed-latin-600-normal.woff2") format("woff2");
+}
+
+/* --- 2. Farben & Maße ------------------------------------------------------- */
+
+:root {
+    /* Grundfarben */
+    --zelle:        #13233a;   /* Kopfleiste */
+    --zelle-hell:   #22395a;   /* Kopfleiste: Hover, offenes Menü */
+    --zelle-text:   #c4cfdf;   /* Text auf der Kopfleiste */
+    --alu:          #eef0f2;   /* Seitengrund */
+    --schild:       #ffffff;   /* Schilder, Tabellen, Formulare */
+    --linie:        #c9ced4;   /* Rand eines Schilds */
+    --haar:         #e1e4e8;   /* Linien im Schild */
+    --tinte:        #16191d;   /* Text */
+    --grau:         #5b6570;   /* Labels, Nebentext */
+
+    /* Nur auf Bedienbarem: Knöpfe, Links, Fokus */
+    --aktion:        #2b4bb8;
+    --aktion-dunkel: #223c94;
+    --aktion-flaeche: #e9edf9;
+
+    /* Ampel: nur für den Stand, nie zur Zierde */
+    --gruen:        #1f7a4d;
+    --gelb:         #93600f;
+    --rot:          #b42318;
+    --gruen-flaeche: #e6f2eb;
+    --gelb-flaeche:  #f8efdf;
+    --rot-flaeche:   #fbeceb;
+    --rot-meldung:   #f0d3d1;   /* Grund der Überfällig-Meldung (20 % Rot) */
+    --rot-dunkel:    #8f1c13;   /* Hover des roten Knopfs in der Meldung */
+
+    --schrift:       "Barlow", system-ui, sans-serif;
+    --schrift-label: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
+
+    --abstand: 1rem;
+    --radius:  4px;
+    --radius-klein: 3px;
+    --breite:  1320px;
+}
+
+/* --- 3. Grundgerüst --------------------------------------------------------- */
 
 * {
     box-sizing: border-box;
 }
 
+html {
+    scrollbar-color: var(--linie) var(--alu);
+}
+
 body {
     margin: 0;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: var(--schrift);
     font-size: 16px;
-    line-height: 1.55;
-    color: var(--farbe-text);
-    background: var(--farbe-hinter);
+    line-height: 1.5;
+    color: var(--tinte);
+    background: var(--alu);
+}
+
+::selection {
+    background: var(--aktion-flaeche);
+    color: var(--tinte);
+}
+
+a {
+    color: var(--aktion);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgb(43 75 184 / 0.35);
+    text-underline-offset: 0.2em;
+}
+
+a:hover {
+    text-decoration-color: currentColor;
+}
+
+:focus-visible {
+    outline: 2px solid var(--aktion);
+    outline-offset: 2px;
+}
+
+h1, h2, h3 {
+    line-height: 1.2;
+    text-wrap: balance;
+}
+
+h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
 }
 
 .container {
     width: 100%;
     max-width: var(--breite);
     margin: 0 auto;
-    padding: 0 var(--abstand);
+    padding-left: 40px;
+    padding-right: 40px;
 }
 
-main.container {
-    padding-top: calc(var(--abstand) * 2);
-    padding-bottom: calc(var(--abstand) * 3);
+.seite {
+    padding-top: 28px;
+    padding-bottom: 56px;
 }
 
-h1, h2 {
-    line-height: 1.25;
-}
-
-.page-title {
-    margin: 0 0 var(--abstand);
-    font-size: 1.75rem;
-}
-
+/* Einleitender Satz unter dem Titel */
 .lead {
+    max-width: 70ch;
     margin-top: 0;
-    color: var(--farbe-gedaempft);
+    color: var(--grau);
 }
 
 .note {
+    max-width: 70ch;
     padding: 0.75rem var(--abstand);
-    border-left: 3px solid var(--farbe-rand);
-    color: var(--farbe-gedaempft);
+    border: 1px solid var(--haar);
+    border-radius: var(--radius);
+    background: var(--schild);
+    color: var(--grau);
     font-size: 0.925rem;
 }
 
-.alert {
-    padding: 0.75rem var(--abstand);
-    border: 1px solid var(--farbe-rot);
-    border-radius: var(--radius);
-    background: #fdf2f2;
-    color: var(--farbe-rot);
-}
-
 .section {
-    margin-top: calc(var(--abstand) * 2);
+    margin-top: 2rem;
 }
 
 /* Nur für Screenreader, z. B. der Stand einer Kalenderzelle (kalender.php). */
@@ -101,149 +238,1038 @@ h1, h2 {
     border: 0;
 }
 
-/* --- 3. Kopf & Navigation ------------------------------------------------- */
+/* --- 4. Kopfleiste & Navigation --------------------------------------------- */
 
-.site-header {
-    background: var(--farbe-flaeche);
-    border-bottom: 1px solid var(--farbe-rand);
+.kopfleiste {
+    background: var(--zelle);
+    color: #fff;
 }
 
-.site-header__inner {
+.kopfleiste__innen {
     display: flex;
     align-items: center;
-    gap: var(--abstand);
+    gap: 40px;
     min-height: 60px;
 }
 
 .logo {
-    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
     text-decoration: none;
-    color: var(--farbe-text);
     white-space: nowrap;
 }
 
-/* Bricht bei vielen Punkten (Fuhrparkleiter) in eine zweite Zeile um,
-   statt über den Rand zu laufen. */
+.logo__zeichen {
+    width: 18px;
+    height: 18px;
+    color: #9fb0c8;
+}
+
 .nav {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.25rem;
+    align-items: stretch;
+    gap: 4px;
     flex: 1;
-    padding: 0.5rem 0;
+    align-self: stretch;
 }
 
 .nav__link {
-    padding: 0.5rem 0.75rem;
-    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    color: var(--zelle-text);
+    font-weight: 500;
     text-decoration: none;
-    color: var(--farbe-gedaempft);
+    white-space: nowrap;
 }
 
 .nav__link:hover {
-    background: var(--farbe-hinter);
-    color: var(--farbe-text);
+    color: #fff;
 }
 
-.nav__link--active {
-    color: var(--farbe-akzent);
-    font-weight: 600;
+/* Aktiver Punkt: weiße Linie unten */
+.nav__link--aktiv {
+    box-shadow: inset 0 -3px 0 #fff;
+    color: #fff;
 }
 
-/* Schiebt "Anmelden" ans rechte Ende der Navigation. */
-.nav__link--right {
+.nav__link:focus-visible {
+    outline-color: #fff;
+    outline-offset: -4px;
+}
+
+/* Name und Abmelden rechts */
+.nav__nutzer {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     margin-left: auto;
+}
+
+.nav__name {
+    color: var(--zelle-text);
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.nav__link--klein {
+    font-size: 14px;
 }
 
 .nav-toggle {
     display: none;
     margin-left: auto;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--farbe-rand);
-    border-radius: var(--radius);
-    background: var(--farbe-flaeche);
+    padding: 8px 14px;
+    border: 1px solid rgb(255 255 255 / 0.4);
+    border-radius: var(--radius-klein);
+    background: transparent;
+    color: #fff;
     font: inherit;
+    font-weight: 600;
     cursor: pointer;
 }
 
-/* --- 4. Bausteine --------------------------------------------------------- */
+/* --- 5. Banner & Seitenkopf ------------------------------------------------- */
 
-.cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-    gap: var(--abstand);
-    margin: calc(var(--abstand) * 1.5) 0;
-}
-
-.card {
-    padding: var(--abstand);
-    border: 1px solid var(--farbe-rand);
+/* Meldung über dem Seitentitel, sobald eine Rückgabe überfällig ist
+   (includes/banner.php), und im Inhalt, z. B. „Sie können derzeit nichts
+   buchen“ (buchen.php). Rot getönte Karte in Inhaltsbreite, eine Zeile,
+   nicht höher als die Kopfleiste, der Knopf rot statt blau. */
+.banner {
+    display: block;
+    margin-top: 20px;
+    border: 1px solid var(--rot);
     border-radius: var(--radius);
-    background: var(--farbe-flaeche);
+    background: var(--rot-meldung);
+    font-size: 15px;
+    line-height: 1.4;
 }
 
-.card__value {
+.banner + .banner {
+    margin-top: 8px;
+}
+
+.banner__zeile,
+.seite .banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 16px;
+    min-height: 48px;
+    padding: 6px 8px 6px 16px;
+}
+
+/* Im Inhalt: Abstand nach unten statt nach oben */
+.seite .banner {
+    margin: 0 0 20px;
+}
+
+/* Die ganze Zeile klappt die Liste auf, ohne JavaScript. */
+summary.banner__zeile {
+    list-style: none;
+    cursor: pointer;
+}
+
+summary.banner__zeile::-webkit-details-marker {
+    display: none;
+}
+
+.banner__text {
+    flex: 1 1 30rem;
     margin: 0;
-    font-size: 2rem;
+    color: var(--tinte);
+}
+
+.banner__text strong {
+    margin-right: 0.4em;
+    color: var(--rot);
+}
+
+.banner .banner__knopf {
+    min-height: 34px;
+    border-color: var(--rot);
+    background: var(--rot);
+    color: #fff;
+}
+
+.banner .banner__knopf:hover,
+summary.banner__zeile:hover .banner__knopf {
+    border-color: var(--rot-dunkel);
+    background: var(--rot-dunkel);
+}
+
+/* Benachrichtigung über eine Ablehnung oder Stornierung (Mitarbeiter): weiß,
+   Satzanfang mit Farbpunkt im Stand, Knopf „Gelesen“ zweitrangig. */
+.banner--hinweis {
+    border-color: var(--linie);
+    background: var(--schild);
+}
+
+.banner--hinweis .banner__text strong::before {
+    content: "";
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 7px;
+    border-radius: 1px;
+    background: currentColor;
+    vertical-align: 1px;
+}
+
+.banner--storniert .banner__text strong {
+    color: var(--grau);
+}
+
+.banner--hinweis .banner__knopf,
+.banner--hinweis .banner__knopf:hover {
+    border-color: var(--linie);
+    background: var(--schild);
+    color: var(--tinte);
+}
+
+.banner--hinweis .banner__knopf:hover {
+    border-color: var(--grau);
+}
+
+.banner form {
+    flex: none;
+    margin: 0;
+}
+
+/* „Details“ (Fuhrparkleiter): zweitrangig, rot umrandet */
+.banner .banner__knopf--details,
+summary.banner__zeile:hover .banner__knopf--details {
+    border-color: var(--rot);
+    background: var(--schild);
+    color: var(--rot);
+}
+
+.banner__liste {
+    margin: 0;
+    padding: 0 16px 6px;
+    list-style: none;
+}
+
+.banner__liste li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    padding: 8px 0;
+    border-top: 1px solid color-mix(in srgb, var(--rot) 30%, transparent);
+}
+
+/* Titel der Seite, daneben Datum und ggf. eine Hauptaktion */
+.seitenkopf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 20px;
+    margin-bottom: 24px;
+}
+
+.seitenkopf__titel {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.seitenkopf__zusatz {
+    margin: 0;
+    color: var(--grau);
+    font-family: var(--schrift-label);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.seitenkopf__aktion {
+    align-self: center;
+    margin-left: auto;
+}
+
+/* Link zurück über dem Titel, z. B. „← Meine Buchungen“ ($pageZurueck) */
+.seitenkopf__zurueck {
+    margin: 0 0 6px;
+    font-size: 14.5px;
     font-weight: 600;
 }
 
-.card__label {
-    margin: 0.25rem 0 0;
-    color: var(--farbe-gedaempft);
+/* --- 6. Schilder ------------------------------------------------------------ */
+
+/* Hauptblock links, schmale Nebenspalte rechts */
+.uebersicht {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 32px;
+    align-items: start;
+}
+
+.uebersicht__neben {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+/* Abschnittstitel: Versal-Label, daneben der Wert groß */
+.abschnitt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    align-content: flex-end;
+    gap: 4px 12px;
+    min-height: 27px;
+    margin: 0 0 12px;
+    color: var(--grau);
+    font-family: var(--schrift-label);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.abschnitt__wert {
+    color: var(--tinte);
+    font-family: var(--schrift);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* Das Schild: Kopf mit Kennzeichen und Stand, darunter Kennwertfelder
+   und abgetrennt rechts die Aktionen. Ist das Schild schmal (Nebenspalte,
+   Handy), stehen die Felder 2 × 2 und die Aktionen darunter. */
+.schild {
+    container-type: inline-size;
+    margin-bottom: 12px;
+    border: 1px solid var(--linie);
+    border-radius: var(--radius);
+    background: var(--schild);
+}
+
+.schild__kopf {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--haar);
+}
+
+.schild__name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 16px;
+    min-width: 0;
+}
+
+.schild__kennzeichen {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.schild__kennzeichen a {
+    color: var(--tinte);
+    text-decoration: none;
+}
+
+.schild__kennzeichen a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+}
+
+.schild__modell {
+    margin: 0;
+    color: var(--grau);
+    font-size: 14px;
+}
+
+/* Feld „Stand“ rechts im Kopf: Label über Wert wie die Kennwertfelder,
+   der Wert mit Farbpunkt in Ampelfarbe. So breit wie die Aktionsspalte,
+   damit die Trennlinien übereinander liegen. */
+.stand {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    justify-content: center;
+    align-self: stretch;
+    width: 16rem;
+    margin: -12px -18px -12px auto;
+    padding: 10px 18px;
+    border-left: 1px solid var(--haar);
+}
+
+.stand__label {
+    color: var(--grau);
+    font-family: var(--schrift-label);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.stand__wert {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 2px;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.stand__wert::before {
+    content: "";
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 1px;
+    background: currentColor;
+}
+
+.stand--gruen .stand__wert { color: var(--gruen); }
+.stand--gelb  .stand__wert { color: var(--gelb); }
+.stand--rot   .stand__wert { color: var(--rot); }
+.stand--grau  .stand__wert { color: var(--grau); }
+
+/* Marke: derselbe Stand als Farbquadrat und Wort, aber ohne Feld, z. B. in
+   einer Tabellenzelle. Farbe wie beim Feld „Stand“ (buchung_stand()). */
+.marke {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.marke::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 1px;
+    background: currentColor;
+    vertical-align: 1px;
+}
+
+.marke--gruen { color: var(--gruen); }
+.marke--gelb  { color: var(--gelb); }
+.marke--rot   { color: var(--rot); }
+.marke--grau  { color: var(--grau); }
+
+.schild__koerper {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 16rem;
+}
+
+/* Kennwertfelder: Label in Versalien, Wert darunter. Festes Raster, damit
+   die Trennlinien gestapelter Schilder übereinander liegen. */
+.felder {
+    display: grid;
+    grid-auto-columns: minmax(min-content, 1fr);
+    grid-auto-flow: column;
+    margin: 0;
+}
+
+/* Antrag: Antragsteller, Zeitraum, Zweck (mit Personen), Wartet seit.
+   Labels brechen nicht um; so passt das Schild auch in die Hauptspalte der
+   Übersicht. */
+.felder--antrag {
+    grid-template-columns: 1.45fr 1.4fr 1.05fr 1.1fr;
+}
+
+.felder--antrag dt {
+    white-space: nowrap;
+}
+
+.feld {
+    padding: 10px 18px 12px;
+    border-right: 1px solid var(--haar);
+}
+
+.feld:last-child {
+    border-right: none;
+}
+
+.feld dt {
+    color: var(--grau);
+    font-family: var(--schrift-label);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.feld dd {
+    margin: 2px 0 0;
+    font-size: 16px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.feld small {
+    display: block;
+    color: var(--grau);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.schild__aktionen {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-left: 1px solid var(--haar);
+}
+
+.schild__aktionen > .table__zusatz,
+.schild__hinweis {
+    max-width: 16rem;
+    margin: 0;
+    color: var(--grau);
+    font-size: 13.5px;
+    line-height: 1.4;
+}
+
+/* Ist ein Formular aufgeklappt (Ablehnen, Fahrt beginnen), rutschen die
+   Aktionen als eigene Zeile unter die Felder. Die Felder behalten ihre
+   Spalten, damit sie bündig mit den Nachbarschildern bleiben. */
+.schild__koerper:has(.klappaktion[open]) .schild__aktionen {
+    grid-column: 1 / -1;
+    width: auto;
+    align-items: stretch;
+    padding-top: 12px;
+    padding-bottom: 14px;
+    border-top: 1px solid var(--haar);
+    border-left: none;
+}
+
+/* Die Knöpfe bleiben in einer Zeile, nur das Formular bricht darunter um. */
+.schild .aktionen .klappaktion[open] {
+    display: contents;
+}
+
+.schild .aktionen .klappaktion[open] > .klappaktion__form,
+.schild .aktionen .klappaktion[open]::details-content {
+    flex-basis: 100%;
+}
+
+/* Im Schild kein eigener Kasten um das Formular, nur die Haarlinie */
+.schild .klappaktion__form {
+    max-width: 40rem;
+    padding: 0;
+    border: none;
+    background: none;
+}
+
+/* Text im Schild, z. B. Grund einer Wartung oder Begründung einer Ablehnung */
+.schild__text {
+    padding: 12px 18px;
+    border-top: 1px solid var(--haar);
+    line-height: 1.45;
+}
+
+.schild__kopf + .schild__text {
+    border-top: none;
+}
+
+.schild__text p {
+    max-width: 65ch;
+    margin: 0;
+}
+
+.schild__text p + p {
+    margin-top: 4px;
+    color: var(--grau);
+    font-size: 14.5px;
+}
+
+.schild__grund {
+    font-weight: 500;
+}
+
+/* Aktionen eines Schilds ohne Felder (Wartung) */
+.schild__text + .schild__aktionen {
+    width: auto;
+    padding: 0 18px 14px;
+    border-left: none;
+}
+
+/* Nichts zu tun: ruhiges Schild mit Hinweis und ggf. Aktion */
+.schild--leer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+    padding: 18px;
+    color: var(--grau);
+}
+
+.schild--leer p {
+    max-width: 60ch;
+    margin: 0;
+}
+
+@container (max-width: 40rem) {
+    .schild__kennzeichen {
+        font-size: 20px;
+    }
+
+    /* Halbe Schildbreite: Trennlinie über der Mitte der Felder 2 × 2 */
+    .stand {
+        width: 50cqw;
+        margin-right: -14px;
+        padding: 10px 14px;
+    }
+
+    .schild__koerper {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .felder {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-auto-flow: row;
+    }
+
+    .feld {
+        padding: 8px 14px 10px;
+    }
+
+    .feld:nth-child(odd) {
+        border-right: 1px solid var(--haar);
+    }
+
+    .feld:nth-child(even) {
+        border-right: none;
+    }
+
+    .feld:nth-child(n+3) {
+        border-top: 1px solid var(--haar);
+    }
+
+    .schild__kopf,
+    .schild__text {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .schild__aktionen {
+        width: auto;
+        align-items: stretch;
+        padding: 12px 14px;
+        border-top: 1px solid var(--haar);
+        border-left: none;
+    }
+
+    .schild__text + .schild__aktionen {
+        padding: 0 14px 14px;
+        border-top: none;
+    }
+
+    .schild__aktionen > .table__zusatz,
+    .schild__hinweis {
+        max-width: none;
+    }
+}
+
+/* Formular-Schild: Eingabefelder im Raster der Kennwertfelder, Absenden im
+   Aktionsabschnitt rechts (unten, wenn das Schild schmal ist). Aufbau:
+     <form class="schild schild--formular">
+       optional <div class="schild__kopf"><h2 class="schild__titel">…</h2></div>
+       <div class="schild__koerper">
+         <div class="formfelder"> <div class="formfeld">Label, Eingabe, Hinweis</div> … </div>
+         <div class="schild__aktionen"> Knopf </div>
+       </div>
+     </form>
+   Die Felder brechen nach Platz um. Jedes Feld hat rechts und unten eine
+   Haarlinie; die Linien am Rand schneidet clip-path ab. */
+.schild--formular {
+    margin-bottom: 20px;
+}
+
+/* Schmales Formular, z. B. die Anmeldung */
+.schild--schmal {
+    max-width: 36rem;
+}
+
+.schild__titel {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.formfelder {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    align-content: start;
+    clip-path: inset(0 1px 1px 0);
+}
+
+.formfeld {
+    min-width: 0;
+    padding: 10px 18px 14px;
+    border-right: 1px solid var(--haar);
+    border-bottom: 1px solid var(--haar);
+}
+
+/* Über die ganze Breite, z. B. eine Beschreibung */
+.formfeld--breit {
+    grid-column: 1 / -1;
+}
+
+.formfeld .form__label {
+    margin-bottom: 6px;
+}
+
+/* Absenden steht unten bündig mit der letzten Eingabezeile */
+.schild--formular .schild__aktionen {
+    justify-content: flex-end;
+    padding-bottom: 14px;
+}
+
+@container (max-width: 40rem) {
+    .formfeld {
+        padding: 8px 14px 12px;
+    }
+}
+
+/* Fuhrpark-Leiste (index.php, Fuhrparkleiter): zuletzt, über die ganze
+   Breite, eine Feldzeile mit großen Zahlen und den Aktionen rechts. */
+.fuhrpark-leiste {
+    margin-top: 32px;
+}
+
+.felder--fuhrpark {
+    grid-template-columns: 1fr repeat(3, 0.8fr) 2fr;
+}
+
+.feld .feld__zahl {
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+/* Schmal: Felder 2 × 2 wie in jedem Schild, „Heute“ über die ganze Breite */
+@container (max-width: 40rem) {
+    .felder.felder--fuhrpark {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .felder--fuhrpark .feld:last-child {
+        grid-column: 1 / -1;
+        border-right: none;
+    }
+}
+
+/* Kurze Zeile unter einem Abschnitt, z. B. „Kein Fahrzeug wegen Schaden in
+   Wartung“ */
+.zeile {
+    margin: 0;
+    color: var(--grau);
+    font-size: 14.5px;
+}
+
+/* Link zu allen Einträgen unter einem Abschnitt */
+.weiter {
+    margin: 4px 0 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* --- 7. Allgemeine Bausteine ------------------------------------------------ */
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 8px 16px;
+    border: 1px solid var(--aktion);
+    border-radius: var(--radius-klein);
+    background: var(--aktion);
+    color: #fff;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.button:hover {
+    border-color: var(--aktion-dunkel);
+    background: var(--aktion-dunkel);
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.button--klein {
+    min-height: 36px;
+    padding: 6px 14px;
+    font-size: 14px;
+}
+
+/* Zweite Aktion neben einer Hauptaktion */
+.button--zweitrangig {
+    border-color: var(--linie);
+    background: var(--schild);
+    color: var(--tinte);
+}
+
+.button--zweitrangig:hover {
+    border-color: var(--grau);
+    background: var(--schild);
+}
+
+/* Ablehnen, Stornieren: rot umrandet statt gefüllt */
+.button--gefahr {
+    border-color: var(--linie);
+    background: var(--schild);
+    color: var(--rot);
+}
+
+.button--gefahr:hover {
+    border-color: var(--rot);
+    background: var(--rot-flaeche);
+}
+
+.aktionen {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.aktionen form {
+    margin: 0;
+}
+
+/* Aufklappbare Aktion ohne JavaScript: <details> mit einem Button als
+   <summary>, darunter ein kleines Formular (Ablehnen, Stornieren,
+   Fahrt beginnen). */
+.klappaktion summary {
+    list-style: none;
+}
+
+.klappaktion summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Offen: das Formular nimmt den restlichen Platz neben den Knöpfen */
+.aktionen .klappaktion[open] {
+    flex: 1 1 22rem;
+}
+
+.klappaktion__form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 220px;
+    max-width: 36rem;
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid var(--haar);
+    border-radius: var(--radius);
+    background: #f7f8f9;
+}
+
+.klappaktion__form .button {
+    align-self: flex-start;
+}
+
+.klappaktion__frage {
+    margin: 0;
     font-size: 0.9rem;
 }
 
-/* Etwas ist zu erledigen (index.php, Fuhrparkleiter). */
-.card--offen {
-    border-left: 4px solid var(--farbe-gelb);
+.klappaktion__liste {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: var(--grau);
+    font-size: 0.85rem;
 }
 
-.card__link {
-    display: inline-block;
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
+.alert {
+    max-width: 80ch;
+    margin: 0 0 20px;
+    padding: 10px 14px;
+    border: 1px solid var(--rot);
+    border-radius: var(--radius);
+    background: var(--rot-flaeche);
+    color: var(--rot);
+}
+
+.alert__zeile {
+    margin: 0;
+}
+
+/* Nächster Schritt in der Meldung, z. B. „Zu meinen Buchungen“ */
+.alert__link {
+    margin-left: 0.4em;
+    font-weight: 600;
+}
+
+.alert--erfolg {
+    border-color: var(--gruen);
+    background: var(--gruen-flaeche);
+    color: var(--gruen);
+}
+
+/* Erfolgreich, aber mit Folgen, z. B. Rückgabe mit Schaden. */
+.alert--hinweis {
+    border-color: var(--gelb);
+    background: var(--gelb-flaeche);
+    color: var(--gelb);
+}
+
+.form__label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--grau);
+    font-family: var(--schrift-label);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.form__input {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid var(--linie);
+    border-radius: var(--radius-klein);
+    background: var(--schild);
+    color: var(--tinte);
+    font: inherit;
+    caret-color: var(--aktion);
+}
+
+/* Datums- und Zahlenfelder wären sonst ein paar Pixel höher als Auswahlen daneben */
+.form__input[type="date"],
+.form__input[type="number"] {
+    height: 40px;
+}
+
+.form__input:hover {
+    border-color: var(--grau);
+}
+
+.form__input:focus {
+    border-color: var(--aktion);
+    outline: 2px solid var(--aktion-flaeche);
+    outline-offset: 0;
+}
+
+/* Pflichtfeld, das nach dem Absenden noch fehlt */
+.form__input.form__input--fehler,
+.form__input.form__input--fehler:hover,
+.form__input.form__input--fehler:focus {
+    border-color: var(--rot);
+    outline-color: var(--rot-flaeche);
+}
+
+.form__input::placeholder {
+    color: #7a838c;
+}
+
+.form__hinweis {
+    display: block;
+    margin-top: 4px;
+    color: var(--grau);
+    font-size: 0.85rem;
+}
+
+input[type="radio"],
+input[type="checkbox"] {
+    accent-color: var(--aktion);
 }
 
 .table {
     width: 100%;
     margin-top: var(--abstand);
-    border-collapse: collapse;
-    background: var(--farbe-flaeche);
-    border: 1px solid var(--farbe-rand);
+    border: 1px solid var(--linie);
+    border-collapse: separate;
+    border-spacing: 0;
     border-radius: var(--radius);
-    overflow: hidden;
+    background: var(--schild);
+    font-variant-numeric: tabular-nums;
 }
 
 .table th,
 .table td {
-    padding: 0.7rem var(--abstand);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--haar);
     text-align: left;
-    border-bottom: 1px solid var(--farbe-rand);
+    vertical-align: top;
 }
 
 .table th {
-    background: var(--farbe-hinter);
-    font-size: 0.85rem;
+    color: var(--grau);
+    font-family: var(--schrift-label);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--farbe-gedaempft);
+    white-space: nowrap;
 }
 
 .table tr:last-child td {
     border-bottom: none;
 }
 
+/* Unter einem Abschnittstitel nur dessen Abstand */
+.abschnitt + .table {
+    margin-top: 0;
+}
+
+/* Erste Spalte: Kennzeichen wie im Schildkopf, Modell darunter als
+   .table__zusatz */
+.table__kennzeichen {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.table__kennzeichen a {
+    color: var(--tinte);
+    text-decoration: none;
+}
+
+.table__kennzeichen a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+}
+
+.table__kennzeichen .table__zusatz {
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
 /* Mit .table davor, sonst gewinnt text-align: left aus .table th/td. */
 .table .table__num {
     text-align: right;
-    font-variant-numeric: tabular-nums;
 }
 
 /* Kleine zweite Zeile in einer Zelle, z. B. „gebucht von …“. */
 .table__zusatz {
     display: block;
-    color: var(--farbe-gedaempft);
+    color: var(--grau);
     font-size: 0.85rem;
 }
 
@@ -256,364 +1282,40 @@ h1, h2 {
 
 .table__sortierlink:hover,
 .table__sortierlink:focus-visible {
-    color: var(--farbe-akzent);
+    color: var(--aktion);
     text-decoration: underline;
 }
 
-/* Ausgewählte Zeile, z. B. die Fahrt in rueckgabe.php. */
-.table__zeile--gewaehlt td {
-    background: #e8eff7;
-}
-
-/* Wartung zwischen den Fahrten im Fahrtenbuch (fahrzeug.php, historie.php):
-   gleiche Spalten wie eine Fahrt, aber eigener Hintergrund und Rahmen, links
-   etwas kräftiger. */
-.table__zeile--wartung td {
-    background: var(--farbe-wartung);
-    border-top: 1px solid var(--farbe-wartung-rand);
-    border-bottom: 1px solid var(--farbe-wartung-rand);
-}
-
-.table__zeile--wartung td:first-child {
-    border-left: 4px solid var(--farbe-wartung-rand);
-}
-
-.table__zeile--wartung td:last-child {
-    border-right: 1px solid var(--farbe-wartung-rand);
+/* Ausgewählte Zeile, z. B. die Fahrt in rueckgabe.php, oder die Buchung,
+   zu der eine Benachrichtigung springt (fruehere-buchungen.php#buchung-…). */
+.table__zeile--gewaehlt td,
+.table tr:target td {
+    background: var(--aktion-flaeche);
 }
 
 .table__empty {
+    color: var(--grau);
     text-align: center;
-    color: var(--farbe-gedaempft);
 }
 
-.badge {
-    display: inline-block;
-    padding: 0.15rem 0.6rem;
-    border-radius: 999px;
-    background: var(--farbe-hinter);
-    font-size: 0.85rem;
-    color: var(--farbe-gedaempft);
-}
+/* --- 8. Bausteine einzelner Seiten ------------------------------------------ */
 
-.badge--verfuegbar { background: #e6f4ec; color: var(--farbe-gruen); }
-.badge--unterwegs  { background: #e8eff7; color: var(--farbe-akzent); }
-.badge--wartung    { background: var(--farbe-wartung); color: var(--farbe-gelb); }
-.badge--vergeben   { background: #fdf2f2; color: var(--farbe-rot); }
-
-/* Stand einer Buchung (meine-buchungen.php). storniert und abgeschlossen
-   behalten das neutrale Grau von .badge. */
-.badge--offen      { background: #fbf2e0; color: var(--farbe-gelb); }
-.badge--genehmigt  { background: #e6f4ec; color: var(--farbe-gruen); }
-.badge--abgelehnt  { background: #fdf2f2; color: var(--farbe-rot); }
-
-.alert__zeile {
-    margin: 0;
-}
-
-.alert--erfolg {
-    border-color: var(--farbe-gruen);
-    background: #e6f4ec;
-    color: var(--farbe-gruen);
-}
-
-/* Erfolgreich, aber mit Folgen, z. B. Rückgabe mit Schaden. */
-.alert--hinweis {
-    border-color: var(--farbe-gelb);
-    background: #fbf2e0;
-    color: var(--farbe-gelb);
-}
-
-.form {
-    max-width: 380px;
-    padding: calc(var(--abstand) * 1.5);
-    border: 1px solid var(--farbe-rand);
-    border-radius: var(--radius);
-    background: var(--farbe-flaeche);
-}
-
-/* Für mehrspaltige Formulare wie buchen.php. */
-.form--breit {
-    max-width: none;
-}
-
-.form__titel {
-    margin: 0 0 var(--abstand);
-    font-size: 1.15rem;
-}
-
-.form__raster {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0 var(--abstand);
-}
-
-.form__row {
-    margin-bottom: var(--abstand);
-}
-
-.form__label {
-    display: block;
-    margin-bottom: 0.3rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-.form__input {
-    width: 100%;
-    padding: 0.55rem 0.7rem;
-    border: 1px solid var(--farbe-rand);
-    border-radius: var(--radius);
-    font: inherit;
-}
-
-.form__hinweis {
-    display: block;
-    margin-top: 0.3rem;
-    color: var(--farbe-gedaempft);
-    font-size: 0.85rem;
-}
-
-/* Radio-Buttons nebeneinander, z. B. Schaden ja/nein (rueckgabe.php). */
-.form__gruppe {
-    margin-left: 0;
-    margin-right: 0;
-    padding: 0;
-    border: none;
-}
-
-.form__optionen {
-    display: flex;
-    gap: calc(var(--abstand) * 1.5);
-    padding: 0.55rem 0;
-}
-
-.form__input:focus {
-    outline: 2px solid var(--farbe-akzent);
-    outline-offset: 1px;
-}
-
-.button {
-    padding: 0.55rem 1.2rem;
-    border: none;
-    border-radius: var(--radius);
-    background: var(--farbe-akzent);
-    color: #fff;
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.button:hover {
-    filter: brightness(1.1);
-}
-
-/* .button wird auch auf Links und <summary> gesetzt. */
-a.button {
-    display: inline-block;
-    text-decoration: none;
-}
-
-.button--klein {
-    padding: 0.35rem 0.8rem;
-    font-size: 0.875rem;
-}
-
-.button--gefahr {
-    background: var(--farbe-rot);
-}
-
-/* Zweite Aktion neben einer Hauptaktion, z. B. „Alle meine Buchungen“. */
-.button--zweitrangig {
-    border: 1px solid var(--farbe-rand);
-    background: var(--farbe-flaeche);
-    color: var(--farbe-akzent);
-}
-
-/* Fahrzeugauswahl als Kacheln (buchen.php). Die ganze Kachel ist das Label
-   des Radio-Buttons. */
-.fahrzeugwahl {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-    gap: var(--abstand);
-}
-
-.fahrzeugkarte {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    border: 2px solid var(--farbe-rand);
-    border-radius: var(--radius);
-    background: var(--farbe-flaeche);
-    cursor: pointer;
-}
-
-.fahrzeugkarte:has(:checked) {
-    border-color: var(--farbe-akzent);
-    background: #e8eff7;
-}
-
-.fahrzeugkarte__auswahl {
-    position: absolute;
-    top: 1.1rem;
-    left: 1.1rem;
-}
-
-.fahrzeugkarte__bild {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    object-fit: cover;
-    border-radius: calc(var(--radius) - 2px);
-}
-
-/* Fahrzeug ohne Bild: Typ als Platzhalter. */
-.fahrzeugkarte__bild--platzhalter {
-    display: grid;
-    place-items: center;
-    background: var(--farbe-hinter);
-    color: var(--farbe-gedaempft);
-    font-size: 0.9rem;
-}
-
-.fahrzeugkarte__kopf {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 0.5rem;
-}
-
-.fahrzeugkarte__daten {
-    color: var(--farbe-gedaempft);
-    font-size: 0.875rem;
-}
-
-/* Unten: „frei ab …“ bzw. Ampel links, Link zum Steckbrief rechts. */
-.fahrzeugkarte__fuss {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.5rem;
-    margin-top: auto;
-    font-size: 0.875rem;
-}
-
-/* Aktionen in einer Tabellenzeile (genehmigungen.php, meine-buchungen.php). */
-.aktionen {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 0.5rem;
-}
-
-/* Was jetzt ansteht: Fahrt kann beginnen, Fahrt läuft (index.php). Text
-   links, Aktion rechts. */
-.aktuell {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: var(--abstand);
-    margin-bottom: var(--abstand);
-    padding: var(--abstand);
-    border: 1px solid var(--farbe-rand);
-    border-left: 4px solid var(--farbe-akzent);
-    border-radius: var(--radius);
-    background: var(--farbe-flaeche);
-}
-
-.aktuell--ueberfaellig {
-    border-left-color: var(--farbe-rot);
-}
-
-.aktuell__text {
-    margin: 0;
-}
-
-/* Rotes Banner ganz oben auf der Übersicht, sobald eine Rückgabe überfällig
-   ist (index.php). Mitarbeiter: Text links, „Jetzt zurückgeben“ rechts.
-   Fuhrparkleiter: die Liste hinter „Details“, ohne JavaScript. */
-.banner {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.5rem var(--abstand);
-    margin-bottom: var(--abstand);
-    padding: 0.75rem var(--abstand);
-    border-radius: var(--radius);
-    background: var(--farbe-rot);
-    color: #fff;
-}
-
-.banner__text {
-    margin: 0;
-}
-
-.banner a {
-    color: inherit;
-}
-
-.banner .banner__knopf {
-    background: #fff;
-    color: var(--farbe-rot);
-}
-
-.banner__details {
-    flex-basis: 100%;
-}
-
-.banner__details summary {
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.banner__liste {
-    margin: 0.5rem 0 0;
-    padding-left: 1.1rem;
-}
-
-/* Aufklappbare Aktion ohne JavaScript: <details> mit einem Button als
-   <summary>, darunter ein kleines Formular (Ablehnen, Stornieren,
-   Fahrt beginnen). */
-.klappaktion summary {
-    display: inline-block;
-    list-style: none;
-}
-
-.klappaktion summary::-webkit-details-marker {
-    display: none;
-}
-
-.klappaktion__form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    min-width: 220px;
-    margin-top: 0.5rem;
-}
-
-.klappaktion__frage {
-    margin: 0;
-    font-size: 0.9rem;
-}
-
-/* Betroffene Buchungen beim Sperren (fahrzeuge.php). */
-.klappaktion__liste {
-    margin: 0;
-    padding-left: 1.1rem;
-    font-size: 0.85rem;
-    color: var(--farbe-gedaempft);
-}
-
-/* Filterzeile über einer Tabelle: Auswahl und Button nebeneinander
-   (historie.php, fahrzeuge.php). */
+/* Filterleiste über einer Tabelle: ein flaches Schild mit den Auswahlen und
+   dem Knopf in einer Zeile (historie.php, fahrzeuge.php). */
 .filter {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
-    gap: 0.5rem var(--abstand);
-    margin-bottom: var(--abstand);
+    gap: 12px 18px;
+    margin-bottom: 12px;
+    padding: 12px 18px 14px;
+    border: 1px solid var(--linie);
+    border-radius: var(--radius);
+    background: var(--schild);
+}
+
+.filter .form__label {
+    margin-bottom: 6px;
 }
 
 .filter__feld {
@@ -633,319 +1335,1075 @@ a.button {
     min-height: 2.5rem;
 }
 
-/* Vorschaubilder zu einer Schadensmeldung (schaeden.php). */
-.schadensfotos {
+/* --- 8a. Fahrzeug buchen (buchen.php) ---------------------------------------- */
+
+/* Suche als Formular-Schild. Die Aktionsspalte ist 16rem breit wie in den
+   Fahrzeug-Schildern darunter, damit die Trennlinien übereinander liegen. */
+.buchungssuche {
+    margin-bottom: 32px;
+}
+
+/* Breit genug: alle sechs Felder in einer Reihe, etwas enger gesetzt, damit
+   Datum und Zweck ganz sichtbar bleiben. Sonst brechen sie nach Platz um
+   (.formfelder). */
+@container (min-width: 68rem) {
+    .buchungssuche__felder {
+        grid-template-columns: 1.3fr 1.15fr 1.15fr 0.7fr 1.45fr 1.15fr;
+    }
+
+    .buchungssuche__felder .formfeld {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .buchungssuche__felder .formfeld:first-child {
+        padding-left: 18px;
+    }
+}
+
+/* Schmal (Handy): zwei Felder je Zeile statt sechs untereinander */
+@container (max-width: 40rem) {
+    .buchungssuche__felder {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+/* Fahrzeug-Schild: links das Bild, daneben die Kennwerte, rechts der Knopf */
+.treffer__inhalt {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr);
+}
+
+/* Das Bild füllt die Höhe der Feldzeile, ohne sie zu strecken */
+.treffer__bild {
+    display: block;
+    width: 100%;
+    height: 0;
+    min-height: 100%;
+    object-fit: cover;
+    border-right: 1px solid var(--haar);
+    border-bottom-left-radius: 3px;
+}
+
+/* Fahrzeug ohne Bild */
+.treffer__bild--platzhalter {
+    display: grid;
+    place-items: center;
+    background: var(--alu);
+    color: var(--grau);
+    font-size: 13px;
+}
+
+/* Typ, Sitze, Antrieb, Führerschein: festes Raster für alle Schilder */
+.felder--treffer {
+    grid-template-columns: 1.2fr 0.6fr 1fr 1fr;
+}
+
+@container (max-width: 40rem) {
+    /* Bild als Band über den Feldern, die Felder 2 × 2 */
+    .treffer__inhalt {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .treffer__bild {
+        height: auto;
+        min-height: 0;
+        aspect-ratio: 5 / 2;
+        border-right: none;
+        border-radius: 0;
+        border-bottom: 1px solid var(--haar);
+    }
+
+    .felder.felder--treffer {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+/* Ende 8a */
+
+/* --- 8b. Meine Buchungen und Zurückgeben (meine-buchungen.php, rueckgabe.php) - */
+
+/* Buchungs-Schild (meine-buchungen.php): festes Raster aus Zeitraum, Zweck
+   und Personen, damit die Haarlinien gestapelter Schilder übereinander liegen. */
+.felder--buchung {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.3fr) minmax(0, 0.6fr);
+}
+
+/* Auswahl bei mehreren laufenden Fahrten (rueckgabe.php) */
+.rueckgabe__auswahl {
+    margin-bottom: 24px;
+}
+
+/* Rückgabe-Formular: Beschreibung und Fotos nebeneinander, die übrigen
+   Felder über die ganze Breite (.formfeld--breit). */
+.formfelder--rueckgabe {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Kurze Eingabe in einem breiten Feld, z. B. der Kilometerstand */
+.form__input--kurz {
+    max-width: 16rem;
+}
+
+/* Fotos: der Knopf im Dateifeld als zweitrangiger Knopf */
+.formfelder--rueckgabe input[type="file"] {
+    padding: 4px;
+    font-size: 14.5px;
+}
+
+.formfelder--rueckgabe input[type="file"]::file-selector-button {
+    min-height: 30px;
+    margin-right: 10px;
+    padding: 4px 12px;
+    border: 1px solid var(--linie);
+    border-radius: var(--radius-klein);
+    background: var(--schild);
+    color: var(--tinte);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.formfelder--rueckgabe input[type="file"]::file-selector-button:hover {
+    border-color: var(--grau);
+}
+
+/* Schadenswahl: eine Feldgruppe ohne eigenen Rahmen, nur mit den
+   Haarlinien des Formularfelds. Die schwebende Legende steht wie ein
+   normales Label im Feld. */
+fieldset.schadenwahl {
+    min-width: 0;
+    margin: 0;
+    border-top: none;
+    border-left: none;
+}
+
+.schadenwahl legend {
+    float: left;
+    width: 100%;
+    padding: 0;
+}
+
+/* Drei große Optionen; es bleiben Radio-Buttons, die ganze Fläche ist das
+   Label. */
+.schadenwahl__optionen {
+    display: grid;
+    clear: both;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: 8px;
+    max-width: 42rem;
+}
+
+.schadenwahl__option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 10px 14px;
+    border: 1px solid var(--linie);
+    border-radius: var(--radius-klein);
+    background: var(--schild);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.schadenwahl__option:hover {
+    border-color: var(--grau);
+}
+
+.schadenwahl__option:has(:checked) {
+    border-color: var(--aktion);
+    background: var(--aktion-flaeche);
+}
+
+.schadenwahl__option input {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+.schadenwahl .form__hinweis {
+    max-width: 70ch;
+    margin-top: 8px;
+}
+
+@container (max-width: 40rem) {
+    .felder.felder--buchung {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    /* Ein letztes Feld allein in seiner Zeile geht über die ganze Breite,
+       damit die Haarlinie durchläuft (Personen; Zweck ohne km-Stand) */
+    .felder--buchung .feld:last-child,
+    .felder--fahrt .feld:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+        border-right: none;
+    }
+
+    .formfelder--rueckgabe,
+    .schadenwahl__optionen {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .schadenwahl__option {
+        min-height: 44px;
+    }
+}
+
+/* Rückfrage vor dem Stornieren als Popup (Popover-Attribut). Nur das Nötige;
+   die Gestaltung folgt in der Design-Runde. */
+.rueckfrage {
+    max-width: min(28rem, calc(100vw - 32px));
+    padding: 18px 20px;
+    border: 1px solid var(--linie);
+    border-radius: var(--radius);
+    background: var(--schild);
+    color: var(--tinte);
+}
+
+.rueckfrage::backdrop {
+    background: rgb(19 35 58 / 35%);
+}
+
+.rueckfrage__titel {
+    margin: 0 0 6px;
+    font-weight: 600;
+}
+
+.rueckfrage__text {
+    margin: 0 0 14px;
+}
+
+/* Ende 8b */
+
+/* --- 8c. Anträge, Schäden, Fahrzeuge (genehmigungen.php, schaeden.php,
+       fahrzeuge.php) ---------------------------------------------------------- */
+
+/* Schaden: Fotos im Textabschnitt; ein Klick öffnet das Foto (foto.php) */
+.schild__fotos {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    margin: 0.5rem 0 0;
+    gap: 8px;
+    margin: 10px 0 2px;
     padding: 0;
     list-style: none;
 }
 
-/* Vorschau; ein Klick öffnet das Foto in voller Größe (foto.php). */
-.schadensfotos__bild {
+.schild__fotos img {
     display: block;
-    width: 72px;
+    width: 112px;
     aspect-ratio: 4 / 3;
     object-fit: cover;
-    border: 1px solid var(--farbe-rand);
-    border-radius: calc(var(--radius) - 4px);
+    border: 1px solid var(--linie);
+    border-radius: var(--radius-klein);
 }
 
-/* Offene Schäden eines Fahrzeugs im Steckbrief (fahrzeug.php). */
-.schadensliste {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    margin: 0;
+.schild__fotos a:hover img {
+    border-color: var(--grau);
+}
+
+/* Behobene Schäden mit Abstand unter den offenen */
+.schaeden-behoben {
+    margin-top: 32px;
+}
+
+/* Fahrzeuge: Wartungsformular als eigene Zeile in voller Breite unter dem
+   Fahrzeug. Innen wie ein Formular-Schild, aber ohne eigenen Rand: Den
+   Außenrand hat die Tabelle. */
+.table.fahrzeugliste .table__formular > td {
     padding: 0;
-    list-style: none;
+    background: var(--schild);
 }
 
-/* Vor- und zurückblättern, z. B. wochenweise im Kalender (kalender.php). */
-.blaettern {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: var(--abstand);
+.wartungsformular {
+    container-type: inline-size;
 }
 
-/* Fahrzeug-Steckbrief (fahrzeug.php): Bild links, Stammdaten rechts. */
-.steckbrief {
-    display: grid;
+/* Grund und Ende nebeneinander, die Buchungen darunter über die ganze
+   Breite; schmal untereinander */
+.wartungsformular .formfelder {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: calc(var(--abstand) * 1.5);
-    padding: calc(var(--abstand) * 1.5);
-    border: 1px solid var(--farbe-rand);
-    border-radius: var(--radius);
-    background: var(--farbe-flaeche);
+}
+
+@container (max-width: 40rem) {
+    .wartungsformular .formfelder {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Bisheriger Grund beim Ändern des Endes: nur Text, keine Eingabe */
+.wartungsformular__wert {
+    margin: 0;
+    padding-top: 8px;
+    font-weight: 500;
+}
+
+.wartungsformular .schild__titel {
+    font-size: 17px;
+}
+
+.wartungsformular .schild__aktionen {
+    justify-content: flex-end;
+    padding-bottom: 14px;
+}
+
+.wartungsformular__buchungen {
+    margin: 2px 0 0;
+    padding-left: 1.1rem;
+}
+
+.wartungsformular__keine {
+    margin: 0;
+}
+
+/* Handy: Tabelle als Stapel. Das Formular füllt seine Karte, Zahlen stehen
+   links unter ihrem Label, die Knöpfe sind groß genug zum Tippen. */
+@media (max-width: 700px) {
+    .fahrzeugliste .table__formular > td {
+        padding: 0;
+        font-size: 16px;
+    }
+
+    .fahrzeugliste .table__num {
+        text-align: left;
+    }
+
+    .fahrzeugliste .aktionen > * {
+        flex: 1 1 0;
+    }
+
+    .fahrzeugliste .aktionen .button {
+        width: 100%;
+        min-height: 44px;
+    }
+}
+
+/* Kleines Bild vor dem Kennzeichen in der Fahrzeugliste */
+.fahrzeugliste__bild {
+    display: block;
+    width: 72px;
+    aspect-ratio: 3 / 2;
+    margin-bottom: 6px;
+    object-fit: cover;
+    border: 1px solid var(--haar);
+    border-radius: var(--radius-klein);
+}
+
+.fahrzeugliste__bild--platzhalter {
+    display: grid;
+    place-items: center;
+    background: var(--alu);
+    color: var(--grau);
+    font-size: 11px;
+}
+
+/* Ende 8c */
+
+/* --- 8d. Steckbrief (fahrzeug.php) ------------------------------------------ */
+
+/* Abstand zwischen dem Fahrzeug-Schild und den Abschnitten darunter */
+.steckbrief__abschnitt {
+    margin-top: 32px;
+}
+
+/* Bild links, daneben die Merkmale in zwei Spalten. Unter 60rem steht das
+   Bild als Band über den Merkmalen. */
+.steckbrief__inhalt {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .steckbrief__bild {
+    display: block;
     width: 100%;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 5 / 2;
+    max-height: 16rem;
     object-fit: cover;
-    border-radius: calc(var(--radius) - 2px);
+    border-bottom: 1px solid var(--haar);
 }
 
-/* Platzhalter, bis es echte Fahrzeugbilder gibt. */
+/* Fahrzeug ohne Bild */
 .steckbrief__bild--platzhalter {
     display: grid;
     place-items: center;
-    background: var(--farbe-hinter);
-    color: var(--farbe-gedaempft);
+    background: var(--alu);
+    color: var(--grau);
+    font-size: 13px;
 }
 
-.steckbrief__daten p:first-child {
-    margin-top: 0;
+/* Merkmale: zwei Spalten, Haarlinien zwischen den Feldern und Zeilen */
+.felder.felder--steckbrief {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-auto-flow: row;
 }
 
-.merkmale {
+.felder--steckbrief .feld:nth-child(odd) {
+    border-right: 1px solid var(--haar);
+}
+
+.felder--steckbrief .feld:nth-child(even) {
+    border-right: none;
+}
+
+.felder--steckbrief .feld:nth-child(n+3) {
+    border-top: 1px solid var(--haar);
+}
+
+@container (min-width: 60rem) {
+    .steckbrief__inhalt {
+        grid-template-columns: 20rem minmax(0, 1fr);
+    }
+
+    /* Das Bild füllt die Höhe der Merkmale, mindestens 4 : 3 */
+    .steckbrief__bild {
+        height: 100%;
+        min-height: 15rem;
+        max-height: none;
+        aspect-ratio: auto;
+        border-right: 1px solid var(--haar);
+        border-bottom: none;
+        border-bottom-left-radius: 3px;
+    }
+}
+
+/* Belegung: je Tag ein Feld, zwei Reihen zu sieben Tagen. Jedes Feld hat
+   rechts und unten eine Haarlinie; die Liste ragt 1px über den Rand, dort
+   schneidet das Schild die Linien ab (die Flächen bleiben bis zum Rand). */
+.steckbrief__belegung {
+    overflow: hidden;
+}
+
+.steckbrief__tage {
     display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.4rem var(--abstand);
-    margin: 0 0 calc(var(--abstand) * 1.5);
-}
-
-.merkmale dt {
-    color: var(--farbe-gedaempft);
-}
-
-.merkmale dd {
-    margin: 0;
-    font-weight: 600;
-}
-
-/* Belegung als Tagesleiste. Die Zustände nutzen dieselben Farben wie die
-   Status-Badges. */
-.belegung {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 0.4rem;
-    margin: 0;
+    grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+    margin: 0 -1px -1px 0;
     padding: 0;
     list-style: none;
 }
 
-.belegung__tag {
+@container (min-width: 56rem) {
+    .steckbrief__tage {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+}
+
+.steckbrief__tag {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 0.5rem 0.25rem;
-    border: 1px solid var(--farbe-rand);
-    border-radius: var(--radius);
-    background: var(--farbe-flaeche);
-    font-size: 0.85rem;
-    text-align: center;
+    gap: 2px;
+    min-width: 0;
+    padding: 10px 14px 12px;
+    border-right: 1px solid var(--haar);
+    border-bottom: 1px solid var(--haar);
 }
 
-.belegung__tag--frei     { background: #e6f4ec; color: var(--farbe-gruen); }
-.belegung__tag--vergeben { background: #fdf2f2; color: var(--farbe-rot); }
-.belegung__tag--wartung  { background: var(--farbe-wartung); color: var(--farbe-gelb); }
+/* Helle Ampelfläche nur hinter belegten Tagen */
+.steckbrief__tag--frei     { background: var(--gruen-flaeche); }
+.steckbrief__tag--vergeben { background: var(--alu); }
+.steckbrief__tag--wartung  { background: var(--gelb-flaeche); }
 
-.belegung__wochentag {
+.steckbrief__datum {
+    color: var(--grau);
+    font-family: var(--schrift-label);
+    font-size: 11.5px;
     font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    white-space: nowrap;
 }
 
-.belegung__datum {
-    color: var(--farbe-text);
+/* Fahrer eines vergebenen Tags, nur für den Fuhrparkleiter */
+.steckbrief__fahrer {
+    overflow: hidden;
+    color: var(--grau);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.belegung__zustand {
-    font-size: 0.8rem;
+/* Link unter der Tabelle der offenen Schäden */
+.steckbrief__abschnitt .table + .weiter {
+    margin-top: 10px;
 }
 
-/* Buchungskalender (kalender.php): Fahrzeuge × 14 Tage. Der Rahmen scrollt
-   seitlich, die Fahrzeugspalte bleibt dabei stehen. Farben wie bei der
-   Tagesleiste. */
+/* Handy: Fahrtenbuch als Stapel, Zahlen links unter ihrem Label */
+@media (max-width: 700px) {
+    .fahrtenbuch .table__num {
+        text-align: left;
+    }
+
+    /* Steht eine Zelle allein in ihrer Zeile (danach nur noch der Zustand,
+       z. B. Zweck beim Fahrrad), geht sie über die ganze Breite. */
+    .fahrtenbuch td:nth-child(even):nth-last-child(2) {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Ende 8d */
+
+/* --- 8e. Kalender (kalender.php) -------------------------------------------- */
+
+/* Kopf über dem Kalender: Abschnittstitel mit Zeitraum links, Blättern rechts */
+.kalender-kopf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px 24px;
+    margin-bottom: 12px;
+}
+
+.kalender-kopf .abschnitt {
+    margin: 0;
+}
+
+/* Vor- und zurückblättern, wochenweise */
+.blaettern {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Legende: je Stand ein kleines Muster wie der Balken */
+.legende {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+    color: var(--grau);
+    font-size: 13.5px;
+}
+
+.legende__eintrag {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.legende__muster {
+    flex: none;
+    width: 24px;
+    height: 14px;
+    border: 1px solid var(--linie);
+    border-radius: 2px;
+    background: var(--schild);
+}
+
+/* Rahmen um die Tabelle; er scrollt seitlich, die Fahrzeugspalte bleibt stehen.
+   position: relative hält auch die versteckten Vorlesetexte im Rahmen, sonst
+   wird die ganze Seite am Handy breiter. */
 .kalender {
-    margin-top: var(--abstand);
+    position: relative;
     overflow-x: auto;
-    border: 1px solid var(--farbe-rand);
+    border: 1px solid var(--linie);
     border-radius: var(--radius);
-    background: var(--farbe-flaeche);
+    background: var(--schild);
 }
 
+/* Feste Spalten: alle Tage gleich breit, egal was in den Balken steht */
 .kalender__tabelle {
     width: 100%;
-    min-width: 56rem;
+    min-width: 60rem;
+    table-layout: fixed;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
 }
 
 .kalender__tabelle th,
 .kalender__tabelle td {
     padding: 0;
-    border-bottom: 1px solid var(--farbe-rand);
-    border-left: 1px solid var(--farbe-rand);
-    text-align: center;
+    border-bottom: 1px solid var(--haar);
+    border-left: 1px solid var(--haar);
 }
 
 .kalender__tabelle tbody:last-child tr:last-child > * {
     border-bottom: none;
 }
 
+/* Tagesköpfe: Wochentag als Label, darunter das Datum */
 .kalender__kopf {
-    padding: 0.4rem 0.2rem;
-    background: var(--farbe-hinter);
-    color: var(--farbe-gedaempft);
-    font-weight: 400;
+    padding: 8px 2px 7px;
+    color: var(--tinte);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.3;
+    text-align: center;
     white-space: nowrap;
-}
-
-.kalender__kopf--wochenende {
-    background: #e9edf1;
-}
-
-.kalender__kopf--heute {
-    color: var(--farbe-akzent);
-    box-shadow: inset 0 -3px 0 var(--farbe-akzent);
 }
 
 .kalender__wochentag {
     display: block;
+    color: var(--grau);
+    font-family: var(--schrift-label);
+    font-size: 11.5px;
     font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
 }
 
+.kalender__kopf--wochenende {
+    background: var(--alu);
+}
+
+/* Heute: Linie in Bedienblau an der Unterkante, das Datum fett */
+.kalender__kopf--heute {
+    font-weight: 700;
+    box-shadow: inset 0 -3px 0 var(--aktion);
+}
+
+/* Fahrzeugspalte: Kennzeichen und Modell wie die erste Spalte jeder Tabelle */
 .kalender__tabelle .kalender__fahrzeug {
     position: sticky;
     left: 0;
     z-index: 1;
-    min-width: 11rem;
-    padding: 0.4rem 0.75rem;
+    width: 12.5rem;
+    padding: 8px 14px;
     border-left: none;
-    background: var(--farbe-flaeche);
+    background: var(--schild);
     text-align: left;
-    white-space: nowrap;
+    vertical-align: middle;
 }
 
 .kalender__tabelle thead .kalender__fahrzeug {
-    background: var(--farbe-hinter);
-    color: var(--farbe-gedaempft);
+    color: var(--grau);
+    font-family: var(--schrift-label);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    vertical-align: bottom;
 }
 
-.kalender__modell {
-    display: block;
-    color: var(--farbe-gedaempft);
-    font-size: 0.8rem;
-    font-weight: 400;
+.kalender__fahrzeug .table__zusatz {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
+/* Gruppe (Fahrzeugart): Label auf Alu; der Name bleibt beim Scrollen links */
 .kalender__tabelle .kalender__gruppe th {
-    padding: 0.35rem 0.75rem;
+    padding: 5px 14px;
     border-left: none;
-    background: var(--farbe-hinter);
-    color: var(--farbe-gedaempft);
-    font-size: 0.75rem;
+    background: var(--alu);
+    color: var(--grau);
+    font-family: var(--schrift-label);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
     text-align: left;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
 }
 
-/* Die ganze Zelle ist anklickbar, nicht nur der Kurztext. */
-.kalender__inhalt {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 3.25rem;
-    min-height: 2.75rem;
-    padding: 0 0.2rem;
-    color: inherit;
-    text-decoration: none;
+.kalender__gruppe th > span {
+    position: sticky;
+    left: 14px;
 }
 
-a.kalender__inhalt:hover,
-a.kalender__inhalt:focus-visible {
-    outline: 2px solid var(--farbe-akzent);
-    outline-offset: -2px;
+/* Freier Tag; am Wochenende leicht in Alu */
+.kalender__tag--wochenende {
+    background: color-mix(in srgb, var(--alu) 55%, var(--schild));
 }
 
-.kalender__zelle--frei     { background: #e6f4ec; color: var(--farbe-gruen); }
-.kalender__zelle--vergeben { background: #f6dcdc; color: var(--farbe-rot); }
-.kalender__zelle--wartung  { background: var(--farbe-wartung); color: var(--farbe-gelb); }
-
-/* Mitarbeiter: Tag ohne eigene Buchung. Bewusst nicht „frei“, denn dort kann
-   jemand anderes gebucht haben. */
-.kalender__zelle--leer     { background: var(--farbe-flaeche); }
-
-/* Beantragt: noch nicht entschieden, daher nur schraffiert. */
-.kalender__zelle--beantragt {
-    background: repeating-linear-gradient(135deg, #f6dcdc 0 5px, #fdf2f2 5px 10px);
-    color: var(--farbe-rot);
+/* Belegte Zelle über die Tage des Balkens (colspan) */
+.kalender__belegt {
+    padding: 7px 3px;
+    vertical-align: middle;
 }
 
-.kalender__zelle--ueberfaellig {
-    background: #e9b4b4;
+/* Balken: helle Fläche, Rand und Schrift in der Ampelfarbe des Stands. Die
+   schmale Schrift, damit „Überfällig“ in einen Tag passt. */
+.kalender__balken {
+    display: block;
+    height: 32px;
+    padding: 0 6px;
+    overflow: hidden;
+    border: 1px solid var(--linie);
+    border-radius: var(--radius-klein);
+    font-family: var(--schrift-label);
+    font-size: 14px;
     font-weight: 600;
+    line-height: 30px;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-/* Legende über dem Kalender; die Muster nutzen die Zellklassen. */
-.legende {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem var(--abstand);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    color: var(--farbe-gedaempft);
-    font-size: 0.85rem;
+a.kalender__balken:hover {
+    border-color: currentColor;
 }
 
-.legende__eintrag {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
+.kalender__balken--gruen {
+    border-color: color-mix(in srgb, var(--gruen) 40%, var(--schild));
+    background: var(--gruen-flaeche);
+    color: var(--gruen);
 }
 
-.legende__muster {
-    display: inline-block;
-    width: 1.1rem;
-    height: 1.1rem;
-    border: 1px solid var(--farbe-rand);
-    border-radius: 3px;
+.kalender__balken--gelb {
+    border-color: color-mix(in srgb, var(--gelb) 40%, var(--schild));
+    background: var(--gelb-flaeche);
+    color: var(--gelb);
 }
 
-/* --- 5. Fuß --------------------------------------------------------------- */
-
-.site-footer {
-    padding: var(--abstand) 0;
-    border-top: 1px solid var(--farbe-rand);
-    background: var(--farbe-flaeche);
-    color: var(--farbe-gedaempft);
-    font-size: 0.875rem;
+.kalender__balken--rot {
+    border-color: color-mix(in srgb, var(--rot) 45%, var(--schild));
+    background: var(--rot-flaeche);
+    color: var(--rot);
 }
 
-.site-footer p {
-    margin: 0;
+.kalender__balken--grau {
+    border-color: var(--linie);
+    background: var(--alu);
+    color: var(--grau);
 }
 
-/* --- 6. Mobil ------------------------------------------------------------- */
+/* Antrag, noch nicht entschieden: nur gestrichelt umrandet */
+.kalender__balken--antrag {
+    border-style: dashed;
+    border-color: var(--gelb);
+    background: var(--schild);
+}
+
+/* Balken, der vor bzw. nach dem Zeitraum weitergeht: dort gerade
+   abgeschnitten und bis an den Rand der Zelle */
+.kalender__belegt--davor {
+    padding-left: 0;
+}
+
+.kalender__belegt--davor .kalender__balken {
+    border-left: none;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.kalender__belegt--danach {
+    padding-right: 0;
+}
+
+.kalender__belegt--danach .kalender__balken {
+    border-right: none;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Handy: schmale Fahrzeugspalte nur mit Kennzeichen, die Tabelle scrollt im
+   Rahmen; Blättern über die ganze Breite */
+@media (max-width: 700px) {
+    /* Tage so breit wie am Desktop, damit „Überfällig“ in einen Tag passt */
+    .kalender__tabelle {
+        min-width: 70rem;
+    }
+
+    .kalender__tabelle .kalender__fahrzeug {
+        width: 6.5rem;
+        padding: 8px 10px;
+    }
+
+    .kalender__fahrzeug .table__zusatz {
+        display: none;
+    }
+
+    .blaettern {
+        flex-basis: 100%;
+    }
+
+    .blaettern .button {
+        flex: 1 1 0;
+        min-height: 44px;
+    }
+}
+
+/* Ende 8e */
+
+/* --- 8f. Historie (historie.php) -------------------------------------------- */
+
+/* Filterleiste mit Zeitraum: Von und Bis schmal, die beiden Auswahlen teilen
+   sich den Rest. So passt alles in eine Zeile. */
+.historie-filter .filter__feld {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.historie-filter .historie-filter__datum {
+    flex: 0 1 10rem;
+}
+
+/* Datum in einer Zeile; lange Wörter der Beschreibung dürfen umbrechen, damit
+   die Tabelle nie breiter als die Seite wird */
+.historie-tabelle__datum {
+    white-space: nowrap;
+}
+
+.historie-tabelle .table__breit {
+    overflow-wrap: anywhere;
+}
+
+/* Die Beschreibung bekommt genug Breite für kurze Sätze */
+.historie-tabelle .historie-tabelle__beschreibung {
+    min-width: 15rem;
+}
 
 @media (max-width: 700px) {
+    /* Von und Bis nebeneinander, die Auswahlen darunter über die ganze Breite */
+    .historie-filter .filter__feld {
+        flex-basis: 100%;
+    }
+
+    .historie-filter .historie-filter__datum {
+        flex: 1 1 8rem;
+    }
+
+    /* Stapel: Datum über die ganze Breite, darunter Fahrer | Zweck und
+       km-Stand Anfang | Ende. Die Haarlinie steht daher vor der rechten
+       Zelle jedes Paars, nicht vor jeder ungeraden. */
+    .table.historie-tabelle td.historie-tabelle__datum {
+        grid-column: 1 / -1;
+    }
+
+    .table.historie-tabelle td:not(.table__stand):not(.historie-tabelle__rechts) {
+        border-left: none;
+    }
+
+    .table.historie-tabelle td.historie-tabelle__rechts {
+        border-left: 1px solid var(--haar);
+    }
+
+    /* Zahlen links unter ihrem Label */
+    .historie-tabelle .table__num {
+        text-align: left;
+    }
+}
+
+/* Ende 8f */
+
+/* --- 8g. Dashboard (dashboard.php) ------------------------------------------ */
+/* Nur das Nötige für Kennzahlen und Balken; die Diagramme gestaltet die
+   Design-Runde. Die Filterleiste teilt sich die Regeln aus 8f. */
+
+.dashboard__abschnitt {
+    margin-bottom: 32px;
+}
+
+/* Zahl unten im Feld, auch wenn ein Label umbricht */
+.dashboard-kennwerte .feld {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.dashboard-tabelle__balken {
+    width: 40%;
+}
+
+/* Balken: graue Spur, darin der Anteil am größten Wert der Tabelle */
+.balken {
+    display: block;
+    height: 10px;
+    border-radius: var(--radius-klein);
+    background: var(--alu);
+}
+
+.balken__wert {
+    display: block;
+    height: 100%;
+    border-radius: var(--radius-klein);
+    background: var(--grau);
+}
+
+@media (max-width: 700px) {
+    .dashboard-kennwerte .felder {
+        grid-auto-flow: row;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-tabelle__balken {
+        width: 30%;
+    }
+}
+
+/* Ende 8g */
+
+/* --- 9. Fuß ----------------------------------------------------------------- */
+
+.fussleiste {
+    border-top: 1px solid var(--linie);
+    color: var(--grau);
+    font-size: 13.5px;
+}
+
+.fussleiste__innen {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 24px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+}
+
+.fussleiste__block p + p {
+    margin-top: 2px;
+}
+
+.fussleiste p {
+    margin: 0;
+}
+
+/* --- 10. Schmale Bildschirme ------------------------------------------------ */
+
+/* Der Name passt neben die volle Navigation erst auf breiten Bildschirmen. */
+@media (max-width: 1240px) {
+    .nav__name {
+        display: none;
+    }
+}
+
+/* Navigation hinter dem Menü-Knopf. Ohne JavaScript bleibt sie offen. */
+@media (max-width: 1080px) {
+    .kopfleiste__innen {
+        flex-wrap: wrap;
+        gap: 0 16px;
+    }
+
     .nav-toggle {
         display: block;
     }
 
     .nav {
-        display: none;
         flex-direction: column;
-        align-items: stretch;
         flex-basis: 100%;
-        padding-bottom: var(--abstand);
+        gap: 0;
+        padding-bottom: 12px;
+    }
+
+    .js .nav {
+        display: none;
     }
 
     /* Wird von assets/js/main.js gesetzt. */
-    .nav--offen {
+    .js .nav--offen {
         display: flex;
     }
 
-    .site-header__inner {
-        flex-wrap: wrap;
+    .nav__link {
+        min-height: 44px;
+        padding: 0 12px;
+        border-radius: var(--radius-klein);
     }
 
-    .nav__link--right {
+    .nav__link--aktiv {
+        background: var(--zelle-hell);
+        box-shadow: none;
+    }
+
+    .nav__nutzer {
+        flex-wrap: wrap;
+        margin: 8px 0 0;
+        padding-top: 8px;
+        border-top: 1px solid rgb(255 255 255 / 0.15);
+    }
+
+    .nav__name {
+        display: block;
+        padding: 0 12px;
+    }
+}
+
+@media (max-width: 900px) {
+    .uebersicht {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 700px) {
+    .container {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .seite {
+        padding-top: 20px;
+    }
+
+    /* Filterleiste: jede Auswahl über die ganze Breite */
+    .filter__feld,
+    .filter__feld--schmal {
+        flex-basis: 100%;
+    }
+
+    .seitenkopf {
+        margin-bottom: 18px;
+    }
+
+    .seitenkopf__titel {
+        font-size: 26px;
+    }
+
+    /* Hauptaktion in voller Breite unter dem Titel */
+    .seitenkopf__aktion {
+        flex-basis: 100%;
         margin-left: 0;
+    }
+
+    /* Meldung kompakt: Knopf rechts neben dem Text, Zusatz nur am Desktop */
+    .banner {
+        margin-top: 12px;
+    }
+
+    .banner__zeile,
+    .seite .banner {
+        flex-wrap: nowrap;
+        gap: 12px;
+        padding: 6px 6px 6px 12px;
+    }
+
+    .banner__text {
+        flex: 1 1 auto;
+    }
+
+    .banner__zusatz {
+        display: none;
+    }
+
+    .banner .banner__knopf {
+        flex: none;
+        min-height: 40px;
+    }
+
+    .banner__liste {
+        padding: 0 12px 6px;
+    }
+
+    /* Im Inhalt (buchen.php) ist der Text länger: Knopf darunter */
+    .seite .banner {
+        flex-wrap: wrap;
+        padding: 8px 8px 8px 12px;
+    }
+
+    .seite .banner .banner__knopf {
+        flex-basis: 100%;
+    }
+
+    /* Aktionen im Schild: groß und gut tippbar */
+    .schild__aktionen .button {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .schild__aktionen .aktionen > *,
+    .schild .aktionen .klappaktion[open] > summary {
+        flex: 1 1 0;
+    }
+
+    .schild .aktionen .klappaktion[open] > .klappaktion__form,
+    .schild .aktionen .klappaktion[open]::details-content {
+        flex: 1 1 100%;
+    }
+
+    .klappaktion__form .button {
+        align-self: stretch;
     }
 
     .table {
@@ -953,20 +2411,83 @@ a.kalender__inhalt:focus-visible {
         overflow-x: auto;
     }
 
-    .steckbrief {
-        grid-template-columns: 1fr;
+    /* Tabelle als Stapel: jede Zeile ein kleines Schild, das Kennzeichen als
+       Kopf, darunter die Zellen 2 × 2 mit ihrem Label aus data-label. */
+    .table--stapel,
+    .table--stapel tbody,
+    .table--stapel td {
+        display: block;
     }
 
-    .belegung {
-        grid-template-columns: repeat(4, 1fr);
+    .table--stapel {
+        overflow: visible;
+        border: none;
+        background: none;
     }
 
-    /* Schmalere Fahrzeugspalte, damit neben ihr noch Tage sichtbar sind. */
-    .kalender__tabelle .kalender__fahrzeug {
-        min-width: 7rem;
-    }
-
-    .kalender__modell {
+    .table--stapel thead {
         display: none;
+    }
+
+    .table--stapel tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        margin-bottom: 12px;
+        border: 1px solid var(--linie);
+        border-radius: var(--radius);
+        background: var(--schild);
+    }
+
+    .table--stapel td,
+    .table--stapel tr:last-child td {
+        padding: 8px 14px 10px;
+        border-bottom: none;
+        border-top: 1px solid var(--haar);
+    }
+
+    .table--stapel td:first-child {
+        grid-column: 1 / -1;
+        padding-top: 10px;
+        border-top: none;
+        font-size: 18px;
+    }
+
+    .table--stapel td:nth-child(odd):not(:first-child) {
+        border-left: 1px solid var(--haar);
+    }
+
+    /* Stand rechts neben dem Kennzeichen, wie das Feld „Stand“ im Schildkopf */
+    .table--stapel tr:has(.table__stand) td:first-child {
+        grid-column: 1;
+    }
+
+    .table--stapel .table__stand {
+        grid-row: 1;
+        grid-column: 2;
+        padding-top: 10px;
+        border-top: none;
+        border-left: 1px solid var(--haar);
+    }
+
+    /* Langer Text, z. B. eine Begründung: über die ganze Breite, zuletzt */
+    .table--stapel .table__breit {
+        grid-column: 1 / -1;
+        border-left: none;
+    }
+
+    /* Zelle ohne Wert („–“) fällt im Stapel weg */
+    .table--stapel .table__leer {
+        display: none;
+    }
+
+    .table--stapel td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        color: var(--grau);
+        font-family: var(--schrift-label);
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
     }
 }

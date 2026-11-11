@@ -201,6 +201,7 @@ CREATE TABLE buchungen (
     entscheidung_von       INT UNSIGNED     NULL,      -- Fuhrparkleiter
     entscheidung_am        DATETIME         NULL,
     entscheidung_kommentar TEXT             NULL,      -- Pflicht bei Ablehnung
+    entscheidung_gelesen_am DATETIME        NULL,      -- Ablehnung bzw. Stornierung gelesen
 
     -- Fahrt beginnen; vorhandene Schäden stehen in der Tabelle schaeden
     begonnen_am            DATETIME         NULL,

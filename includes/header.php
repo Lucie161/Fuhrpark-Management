@@ -1,10 +1,16 @@
 <?php
 /**
- * Kopfbereich jeder Seite: <head>, Navigation, Öffnen der Layout-Container.
+ * Kopfbereich jeder Seite: <head>, Kopfleiste mit Navigation, Seitentitel.
  *
- * Die aufrufende Seite kann vorher $pageTitle setzen:
- *   $pageTitle = 'Fahrzeuge';
- *   require_once __DIR__ . '/includes/header.php';
+ * Die aufrufende Seite kann vorher setzen:
+ *   $pageTitle        Titel der Seite, z. B. 'Fahrzeuge'
+ *   $pageZusatz       kurzer Text neben dem Titel, z. B. das Datum
+ *   $pageAktion       ['Beschriftung', 'datei.php'] für einen Knopf rechts
+ *                     neben dem Titel
+ *   $pageZurueck      ['Beschriftung', 'datei.php'] für einen Link über dem
+ *                     Titel, z. B. ['Meine Buchungen', 'meine-buchungen.php']
+ *   $bannerFahrten         überfällige Fahrten für die rote Meldung (includes/banner.php)
+ *   $bannerEntscheidungen  ungelesene Ablehnungen und Stornierungen (ebenda)
  */
 
 declare(strict_types=1);
@@ -24,6 +30,7 @@ $nav = [
     'kalender.php'            => ['Kalender',            [ROLLE_MITARBEITER, ROLLE_FUHRPARKLEITER]],
     'genehmigungen.php'       => ['Anträge genehmigen',  [ROLLE_FUHRPARKLEITER]],
     'historie.php'            => ['Historie',            [ROLLE_FUHRPARKLEITER]],
+    'dashboard.php'           => ['Dashboard',           [ROLLE_FUHRPARKLEITER]],
 ];
 
 // Seiten ohne eigenen Navigationspunkt => Punkt, der für sie aktiv ist.
@@ -33,6 +40,9 @@ $navUnterseiten = [
 ];
 
 $aktiveSeite = $navUnterseiten[basename($_SERVER['SCRIPT_NAME'])] ?? basename($_SERVER['SCRIPT_NAME']);
+
+// Name des Angemeldeten rechts in der Kopfleiste
+$Angemeldet = is_logged_in() ? CNutzer::LoadByID(aktueller_nutzer()) : null;
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -41,12 +51,23 @@ $aktiveSeite = $navUnterseiten[basename($_SERVER['SCRIPT_NAME'])] ?? basename($_
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($pageTitle) ?> &ndash; <?= e(APP_NAME) ?></title>
     <link rel="stylesheet" href="<?= url('assets/css/style.css') ?>">
+    <!-- Mit JavaScript klappt die Navigation auf dem Handy erst auf Knopfdruck auf. -->
+    <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
 
-<header class="site-header">
-    <div class="container site-header__inner">
-        <a class="logo" href="<?= url('index.php') ?>"><?= e(APP_NAME) ?></a>
+<header class="kopfleiste">
+    <div class="container kopfleiste__innen">
+        <a class="logo" href="<?= url('index.php') ?>">
+            <svg class="logo__zeichen" viewBox="0 0 18 18" aria-hidden="true">
+                <rect x="1" y="1" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"/>
+                <rect x="4" y="4" width="4" height="4" fill="currentColor"/>
+                <rect x="10" y="4" width="4" height="4" fill="currentColor"/>
+                <rect x="4" y="10" width="4" height="4" fill="currentColor"/>
+                <rect x="10" y="10" width="4" height="4" fill="currentColor"/>
+            </svg>
+            <?= e(APP_NAME) ?>
+        </a>
 
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="hauptnavigation">
             Menü
@@ -55,25 +76,53 @@ $aktiveSeite = $navUnterseiten[basename($_SERVER['SCRIPT_NAME'])] ?? basename($_
         <nav id="hauptnavigation" class="nav">
             <?php foreach ($nav as $datei => [$beschriftung, $navRollen]): ?>
                 <?php if (is_logged_in() && in_array(aktuelle_rolle(), $navRollen, true)): ?>
-                    <a class="nav__link<?= $datei === $aktiveSeite ? ' nav__link--active' : '' ?>"
-                       href="<?= url($datei) ?>"><?= e($beschriftung) ?></a>
+                    <a class="nav__link<?= $datei === $aktiveSeite ? ' nav__link--aktiv' : '' ?>"
+                       href="<?= url($datei) ?>"<?= $datei === $aktiveSeite ? ' aria-current="page"' : '' ?>><?= e($beschriftung) ?></a>
                 <?php endif; ?>
             <?php endforeach; ?>
 
-            <?php if (is_logged_in()): ?>
-                <a class="nav__link nav__link--right" href="<?= url('login.php?logout=1') ?>">Abmelden</a>
-            <?php else: ?>
-                <a class="nav__link nav__link--right<?= is_current('login.php') ? ' nav__link--active' : '' ?>"
-                   href="<?= url('login.php') ?>">Anmelden</a>
-            <?php endif; ?>
+            <div class="nav__nutzer">
+                <?php if ($Angemeldet !== null): ?>
+                    <span class="nav__name"><?= e($Angemeldet->GetName()) ?></span>
+                    <a class="nav__link nav__link--klein" href="<?= url('login.php?logout=1') ?>">Abmelden</a>
+                <?php else: ?>
+                    <a class="nav__link<?= is_current('login.php') ? ' nav__link--aktiv' : '' ?>"
+                       href="<?= url('login.php') ?>">Anmelden</a>
+                <?php endif; ?>
+            </div>
         </nav>
     </div>
 </header>
 
-<main class="container">
-    <h1 class="page-title"><?= e($pageTitle) ?></h1>
+<?php if (($bannerFahrten ?? []) !== [] || ($bannerEntscheidungen ?? []) !== []): ?>
+    <?php require __DIR__ . '/banner.php'; ?>
+<?php endif; ?>
+
+<main class="container seite">
+    <?php if (isset($pageZurueck)): ?>
+        <p class="seitenkopf__zurueck">
+            <a href="<?= url($pageZurueck[1]) ?>">&larr; <?= e($pageZurueck[0]) ?></a>
+        </p>
+    <?php endif; ?>
+
+    <div class="seitenkopf">
+        <h1 class="seitenkopf__titel"><?= e($pageTitle) ?></h1>
+
+        <?php if (isset($pageZusatz)): ?>
+            <p class="seitenkopf__zusatz"><?= e($pageZusatz) ?></p>
+        <?php endif; ?>
+
+        <?php if (isset($pageAktion)): ?>
+            <a class="button seitenkopf__aktion" href="<?= url($pageAktion[1]) ?>"><?= e($pageAktion[0]) ?></a>
+        <?php endif; ?>
+    </div>
 
     <?php $meldung = hole_meldung(); ?>
     <?php if ($meldung !== null): ?>
-        <p class="alert alert--<?= e($meldung['art']) ?>"><?= e($meldung['text']) ?></p>
+        <p class="alert alert--<?= e($meldung['art']) ?>">
+            <?= e($meldung['text']) ?>
+            <?php if (($meldung['link'] ?? null) !== null): ?>
+                <a class="alert__link" href="<?= url($meldung['link'][1]) ?>"><?= e($meldung['link'][0]) ?></a>
+            <?php endif; ?>
+        </p>
     <?php endif; ?>

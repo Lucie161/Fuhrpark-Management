@@ -60,24 +60,30 @@ require_once __DIR__ . '/includes/header.php';
     <p class="alert"><?= e($fehler) ?></p>
 <?php endif; ?>
 
-<form class="form" method="post" action="<?= url('login.php') ?>">
-    <div class="form__row">
-        <label class="form__label" for="nutzer">Name</label>
-        <select class="form__input" id="nutzer" name="nutzer" required autocomplete="username">
-            <option value="">bitte wählen</option>
-            <?php foreach ($ListeNutzer->GetAlle() as $Eintrag): ?>
-                <option value="<?= e((string) $Eintrag->GetID()) ?>"<?= $Eintrag->GetID() === $nutzerId ? ' selected' : '' ?>><?= e($Eintrag->GetName()) ?></option>
-            <?php endforeach; ?>
-        </select>
-    </div>
+<form class="schild schild--formular schild--schmal" method="post" action="<?= url('login.php') ?>">
+    <div class="schild__koerper">
+        <div class="formfelder">
+            <div class="formfeld">
+                <label class="form__label" for="nutzer">Name</label>
+                <select class="form__input" id="nutzer" name="nutzer" required autocomplete="username">
+                    <option value="">bitte wählen</option>
+                    <?php foreach ($ListeNutzer->GetAlle() as $Eintrag): ?>
+                        <option value="<?= e((string) $Eintrag->GetID()) ?>"<?= $Eintrag->GetID() === $nutzerId ? ' selected' : '' ?>><?= e($Eintrag->GetName()) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
 
-    <div class="form__row">
-        <label class="form__label" for="passwort">Passwort</label>
-        <input class="form__input" type="password" id="passwort" name="passwort"
-               autocomplete="current-password" required>
-    </div>
+            <div class="formfeld">
+                <label class="form__label" for="passwort">Passwort</label>
+                <input class="form__input" type="password" id="passwort" name="passwort"
+                       autocomplete="current-password" required>
+            </div>
+        </div>
 
-    <button class="button" type="submit">Anmelden</button>
+        <div class="schild__aktionen">
+            <button class="button" type="submit">Anmelden</button>
+        </div>
+    </div>
 </form>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

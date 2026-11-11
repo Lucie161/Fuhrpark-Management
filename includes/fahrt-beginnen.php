@@ -6,6 +6,9 @@
  * der Fahrer die noch nicht behobenen Schäden des Fahrzeugs, damit sie ihm
  * nicht zugerechnet werden.
  *
+ * Ist die Fahrt gesperrt, weil das Fahrzeug nicht bereitsteht, gibt es einen
+ * Link zur Suche nach einem Ersatzfahrzeug im selben Zeitraum.
+ *
  * Bei einem Luxusauto kann die Fahrt trotz eines notierten Schadens beginnen;
  * nach der Rückgabe geht es in die Wartung.
  *
@@ -28,6 +31,15 @@ $FahrtOffeneSchaeden->LadenOffene($Buchung->GetFahrzeugID());
 ?>
 <?php if ($fahrtSperre !== null): ?>
     <span class="table__zusatz">Fahrt beginnen nicht möglich. <?= e($fahrtSperre) ?></span>
+    <?php
+    // Liegt es am Fahrzeug und nicht an der eigenen Rückgabe: Ersatz suchen
+    $fahrtErsatz = CNutzer::LoadByID(aktueller_nutzer())->GetSperreBuchen() === null
+        ? ersatz_link($Buchung, aktueller_nutzer())
+        : null;
+    ?>
+    <?php if ($fahrtErsatz !== null): ?>
+        <a class="button button--klein button--zweitrangig" href="<?= e(url($fahrtErsatz)) ?>">Ersatzfahrzeug buchen</a>
+    <?php endif; ?>
 <?php else: ?>
     <details class="klappaktion"<?= $fahrtOffen ? ' open' : '' ?>>
         <summary class="button button--klein">Fahrt beginnen</summary>

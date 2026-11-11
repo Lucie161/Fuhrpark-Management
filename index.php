@@ -1,21 +1,23 @@
 <?php
 /**
- * Überblick nach der Anmeldung, je Rolle.
+ * Überblick nach der Anmeldung, je Rolle. Jede Buchung und jeder neue Schaden
+ * steht als Schild: Kennzeichen im Kopf, Kennwerte in Feldern, Aktionen rechts.
  *
- * Beide Rollen: ganz oben ein rotes Banner, sobald eine Rückgabe überfällig
- * ist. Mitarbeiter: Banner nur für die eigenen Fahrten mit „Jetzt
- * zurückgeben“, darunter aktive Buchung mit „Fahrt beginnen“, laufende Fahrt
- * und höchstens drei noch nicht bestätigte Anträge. Fuhrparkleiter: Banner mit der Anzahl,
- * die Liste (Fahrer zuerst) hinter „Details“; dann „Zu erledigen“ mit den drei
- * ältesten offenen Anträgen zum direkten Entscheiden und den offenen
- * Schäden, zuletzt „Fuhrpark“ mit den Fahrzeugen nach Status. Er bucht nicht
- * selbst und hat daher keine eigenen Fahrten.
+ * Beide Rollen: ganz oben eine rote Meldung, sobald eine Rückgabe überfällig
+ * ist (includes/banner.php).
  *
- * Mitarbeiter: eigene Buchungen aus CListeBuchungen::LadenAktuelle().
- * Fuhrparkleiter: Fahrzeuge aus CListeFahrzeuge::LadenImBestand(),
- * überfällige Rückgaben aus CListeBuchungen::LadenUeberfaellige(), offene
- * Anträge aus LadenOffeneAntraege() mit CBuchung::GetGenehmigungHindernis(),
- * die Schäden aus CListeSchaeden::CountSperrende().
+ * Mitarbeiter: oben je eine Benachrichtigung über eine Ablehnung oder eine
+ * Stornierung wegen Wartung, bis sie mit „Gelesen“ weggeklickt wird. Links
+ * „Meine Fahrten“ mit laufender Fahrt („Zurückgeben“), Fahrt, die beginnen
+ * kann („Fahrt beginnen“), und der nächsten genehmigten Fahrt. Rechts
+ * höchstens drei noch nicht bestätigte Anträge.
+ *
+ * Fuhrparkleiter: links „Zu erledigen“ mit den drei ältesten offenen Anträgen
+ * zum direkten Entscheiden. Rechts die neuen Schäden (Fahrzeug gesperrt,
+ * noch ohne Wartungsende), die Zahl der Fahrzeuge, die ein Schaden in
+ * Wartung hält und ein Hinweis auf überschrittene Wartungsenden. Zuletzt über
+ * die ganze Breite der Fuhrpark als eine Feldzeile (Fahrzeuge, frei,
+ * unterwegs, in Wartung, heute). Er bucht nicht selbst.
  */
 
 declare(strict_types=1);
@@ -24,32 +26,57 @@ require_once __DIR__ . '/includes/config.php';
 
 nur_angemeldet();
 
-$pageTitle = 'Übersicht';
-
 $ich = aktueller_nutzer();
-
-// So viele offene Anträge stehen direkt auf der Übersicht: beim
-// Fuhrparkleiter die ältesten zum Entscheiden (die übrigen hinter dem Link auf
-// genehmigungen.php), beim Mitarbeiter die nächsten noch nicht bestätigten
-// (die übrigen in meine-buchungen.php).
-$antraegeAufUebersicht = 3;
-
 $heute = new DateTimeImmutable('today');
 
+// „Gelesen“ an einer Benachrichtigung (includes/banner.php): danach zurück
+// zur Übersicht, ohne JavaScript.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['aktion'] ?? '') === 'gelesen') {
+    $id = (int) (is_string($_POST['buchung'] ?? null) ? $_POST['buchung'] : 0);
+    $GeleseneBuchung = CBuchung::LoadByID($id);
+
+    try {
+        if ($GeleseneBuchung === null) {
+            throw new CFachlicherFehler('Diese Benachrichtigung gibt es nicht.');
+        }
+
+        $GeleseneBuchung->EntscheidungGelesen($ich);
+    } catch (CFachlicherFehler $Fehler) {
+        merke_meldung($Fehler->getMessage(), 'hinweis');
+    }
+
+    redirect('index.php');
+}
+
+$pageTitle = 'Übersicht';
+$pageZusatz = datum_lang($heute);
+
+// So viele offene Anträge stehen direkt auf der Übersicht: beim
+// Fuhrparkleiter die ältesten zum Entscheiden (die übrigen in
+// genehmigungen.php), beim Mitarbeiter die nächsten (die übrigen in
+// meine-buchungen.php).
+$antraegeAufUebersicht = 3;
+
 $Zwecke = new CListeSchluessel('zwecke');
+$Arten = new CListeSchluessel('fahrzeugarten');
 
-// --- Meine Buchungen (nur Mitarbeiter) --------------------------------------
-// Aktiv (Fahrt kann beginnen): genehmigt, heute im Zeitraum, ich bin Fahrer.
-// Laufend: unterwegs, ich bin Fahrer (nur er gibt zurück). Beantragt: noch
-// nicht bestätigt (Status „offen“). Genehmigte Fahrten, die noch nicht
-// begonnen haben, und Fahrten, die ich für andere gebucht habe, stehen nur in
-// meine-buchungen.php.
+// --- Mitarbeiter -------------------------------------------------------------
+// Laufend: unterwegs, ich bin Fahrer (nur er gibt zurück). Aktiv: genehmigt,
+// heute im Zeitraum, ich bin Fahrer. Beantragt: noch nicht bestätigt. Alle
+// übrigen Buchungen stehen in meine-buchungen.php.
 
-$aktive     = [];
 $laufende   = [];
+$aktive     = [];
 $beantragte = [];
+$Naechste   = null;
 
 if (!ist_fuhrparkleiter()) {
+    // „Fahrzeug buchen“ neben dem Titel nur, wenn Buchen gerade möglich ist
+    // (nicht bei eigener überfälliger Rückgabe, dann zeigt das Banner den Weg)
+    if (CNutzer::LoadByID($ich)->GetSperreBuchen() === null) {
+        $pageAktion = ['Fahrzeug buchen', 'buchen.php'];
+    }
+
     // Eigene Buchungen, die nächste zuerst; Namen sind erlaubt
     $ListeMeine = new CListeBuchungen();
     $ListeMeine->LadenAktuelle($ich);
@@ -63,61 +90,78 @@ if (!ist_fuhrparkleiter()) {
             $beantragte[] = $Buchung;
         }
     }
+
+    $Naechste = $ListeMeine->GetNaechsteGenehmigte();
+
+    // Benachrichtigungen über Ablehnungen und Stornierungen wegen Wartung,
+    // bis sie als gelesen markiert sind
+    $ListeEntscheidungen = new CListeBuchungen();
+    $ListeEntscheidungen->LadenUngeleseneEntscheidungen($ich);
+    $bannerEntscheidungen = $ListeEntscheidungen->GetAlle();
+
+    // Rotes Banner: nur die eigenen überfälligen Fahrten
+    $bannerFahrten = array_filter($laufende, fn (CBuchung $Buchung): bool => $Buchung->IstUeberfaellig());
+    $bannerMitNamen = false;
 }
 
 $anzahlBeantragte = count($beantragte);
 $beantragte = array_slice($beantragte, 0, $antraegeAufUebersicht);
 
-// Eigene überfällige Rückgaben (nur Mitarbeiter), für das rote Banner.
-$meineUeberfaelligen = array_filter($laufende, fn (CBuchung $Buchung): bool => $Buchung->IstUeberfaellig());
-
-// --- Fuhrpark (nur Fuhrparkleiter) ------------------------------------------
+// --- Fuhrparkleiter -----------------------------------------------------------
 
 $fuhrpark = null;
 
 if (ist_fuhrparkleiter()) {
     $ListeFahrzeuge = new CListeFahrzeuge();
     $ListeFahrzeuge->LadenImBestand();
-    $fahrzeuge = $ListeFahrzeuge->GetAlle();
 
     // Überfällige Rückgaben mit Fahrernamen, die älteste zuerst
     $ListeUeberfaellige = new CListeBuchungen();
     $ListeUeberfaellige->LadenUeberfaellige(true);
 
+    $bannerFahrten = $ListeUeberfaellige->GetAlle();
+    $bannerMitNamen = true;
+
     // Offene Anträge, älteste zuerst, wie in genehmigungen.php
     $ListeAntraege = new CListeBuchungen();
     $ListeAntraege->LadenOffeneAntraege();
 
-    // Zu erledigen sind nur Schäden, mit denen ein Fahrzeug in Wartung steht.
-    // Kleinschäden sperren nichts und müssen nicht sofort behoben werden; sie
-    // stehen in schaeden.php. Bei Luxusautos sperrt auch ein Kleinschaden,
-    // aber erst ab der Rückgabe; gezählt wird, was das Fahrzeug schon in
-    // Wartung hält.
+    // Gezählt werden nur Schäden, mit denen ein Fahrzeug in Wartung steht.
+    // Kleinschäden sperren nichts; sie stehen in schaeden.php.
     $ListeSchaeden = new CListeSchaeden();
     $ListeSchaeden->LadenAlle();
 
-    // Status je Fahrzeug wie in fahrzeuge.php: Wartung geht vor unterwegs,
+    // Neue Schäden: Wartung nach einer Rückgabe mit Schaden, noch ohne Ende.
+    // Dazu Wartungen, deren geplantes Ende vorbei ist. Der Fuhrparkleiter
+    // trägt ein Wartungsende ein oder gibt das Fahrzeug frei.
+    $ListeNeueSchaeden = new CListeWartungen();
+    $ListeNeueSchaeden->LadenNeueSchaeden();
+
+    $ListeUeberschritten = new CListeWartungen();
+    $ListeUeberschritten->LadenEndeUeberschritten();
+
+    // Fahrten, die heute beginnen oder enden
+    $ListeHeute = new CListeBuchungen();
+    $ListeHeute->LadenHeute();
+
+    // Stand je Fahrzeug wie in fahrzeuge.php: Wartung geht vor unterwegs,
     // so zählt jedes Fahrzeug genau einmal.
     $proStand = ['verfuegbar' => 0, 'unterwegs' => 0, 'wartung' => 0];
 
-    foreach ($fahrzeuge as $Fahrzeug) {
+    foreach ($ListeFahrzeuge->GetAlle() as $Fahrzeug) {
         $proStand[$Fahrzeug->GetStand()]++;
     }
 
     $fuhrpark = [
-        'status' => [
-            ['wert' => $proStand['verfuegbar'], 'label' => 'Fahrzeuge frei'],
-            ['wert' => $proStand['unterwegs'],  'label' => 'unterwegs'],
-            ['wert' => $proStand['wartung'],    'label' => 'in Wartung'],
-        ],
+        'fahrzeuge'       => $ListeFahrzeuge->Count(),
+        'stand'           => $proStand,
         'antraege'        => array_slice($ListeAntraege->GetAlle(), 0, $antraegeAufUebersicht),
         'anzahl_antraege' => $ListeAntraege->Count(),
         'schaeden'        => $ListeSchaeden->CountSperrende(),
-        'ueberfaellig'    => $ListeUeberfaellige->GetAlle(),
-        // Wartungen mit offenem Ende: nach einer Rückgabe mit Schaden noch
-        // nicht festgelegt oder das voraussichtliche Ende ist vorbei. Der
-        // Fuhrparkleiter legt das Ende fest oder gibt das Fahrzeug frei.
-        'wartung_ende_offen' => array_filter($fahrzeuge, fn (CFahrzeug $Fahrzeug): bool => $Fahrzeug->IstWartungEndeOffen()),
+        'neue_schaeden'   => $ListeNeueSchaeden->GetAlle(),
+        'ende_ueberschritten' => $ListeUeberschritten->GetAlle(),
+        'beginnen_heute'  => $ListeHeute->CountBeginnenHeute(),
+        'rueckgaben_heute' => $ListeHeute->CountRueckgabenHeute(),
     ];
 
     // Für das Formular aus includes/antrag-entscheidung.php: nach der
@@ -130,244 +174,337 @@ if (ist_fuhrparkleiter()) {
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<?php if ($fuhrpark !== null && $fuhrpark['ueberfaellig'] !== []): ?>
-    <?php $anzahl = count($fuhrpark['ueberfaellig']); ?>
-    <!-- Rotes Banner nur bei überfälligen Rückgaben; die Liste erst hinter
-         „Details“, ohne JavaScript. -->
-    <div class="banner">
-        <p class="banner__text">
-            <strong><?= e((string) $anzahl) ?> <?= $anzahl === 1 ? 'Rückgabe ist' : 'Rückgaben sind' ?> überfällig.</strong>
-            Bitte mit den Fahrern klären.
-        </p>
-
-        <details class="banner__details">
-            <summary>Details</summary>
-
-            <ul class="banner__liste">
-                <?php foreach ($fuhrpark['ueberfaellig'] as $Fahrt): ?>
-                    <?php $tage = $Fahrt->GetEnde()->diff($heute)->days; ?>
-                    <li>
-                        <?= e($Fahrt->GetFahrerName()) ?>,
-                        <a href="<?= url('fahrzeug.php?id=' . $Fahrt->GetFahrzeugID()) ?>"><?= e($Fahrt->GetFahrzeugName()) ?></a>,
-                        fällig am <?= e($Fahrt->GetEnde()->format('d.m.Y')) ?>,
-                        seit <?= e((string) $tage) ?> <?= $tage === 1 ? 'Tag' : 'Tagen' ?> überfällig
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        </details>
-    </div>
-<?php endif; ?>
-
-<?php if ($fuhrpark === null): ?>
-    <?php foreach ($meineUeberfaelligen as $Buchung): ?>
-        <div class="banner">
-            <p class="banner__text">
-                <strong>Ihre Rückgabe ist überfällig.</strong>
-                <?= e($Buchung->GetFahrzeugName()) ?> war am <?= e($Buchung->GetEnde()->format('d.m.Y')) ?> fällig.
-                Bis zur Rückgabe können Sie nichts Neues buchen und keine andere Fahrt beginnen.
-            </p>
-            <a class="button button--klein banner__knopf" href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>">Jetzt zurückgeben</a>
-        </div>
-    <?php endforeach; ?>
-<?php endif; ?>
-
-<p class="lead">
-    <?php if ($fuhrpark !== null): ?>
-        Der Fuhrpark auf einen Blick: Fahrzeuge und was zu erledigen ist.
-    <?php else: ?>
-        Ihre Fahrten und Anträge auf einen Blick.
-    <?php endif; ?>
-</p>
-
 <?php if ($fuhrpark !== null): ?>
 
-    <section class="section">
-        <h2>Zu erledigen</h2>
+    <div class="uebersicht">
+        <section class="uebersicht__haupt" aria-labelledby="zu-erledigen">
+            <?php $anzahl = $fuhrpark['anzahl_antraege']; ?>
+            <h2 class="abschnitt" id="zu-erledigen">
+                Zu erledigen
+                <span class="abschnitt__wert">
+                    <?= $anzahl === 0 ? 'keine offenen Anträge' : e((string) $anzahl) . ($anzahl === 1 ? ' offener Antrag' : ' offene Anträge') ?>
+                </span>
+                <?php if ($anzahl > count($fuhrpark['antraege'])): ?>
+                    <span class="abschnitt__zusatz">die <?= e((string) count($fuhrpark['antraege'])) ?> ältesten</span>
+                <?php endif; ?>
+            </h2>
 
-        <?php $anzahl = $fuhrpark['anzahl_antraege']; ?>
-        <h3>
-            <?= $anzahl === 0 ? 'Keine offenen Anträge' : e((string) $anzahl) . ($anzahl === 1 ? ' offener Antrag' : ' offene Anträge') ?>
-        </h3>
+            <?php foreach ($fuhrpark['antraege'] as $Antrag): ?>
+                <?php require __DIR__ . '/includes/schild-antrag.php'; ?>
+            <?php endforeach; ?>
 
-        <?php if ($anzahl > 0): ?>
-            <!-- Dasselbe Formular wie in genehmigungen.php; es
-                 schickt dorthin und kehrt danach hierher zurück. -->
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Antragsteller</th>
-                        <th>Fahrzeug</th>
-                        <th>Zeitraum</th>
-                        <th>Zweck</th>
-                        <th>Entscheidung</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($fuhrpark['antraege'] as $Antrag): ?>
-                        <tr>
-                            <td>
-                                <?= e($Antrag->GetAntragstellerName()) ?>
-                                <?php if ($Antrag->GetFahrerID() !== $Antrag->GetAntragstellerID()): ?>
-                                    <span class="table__zusatz">für <?= e($Antrag->GetFahrerName()) ?></span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <a href="<?= url('fahrzeug.php?id=' . $Antrag->GetFahrzeugID()) ?>"><?= e($Antrag->GetFahrzeugName()) ?></a>
-                            </td>
-                            <td><?= e(zeitraum_text($Antrag->GetStart(), $Antrag->GetEnde())) ?></td>
-                            <td><?= e($Zwecke->GetBezeichnung($Antrag->GetZweckID())) ?></td>
-                            <td>
-                                <?php
-                                // Für das Formular: Nummer und Hindernis des Antrags
-                                $id = $Antrag->GetID();
-                                $hindernis = $Antrag->GetGenehmigungHindernis();
-                                ?>
-                                <?php require __DIR__ . '/includes/antrag-entscheidung.php'; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <?php if ($anzahl === 0): ?>
+                <div class="schild schild--leer">
+                    <p>Keine offenen Anträge. Neue Anträge erscheinen hier, sobald jemand ein Fahrzeug bucht, das eine Genehmigung braucht.</p>
+                </div>
+            <?php endif; ?>
 
             <?php if ($anzahl > count($fuhrpark['antraege'])): ?>
-                <p>
-                    Die <?= e((string) count($fuhrpark['antraege'])) ?> ältesten stehen hier.
+                <p class="weiter">
                     <a href="<?= url('genehmigungen.php') ?>">Alle <?= e((string) $anzahl) ?> Anträge</a>
                 </p>
             <?php endif; ?>
-        <?php endif; ?>
 
-        <h3>Schäden</h3>
+        </section>
 
-        <div class="cards">
-            <div class="card<?= $fuhrpark['schaeden'] > 0 ? ' card--offen' : '' ?>">
-                <p class="card__value"><?= e((string) $fuhrpark['schaeden']) ?></p>
-                <p class="card__label"><?= $fuhrpark['schaeden'] === 1 ? 'Fahrzeug wegen Schaden in Wartung' : 'Fahrzeuge wegen Schaden in Wartung' ?></p>
-                <?php if ($fuhrpark['schaeden'] > 0): ?>
-                    <a class="card__link" href="<?= url('schaeden.php') ?>">Zu den Schäden</a>
-                <?php endif; ?>
-            </div>
-        </div>
+        <aside class="uebersicht__neben">
+            <section aria-labelledby="schaeden">
+                <?php $neue = count($fuhrpark['neue_schaeden']); ?>
+                <h2 class="abschnitt" id="schaeden">
+                    Schäden
+                    <span class="abschnitt__wert"><?= $neue === 0 ? 'keine neuen' : e((string) $neue) . ' neu' ?></span>
+                </h2>
 
-        <?php if ($fuhrpark['wartung_ende_offen'] !== []): ?>
-            <h3>Wartung: Ende festlegen</h3>
+                <?php foreach ($fuhrpark['neue_schaeden'] as $Wartung): ?>
+                    <?php
+                    $SchildFahrzeug = CFahrzeug::LoadByID($Wartung->GetFahrzeugID());
+                    $marke = ['Gesperrt', 'rot'];
+                    ?>
+                    <article class="schild">
+                        <?php require __DIR__ . '/includes/schild-kopf.php'; ?>
 
-            <ul>
-                <?php foreach ($fuhrpark['wartung_ende_offen'] as $Fahrzeug): ?>
-                    <li>
-                        <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>"><?= e($Fahrzeug->GetName()) ?></a>:
-                        <?= e($Fahrzeug->GetWartungText()) ?>. Das Fahrzeug bleibt gesperrt, bis Sie das Ende
-                        festlegen oder es freigeben.
-                    </li>
+                        <div class="schild__text">
+                            <p class="schild__grund"><?= e($Wartung->GetGrund()) ?></p>
+                            <p>
+                                Gemeldet bei der Rückgabe am <?= e($Wartung->GetBegonnenAm()->format('d.m.Y')) ?>.
+                                Das Fahrzeug bleibt gesperrt, bis Sie ein Wartungsende eintragen oder es freigeben.
+                            </p>
+                        </div>
+
+                        <div class="schild__aktionen">
+                            <div class="aktionen">
+                                <a class="button button--klein" href="<?= url('fahrzeuge.php?formular=' . $Wartung->GetFahrzeugID()) ?>#formular">Wartungsende eintragen</a>
+                                <a class="button button--klein button--zweitrangig" href="<?= url('schaeden.php') ?>">Zum Schaden</a>
+                            </div>
+                        </div>
+                    </article>
                 <?php endforeach; ?>
-            </ul>
 
-            <p><a href="<?= url('fahrzeuge.php?status=wartung') ?>">Zu den Fahrzeugen in Wartung</a></p>
-        <?php endif; ?>
-    </section>
+                <p class="zeile">
+                    <?php $schaeden = $fuhrpark['schaeden']; ?>
+                    <?= $schaeden === 0 ? 'Kein Fahrzeug' : e((string) $schaeden) . ($schaeden === 1 ? ' Fahrzeug' : ' Fahrzeuge') ?>
+                    wegen Schaden in Wartung
+                    <?php if ($schaeden > 0): ?>
+                        &middot; <a href="<?= url('schaeden.php') ?>">Zu den Schäden</a>
+                    <?php endif; ?>
+                </p>
 
-    <section class="section">
-        <h2>Fuhrpark</h2>
+                <?php $ueberschritten = count($fuhrpark['ende_ueberschritten']); ?>
+                <?php if ($ueberschritten > 0): ?>
+                    <p class="zeile">
+                        <?= e((string) $ueberschritten) ?> <?= $ueberschritten === 1 ? 'Fahrzeug ist' : 'Fahrzeuge sind' ?>
+                        über das geplante Wartungsende hinaus gesperrt
+                        &middot; <a href="<?= url('fahrzeuge.php?status=wartung') ?>">Zu den Fahrzeugen</a>
+                    </p>
+                <?php endif; ?>
+            </section>
 
-        <div class="cards">
-            <?php foreach ($fuhrpark['status'] as $kennzahl): ?>
-                <div class="card">
-                    <p class="card__value"><?= e((string) $kennzahl['wert']) ?></p>
-                    <p class="card__label"><?= e($kennzahl['label']) ?></p>
+        </aside>
+    </div>
+
+    <?php
+    $beginnen = $fuhrpark['beginnen_heute'];
+    $rueckgaben = $fuhrpark['rueckgaben_heute'];
+    ?>
+    <!-- Fuhrpark zuletzt: eine Feldzeile über die ganze Breite -->
+    <section class="fuhrpark-leiste" aria-labelledby="fuhrpark">
+        <h2 class="abschnitt" id="fuhrpark">Fuhrpark</h2>
+
+        <article class="schild">
+            <div class="schild__koerper">
+                <dl class="felder felder--fuhrpark">
+                    <div class="feld">
+                        <dt>Fahrzeuge</dt>
+                        <dd class="feld__zahl"><?= e((string) $fuhrpark['fahrzeuge']) ?></dd>
+                    </div>
+                    <div class="feld">
+                        <dt>Frei</dt>
+                        <dd class="feld__zahl"><?= e((string) $fuhrpark['stand']['verfuegbar']) ?></dd>
+                    </div>
+                    <div class="feld">
+                        <dt>Unterwegs</dt>
+                        <dd class="feld__zahl"><?= e((string) $fuhrpark['stand']['unterwegs']) ?></dd>
+                    </div>
+                    <div class="feld">
+                        <dt>In Wartung</dt>
+                        <dd class="feld__zahl"><?= e((string) $fuhrpark['stand']['wartung']) ?></dd>
+                    </div>
+                    <div class="feld">
+                        <dt>Heute</dt>
+                        <dd>
+                            <?= e((string) $beginnen) ?> <?= $beginnen === 1 ? 'Fahrt beginnt' : 'Fahrten beginnen' ?>,
+                            <?= e((string) $rueckgaben) ?> <?= $rueckgaben === 1 ? 'Rückgabe' : 'Rückgaben' ?> fällig
+                        </dd>
+                    </div>
+                </dl>
+
+                <div class="schild__aktionen">
+                    <div class="aktionen">
+                        <a class="button button--klein button--zweitrangig" href="<?= url('kalender.php') ?>">Kalender</a>
+                        <a class="button button--klein button--zweitrangig" href="<?= url('fahrzeuge.php') ?>">Alle Fahrzeuge</a>
+                    </div>
                 </div>
-            <?php endforeach; ?>
-        </div>
-
-        <p>
-            <a href="<?= url('fahrzeuge.php') ?>">Alle Fahrzeuge</a> &middot;
-            <a href="<?= url('kalender.php') ?>">Kalender</a>
-        </p>
+            </div>
+        </article>
     </section>
 
 <?php else: ?>
 
-    <section class="section">
-        <h2>Meine Fahrten</h2>
-
-        <?php foreach ($aktive as $Buchung): ?>
-            <div class="aktuell">
-                <p class="aktuell__text">
-                    <strong>Ihre Fahrt mit <?= e($Buchung->GetFahrzeugName()) ?> kann beginnen.</strong>
-                    <span class="table__zusatz">
-                        <?= e(zeitraum_text($Buchung->GetStart(), $Buchung->GetEnde())) ?>, <?= e($Zwecke->GetBezeichnung($Buchung->GetZweckID())) ?>
-                    </span>
-                </p>
-
-                <?php
-                // Das Formular schickt nach dem Fahrtbeginn hierher zurück.
-                $zurueck = 'index';
-                require __DIR__ . '/includes/fahrt-beginnen.php';
-                ?>
-            </div>
-        <?php endforeach; ?>
-
-        <?php foreach ($laufende as $Buchung): ?>
-            <?php $ueberfaellig = $Buchung->IstUeberfaellig(); ?>
-            <div class="aktuell<?= $ueberfaellig ? ' aktuell--ueberfaellig' : '' ?>">
-                <p class="aktuell__text">
-                    <strong>Sie sind unterwegs mit <?= e($Buchung->GetFahrzeugName()) ?>.</strong>
-                    <span class="table__zusatz">
-                        Rückgabe <?= $ueberfaellig ? 'war' : 'ist' ?> fällig am
-                        <?= e($Buchung->GetEnde()->format('d.m.Y')) ?>.
-                    </span>
-                    <?php if ($ueberfaellig): ?>
-                        <span class="badge badge--abgelehnt">Rückgabe überfällig</span>
+    <div class="uebersicht">
+        <section class="uebersicht__haupt" aria-labelledby="meine-fahrten">
+            <?php $anzahlFahrten = count($laufende) + count($aktive) + ($Naechste !== null ? 1 : 0); ?>
+            <h2 class="abschnitt" id="meine-fahrten">
+                Meine Fahrten
+                <span class="abschnitt__wert">
+                    <?php if ($bannerFahrten !== []): ?>
+                        Rückgabe überfällig
+                    <?php elseif ($laufende !== []): ?>
+                        Unterwegs
+                    <?php elseif ($aktive !== []): ?>
+                        Fahrt kann beginnen
+                    <?php elseif ($Naechste !== null): ?>
+                        Nächste am <?= e($Naechste->GetStart()->format('d.m.')) ?>
+                    <?php else: ?>
+                        Nichts geplant
                     <?php endif; ?>
-                </p>
+                </span>
+            </h2>
 
-                <a class="button button--klein" href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>">Zurückgeben</a>
-            </div>
-        <?php endforeach; ?>
+            <?php foreach ($laufende as $Buchung): ?>
+                <?php
+                $ueberfaellig = $Buchung->IstUeberfaellig();
+                $heuteFaellig = $Buchung->GetEnde() == $heute;
+                $tage = $Buchung->GetEnde()->diff($heute)->days;
 
-        <h3>Noch nicht bestätigt</h3>
+                $SchildFahrzeug = CFahrzeug::LoadByID($Buchung->GetFahrzeugID());
+                $marke = buchung_stand($Buchung, $ich);
+                ?>
+                <article class="schild">
+                    <?php require __DIR__ . '/includes/schild-kopf.php'; ?>
 
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Zeitraum</th>
-                    <th>Fahrzeug</th>
-                    <th>Zweck</th>
-                </tr>
-            </thead>
-            <tbody>
+                    <div class="schild__koerper">
+                        <dl class="felder">
+                            <div class="feld">
+                                <dt>Zeitraum</dt>
+                                <dd><?= e(zeitraum_kurz($Buchung->GetStart(), $Buchung->GetEnde())) ?></dd>
+                            </div>
+                            <div class="feld">
+                                <dt>Rückgabe</dt>
+                                <dd>
+                                    <?php if ($ueberfaellig): ?>
+                                        seit <?= e((string) $tage) ?> <?= $tage === 1 ? 'Tag' : 'Tagen' ?> überfällig
+                                    <?php elseif ($heuteFaellig): ?>
+                                        heute fällig
+                                    <?php else: ?>
+                                        fällig am <?= e($Buchung->GetEnde()->format('d.m.Y')) ?>
+                                    <?php endif; ?>
+                                </dd>
+                            </div>
+                            <div class="feld">
+                                <dt>Zweck</dt>
+                                <dd><?= e($Zwecke->GetBezeichnung($Buchung->GetZweckID())) ?></dd>
+                            </div>
+                        </dl>
+
+                        <div class="schild__aktionen">
+                            <a class="button button--klein" href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>">Zurückgeben</a>
+                        </div>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+
+            <?php foreach ($aktive as $Buchung): ?>
+                <?php
+                $SchildFahrzeug = CFahrzeug::LoadByID($Buchung->GetFahrzeugID());
+                $marke = buchung_stand($Buchung, $ich);
+                ?>
+                <article class="schild">
+                    <?php require __DIR__ . '/includes/schild-kopf.php'; ?>
+
+                    <div class="schild__koerper">
+                        <dl class="felder">
+                            <div class="feld">
+                                <dt>Zeitraum</dt>
+                                <dd><?= e(zeitraum_kurz($Buchung->GetStart(), $Buchung->GetEnde())) ?></dd>
+                            </div>
+                            <div class="feld">
+                                <dt>Zweck</dt>
+                                <dd><?= e($Zwecke->GetBezeichnung($Buchung->GetZweckID())) ?></dd>
+                            </div>
+                            <div class="feld">
+                                <dt>Personen</dt>
+                                <dd><?= e((string) $Buchung->GetPersonenanzahl()) ?></dd>
+                            </div>
+                        </dl>
+
+                        <div class="schild__aktionen">
+                            <?php
+                            // Das Formular schickt nach dem Fahrtbeginn hierher zurück.
+                            $zurueck = 'index';
+                            require __DIR__ . '/includes/fahrt-beginnen.php';
+                            ?>
+                        </div>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+
+            <?php if ($Naechste !== null): ?>
+                <?php
+                $SchildFahrzeug = CFahrzeug::LoadByID($Naechste->GetFahrzeugID());
+                $marke = buchung_stand($Naechste, $ich);
+                ?>
+                <article class="schild">
+                    <?php require __DIR__ . '/includes/schild-kopf.php'; ?>
+
+                    <div class="schild__koerper">
+                        <dl class="felder">
+                            <div class="feld">
+                                <dt>Nächste Fahrt</dt>
+                                <dd><?= e(zeitraum_kurz($Naechste->GetStart(), $Naechste->GetEnde())) ?></dd>
+                            </div>
+                            <div class="feld">
+                                <dt>Zweck</dt>
+                                <dd><?= e($Zwecke->GetBezeichnung($Naechste->GetZweckID())) ?></dd>
+                            </div>
+                            <div class="feld">
+                                <dt>Fahrer</dt>
+                                <dd><?= $Naechste->GetFahrerID() === $ich ? 'Sie' : e($Naechste->GetFahrerName()) ?></dd>
+                            </div>
+                        </dl>
+
+                        <div class="schild__aktionen">
+                            <p class="schild__hinweis">
+                                <?php if ($Naechste->GetFahrerID() === $ich): ?>
+                                    Fahrt beginnen ab <?= e($Naechste->GetStart()->format('d.m.Y')) ?>
+                                <?php else: ?>
+                                    Die Fahrt beginnt der Fahrer ab <?= e($Naechste->GetStart()->format('d.m.Y')) ?>.
+                                <?php endif; ?>
+                            </p>
+                        </div>
+                    </div>
+                </article>
+            <?php endif; ?>
+
+            <?php if ($laufende === [] && $aktive === [] && $Naechste === null): ?>
+                <div class="schild schild--leer">
+                    <p>Für Sie ist gerade keine Fahrt geplant.</p>
+                    <a class="button" href="<?= url('buchen.php') ?>">Fahrzeug buchen</a>
+                </div>
+            <?php endif; ?>
+
+            <p class="weiter"><a href="<?= url('meine-buchungen.php') ?>">Alle meine Buchungen</a></p>
+        </section>
+
+        <aside class="uebersicht__neben">
+            <section aria-labelledby="noch-offen">
+                <h2 class="abschnitt" id="noch-offen">
+                    Noch nicht bestätigt
+                    <?php if ($anzahlBeantragte > 0): ?>
+                        <span class="abschnitt__wert"><?= e((string) $anzahlBeantragte) ?> <?= $anzahlBeantragte === 1 ? 'Antrag' : 'Anträge' ?></span>
+                    <?php endif; ?>
+                </h2>
+
                 <?php foreach ($beantragte as $Buchung): ?>
-                    <tr>
-                        <td><?= e(zeitraum_text($Buchung->GetStart(), $Buchung->GetEnde())) ?></td>
-                        <td>
-                            <a href="<?= url('fahrzeug.php?id=' . $Buchung->GetFahrzeugID()) ?>"><?= e($Buchung->GetFahrzeugName()) ?></a>
-                            <?php if ($Buchung->GetFahrerID() !== $ich): ?>
-                                <span class="table__zusatz">Fahrer: <?= e($Buchung->GetFahrerName()) ?></span>
-                            <?php endif; ?>
-                        </td>
-                        <td><?= e($Zwecke->GetBezeichnung($Buchung->GetZweckID())) ?></td>
-                    </tr>
+                    <?php
+                    $SchildFahrzeug = CFahrzeug::LoadByID($Buchung->GetFahrzeugID());
+                    $marke = buchung_stand($Buchung, $ich);
+                    ?>
+                    <article class="schild">
+                        <?php require __DIR__ . '/includes/schild-kopf.php'; ?>
+
+                        <dl class="felder">
+                            <div class="feld">
+                                <dt>Zeitraum</dt>
+                                <dd><?= e(zeitraum_kurz($Buchung->GetStart(), $Buchung->GetEnde())) ?></dd>
+                            </div>
+                            <div class="feld">
+                                <dt>Zweck</dt>
+                                <dd>
+                                    <?= e($Zwecke->GetBezeichnung($Buchung->GetZweckID())) ?>
+                                    <?php if ($Buchung->GetFahrerID() !== $ich): ?>
+                                        <small>Fahrer: <?= e($Buchung->GetFahrerName()) ?></small>
+                                    <?php elseif ($Buchung->GetAntragstellerID() !== $ich): ?>
+                                        <small>gebucht von <?= e($Buchung->GetAntragstellerName()) ?></small>
+                                    <?php endif; ?>
+                                </dd>
+                            </div>
+                        </dl>
+                    </article>
                 <?php endforeach; ?>
 
                 <?php if ($beantragte === []): ?>
-                    <tr>
-                        <td colspan="3" class="table__empty">Keine Anträge, die auf den Fuhrparkleiter warten.</td>
-                    </tr>
+                    <p class="zeile">Keine Anträge, die auf den Fuhrparkleiter warten.</p>
                 <?php endif; ?>
-            </tbody>
-        </table>
 
-        <?php if ($anzahlBeantragte > count($beantragte)): ?>
-            <p>
-                Die <?= e((string) count($beantragte)) ?> nächsten stehen hier.
-                <a href="<?= url('meine-buchungen.php') ?>">Alle <?= e((string) $anzahlBeantragte) ?> unter Meine Buchungen</a>
-            </p>
-        <?php endif; ?>
+                <?php if ($anzahlBeantragte > count($beantragte)): ?>
+                    <p class="weiter">
+                        <a href="<?= url('meine-buchungen.php') ?>">Alle <?= e((string) $anzahlBeantragte) ?> unter Meine Buchungen</a>
+                    </p>
+                <?php endif; ?>
+            </section>
 
-        <div class="aktionen section">
-            <a class="button" href="<?= url('buchen.php') ?>">Fahrzeug buchen</a>
-            <a class="button button--zweitrangig" href="<?= url('meine-buchungen.php') ?>">Alle meine Buchungen</a>
-        </div>
-    </section>
+        </aside>
+    </div>
 
 <?php endif; ?>
 

@@ -57,16 +57,6 @@ const STATUS_ABGESCHLOSSEN = 4;
 const STATUS_ABGELEHNT     = 5;
 const STATUS_STORNIERT     = 6;
 
-// CSS-Modifier der Badges (.badge--offen usw.); steht nicht in der Datenbank.
-const BUCHUNGSSTATUS_KLASSE = [
-    STATUS_OFFEN         => 'offen',
-    STATUS_GENEHMIGT     => 'genehmigt',
-    STATUS_UNTERWEGS     => 'unterwegs',
-    STATUS_ABGESCHLOSSEN => 'abgeschlossen',
-    STATUS_ABGELEHNT     => 'abgelehnt',
-    STATUS_STORNIERT     => 'storniert',
-];
-
 // --- zwecke -----------------------------------------------------------------
 // Feste Liste der Zwecke.
 

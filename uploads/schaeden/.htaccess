@@ -1,0 +1,9 @@
+# Schadensfotos: kein direkter Zugriff von außen. Ausgeliefert werden sie nur
+# über foto.php, das die Rolle prüft. PHP liest die Dateien direkt von der
+# Festplatte, dafür gilt diese Sperre nicht.
+Require all denied
+
+# Zusätzlich: In diesem Ordner nie PHP ausführen.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>

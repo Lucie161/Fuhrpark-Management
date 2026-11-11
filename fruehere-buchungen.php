@@ -18,6 +18,7 @@ require_once __DIR__ . '/includes/config.php';
 nur_fuer_rolle(ROLLE_MITARBEITER);
 
 $pageTitle = 'Frühere Buchungen';
+$pageZurueck = ['Meine Buchungen', 'meine-buchungen.php'];
 
 $ich = aktueller_nutzer();
 
@@ -25,7 +26,6 @@ $ListeBuchungen = new CListeBuchungen();
 $ListeBuchungen->LadenFruehere($ich);
 
 $Zwecke = new CListeSchluessel('zwecke');
-$Status = new CListeSchluessel('buchungsstatus');
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -35,13 +35,11 @@ require_once __DIR__ . '/includes/header.php';
     steht die Begründung des Fuhrparkleiters dabei.
 </p>
 
-<p><a href="<?= url('meine-buchungen.php') ?>">&larr; Meine Buchungen</a></p>
-
-<table class="table">
+<table class="table table--stapel">
     <thead>
         <tr>
-            <th>Zeitraum</th>
             <th>Fahrzeug</th>
+            <th>Zeitraum</th>
             <th>Zweck</th>
             <th>Stand</th>
             <th>Begründung</th>
@@ -49,10 +47,17 @@ require_once __DIR__ . '/includes/header.php';
     </thead>
     <tbody>
         <?php foreach ($ListeBuchungen->GetAlle() as $Buchung): ?>
-            <tr>
-                <td><?= e(zeitraum_text($Buchung->GetStart(), $Buchung->GetEnde())) ?></td>
-                <td>
-                    <a href="<?= url('fahrzeug.php?id=' . $Buchung->GetFahrzeugID()) ?>"><?= e($Buchung->GetFahrzeugName()) ?></a>
+            <?php
+            $Fahrzeug = CFahrzeug::LoadByID($Buchung->GetFahrzeugID());
+            $marke = buchung_stand($Buchung, $ich);
+            ?>
+            <tr id="buchung-<?= e((string) $Buchung->GetID()) ?>">
+                <td class="table__kennzeichen">
+                    <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>"><?= e($Fahrzeug->GetKennzeichen()) ?></a>
+                    <span class="table__zusatz"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></span>
+                </td>
+                <td data-label="Zeitraum">
+                    <?= e(zeitraum_kurz($Buchung->GetStart(), $Buchung->GetEnde())) ?>
                     <?php if ($Buchung->GetAntragstellerID() !== $ich): ?>
                         <span class="table__zusatz">gebucht von <?= e($Buchung->GetAntragstellerName()) ?></span>
                     <?php endif; ?>
@@ -60,13 +65,13 @@ require_once __DIR__ . '/includes/header.php';
                         <span class="table__zusatz">Fahrer: <?= e($Buchung->GetFahrerName()) ?></span>
                     <?php endif; ?>
                 </td>
-                <td><?= e($Zwecke->GetBezeichnung($Buchung->GetZweckID())) ?></td>
-                <td>
-                    <span class="badge badge--<?= e(BUCHUNGSSTATUS_KLASSE[$Buchung->GetStatusID()]) ?>">
-                        <?= e($Status->GetBezeichnung($Buchung->GetStatusID())) ?>
-                    </span>
-                </td>
-                <td><?= $Buchung->GetEntscheidungKommentar() !== '' ? e($Buchung->GetEntscheidungKommentar()) : '&ndash;' ?></td>
+                <td data-label="Zweck"><?= e($Zwecke->GetBezeichnung($Buchung->GetZweckID())) ?></td>
+                <td class="table__stand" data-label="Stand"><span class="marke marke--<?= e($marke[1]) ?>"><?= e($marke[0]) ?></span></td>
+                <?php if ($Buchung->GetEntscheidungKommentar() !== ''): ?>
+                    <td class="table__breit" data-label="Begründung"><?= e($Buchung->GetEntscheidungKommentar()) ?></td>
+                <?php else: ?>
+                    <td class="table__leer">&ndash;</td>
+                <?php endif; ?>
             </tr>
         <?php endforeach; ?>
 

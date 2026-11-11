@@ -2,8 +2,10 @@
 /**
  * Anträge genehmigen, nur für den Fuhrparkleiter.
  *
- * Alle offenen Anträge, älteste zuerst. Der Fahrer steht nur dabei, wenn er
- * nicht selbst beantragt hat („Buchen für“). Genehmigen geht nur, wenn das
+ * Alle offenen Anträge, älteste zuerst, jeder als Schild wie auf der
+ * Übersicht (includes/schild-antrag.php): Antragsteller (und Fahrer, wenn er
+ * nicht selbst beantragt hat), Zeitraum, Zweck, wie lange der Antrag schon
+ * wartet, rechts Genehmigen und Ablehnen. Genehmigen geht nur, wenn das
  * Fahrzeug im Zeitraum noch frei, nicht in Wartung und nicht überfällig ist
  * (CBuchung::GetGenehmigungHindernis()); eine Ablehnung braucht eine
  * Begründung, die der Antragsteller liest.
@@ -23,6 +25,7 @@ $ListeAntraege = new CListeBuchungen();
 $ListeAntraege->LadenOffeneAntraege();
 
 $Zwecke = new CListeSchluessel('zwecke');
+$Arten = new CListeSchluessel('fahrzeugarten');
 
 // --- Entscheidung verarbeiten -----------------------------------------------
 // Läuft vor header.php, damit die Weiterleitung möglich ist. Das Formular
@@ -61,29 +64,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new CFachlicherFehler('Diese Entscheidung gibt es nicht.');
         }
 
-        merke_meldung(
-            'Antrag von ' . $Antrag->GetAntragstellerName() . ' für ' . $Antrag->GetFahrzeugName()
-                . ' (' . zeitraum_text($Antrag->GetStart(), $Antrag->GetEnde()) . ') '
-                . ($entscheidung === 'genehmigen' ? 'genehmigt.' : 'abgelehnt.'),
-            $entscheidung === 'genehmigen' ? 'erfolg' : 'hinweis',
-        );
+        // Meldung mit dem nächsten Schritt: Nach dem Genehmigen steht die
+        // Fahrt im Kalender. Nach dem Ablehnen sieht der Antragsteller die
+        // Begründung auf seiner Übersicht; weiter geht es mit den übrigen
+        // Anträgen.
+        $text = 'Antrag von ' . $Antrag->GetAntragstellerName() . ' für ' . $Antrag->GetFahrzeugName()
+            . ' (' . zeitraum_text($Antrag->GetStart(), $Antrag->GetEnde()) . ') ';
+
+        if ($entscheidung === 'genehmigen') {
+            merke_meldung($text . 'genehmigt.', 'erfolg', ['Im Kalender ansehen', 'kalender.php']);
+        } else {
+            $weiter = $zurueck === 'index' ? ['Alle Anträge', 'genehmigungen.php'] : ['Zur Übersicht', 'index.php'];
+            merke_meldung($text . 'abgelehnt. Die Begründung sieht der Antragsteller auf seiner Übersicht.', 'hinweis', $weiter);
+        }
+
         redirect($zurueck === 'index' ? 'index.php' : 'genehmigungen.php');
     } catch (CFachlicherFehler $Fehler) {
         $fehler[] = $Fehler->getMessage();
     }
 }
 
+$anzahl = $ListeAntraege->Count();
+
 require_once __DIR__ . '/includes/header.php';
 ?>
 
 <p class="lead">
-    <?php if ($ListeAntraege->Count() === 0): ?>
-        Keine offenen Anträge.
-    <?php else: ?>
-        <?= e((string) $ListeAntraege->Count()) ?>
-        <?= $ListeAntraege->Count() === 1 ? 'Antrag wartet' : 'Anträge warten' ?> auf Ihre Entscheidung,
-        älteste zuerst.
-    <?php endif; ?>
+    Genehmigen geht nur, solange das Fahrzeug im Zeitraum frei ist. Eine Ablehnung braucht eine
+    Begründung, die der Antragsteller auf seiner Übersicht liest.
 </p>
 
 <?php if ($fehler !== []): ?>
@@ -94,53 +102,27 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 <?php endif; ?>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Beantragt am</th>
-            <th>Antragsteller</th>
-            <th>Fahrzeug</th>
-            <th>Zeitraum</th>
-            <th>Zweck</th>
-            <th class="table__num">Personen</th>
-            <th>Entscheidung</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php foreach ($ListeAntraege->GetAlle() as $Antrag): ?>
-            <?php
-            $id = $Antrag->GetID();
-            $hindernis = $Antrag->GetGenehmigungHindernis();
-            ?>
-            <tr>
-                <td>
-                    <?= e($Antrag->GetBeantragtAm()->format('d.m.Y')) ?>
-                    <span class="table__zusatz"><?= e($Antrag->GetBeantragtAm()->format('H:i')) ?> Uhr</span>
-                </td>
-                <td>
-                    <?= e($Antrag->GetAntragstellerName()) ?>
-                    <?php if ($Antrag->GetFahrerID() !== $Antrag->GetAntragstellerID()): ?>
-                        <span class="table__zusatz">für <?= e($Antrag->GetFahrerName()) ?></span>
-                    <?php endif; ?>
-                </td>
-                <td>
-                    <a href="<?= url('fahrzeug.php?id=' . $Antrag->GetFahrzeugID()) ?>"><?= e($Antrag->GetFahrzeugName()) ?></a>
-                </td>
-                <td><?= e(zeitraum_text($Antrag->GetStart(), $Antrag->GetEnde())) ?></td>
-                <td><?= e($Zwecke->GetBezeichnung($Antrag->GetZweckID())) ?></td>
-                <td class="table__num"><?= e((string) $Antrag->GetPersonenanzahl()) ?></td>
-                <td>
-                    <?php require __DIR__ . '/includes/antrag-entscheidung.php'; ?>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-
-        <?php if ($ListeAntraege->Count() === 0): ?>
-            <tr>
-                <td colspan="7" class="table__empty">Keine offenen Anträge.</td>
-            </tr>
+<section aria-labelledby="offene-antraege">
+    <h2 class="abschnitt" id="offene-antraege">
+        Offen
+        <span class="abschnitt__wert">
+            <?= $anzahl === 0 ? 'keine Anträge' : e((string) $anzahl) . ($anzahl === 1 ? ' Antrag' : ' Anträge') ?>
+        </span>
+        <?php if ($anzahl > 1): ?>
+            <span class="abschnitt__zusatz">älteste zuerst</span>
         <?php endif; ?>
-    </tbody>
-</table>
+    </h2>
+
+    <?php foreach ($ListeAntraege->GetAlle() as $Antrag): ?>
+        <?php require __DIR__ . '/includes/schild-antrag.php'; ?>
+    <?php endforeach; ?>
+
+    <?php if ($anzahl === 0): ?>
+        <div class="schild schild--leer">
+            <p>Keine offenen Anträge. Neue Anträge erscheinen hier, sobald jemand ein Fahrzeug bucht, das eine Genehmigung braucht.</p>
+            <a class="button button--zweitrangig" href="<?= url('kalender.php') ?>">Zum Kalender</a>
+        </div>
+    <?php endif; ?>
+</section>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

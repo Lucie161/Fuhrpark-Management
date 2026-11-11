@@ -51,3 +51,19 @@ VALUES
     (9,  'Rad 2',     5, 'E-Fahrrad',   'Riese & Müller', 'Charger4',       2023, 'riese-mueller-charger.jpg', 1, 3, NULL,   NULL, NULL,         NULL),
     (10, 'M-HS 101',  1, 'Kombi',       'Volkswagen',     'Passat Variant', 2014, NULL,                        5, 2, 187430, 'B',  '2026-03-01',
         TIMESTAMP(CURDATE() - INTERVAL 90 DAY, '12:00'));
+
+-- Weitere Fahrzeuge, vor allem elektrisch, ohne Bild (Platzhalter). Große
+-- Transporter brauchen C1. Die Kleinbusse sind Transporter mit vielen Sitzen
+-- und gelten deshalb nur für Montage und Materialtransport.
+INSERT INTO fahrzeuge
+    (id, kennzeichen, art_id, typ, hersteller, modell, baujahr, bild,
+     sitzplaetze, antrieb_id, kmstand, fuehrerschein, hu_au, geloescht_am)
+VALUES
+    (11, 'M-HS 303E', 1, 'E-SUV',               'Škoda',         'Enyaq 85',     2024, NULL, 5, 3, 18640, 'B',  '2027-09-01', NULL),
+    (12, 'M-HS 304E', 1, 'E-Auto',              'Hyundai',       'Ioniq 5',      2023, NULL, 5, 3, 27310, 'B',  '2026-12-01', NULL),
+    (13, 'M-HS 305E', 1, 'E-Kleinwagen',        'Fiat',          '500e',         2023, NULL, 4, 3, 14280, 'B',  '2027-04-01', NULL),
+    (14, 'M-HS 203E', 3, 'E-Transporter',       'Ford',          'E-Transit',    2023, NULL, 3, 3, 21950, 'B',  '2027-05-01', NULL),
+    (15, 'M-HS 204E', 3, 'E-Transporter, groß', 'Mercedes-Benz', 'eSprinter',    2024, NULL, 3, 3, 9840,  'C1', '2027-10-01', NULL),
+    (16, 'M-HS 205',  3, 'Transporter, groß',   'Iveco',         'Daily 70C',    2021, NULL, 3, 2, 64120, 'C1', '2026-12-01', NULL),
+    (17, 'M-HS 206E', 3, 'Kleinbus',            'Mercedes-Benz', 'eVito Tourer', 2023, NULL, 9, 3, 23480, 'B',  '2027-01-01', NULL),
+    (18, 'M-HS 207E', 3, 'Kleinbus',            'Volkswagen',    'ID. Buzz',     2024, NULL, 7, 3, 11260, 'B',  '2027-11-01', NULL);

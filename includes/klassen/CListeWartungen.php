@@ -37,15 +37,31 @@ class CListeWartungen
     }
 
     /**
-     * Lädt die laufenden Wartungen mit offenem Ende (nicht festgelegt oder
-     * vorbei) für „Wartung: Ende festlegen“ auf der Übersicht.
+     * Lädt die neuen Schäden für die Übersicht: laufende Wartungen ohne Ende.
+     * Die gibt es nur nach einer Rückgabe mit Schaden; neu ist der Schaden,
+     * bis der Fuhrparkleiter ein Wartungsende einträgt.
      */
-    public function LadenEndeOffen(): void
+    public function LadenNeueSchaeden(): void
     {
         $this->Laden(
             'SELECT * FROM wartungen
-              WHERE freigegeben_am IS NULL AND (voraussichtlich_bis IS NULL OR voraussichtlich_bis < CURDATE())
+              WHERE freigegeben_am IS NULL AND voraussichtlich_bis IS NULL
               ORDER BY begonnen_am, id',
+            []
+        );
+    }
+
+    /**
+     * Lädt die laufenden Wartungen, deren voraussichtliches Ende vorbei ist,
+     * ohne dass das Fahrzeug freigegeben wurde. Für den Hinweis auf der
+     * Übersicht.
+     */
+    public function LadenEndeUeberschritten(): void
+    {
+        $this->Laden(
+            'SELECT * FROM wartungen
+              WHERE freigegeben_am IS NULL AND voraussichtlich_bis < CURDATE()
+              ORDER BY voraussichtlich_bis, id',
             []
         );
     }

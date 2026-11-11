@@ -112,16 +112,53 @@ function zeitraum_text(DateTimeImmutable $von, DateTimeImmutable $bis): string
 }
 
 /**
+ * Zeitraum kurz, für die Schilder der Übersicht: „03.10.2026“,
+ * „03.–05.10.2026“ im selben Monat, sonst „30.10.2026 bis 02.11.2026“.
+ * Der heutige Tag heißt „heute“, z. B. „heute bis 11.11.2026“.
+ */
+function zeitraum_kurz(DateTimeImmutable $von, DateTimeImmutable $bis): string
+{
+    $heute = new DateTimeImmutable('today');
+    $vonText = $von == $heute ? 'heute' : $von->format('d.m.Y');
+    $bisText = $bis == $heute ? 'heute' : $bis->format('d.m.Y');
+
+    if ($von == $bis) {
+        return $vonText;
+    }
+
+    if ($von != $heute && $bis != $heute && $von->format('m.Y') === $bis->format('m.Y')) {
+        return $von->format('d.') . '–' . $bisText;
+    }
+
+    return $vonText . ' bis ' . $bisText;
+}
+
+/**
+ * Datum ausgeschrieben, z. B. „Sonntag, 8. November 2026“.
+ */
+function datum_lang(DateTimeImmutable $datum): string
+{
+    $tage = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+    $monate = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August',
+               'September', 'Oktober', 'November', 'Dezember'];
+
+    return $tage[(int) $datum->format('w')] . ', ' . $datum->format('j') . '. '
+        . $monate[(int) $datum->format('n') - 1] . ' ' . $datum->format('Y');
+}
+
+/**
  * Merkt eine Meldung für die nächste Seite, z. B. vor einer Weiterleitung.
  * header.php gibt sie einmal aus und vergisst sie dann.
  *   merke_meldung('Antrag genehmigt.');
  *   redirect('index.php');
  *
- * $art ist 'erfolg' oder 'hinweis' (CSS-Modifier von .alert).
+ * $art ist 'erfolg' oder 'hinweis' (CSS-Modifier von .alert). $link ist
+ * optional der nächste Schritt als ['Beschriftung', 'datei.php'], z. B.
+ *   merke_meldung('Antrag gestellt.', 'erfolg', ['Zu meinen Buchungen', 'meine-buchungen.php']);
  */
-function merke_meldung(string $text, string $art = 'erfolg'): void
+function merke_meldung(string $text, string $art = 'erfolg', ?array $link = null): void
 {
-    $_SESSION['meldung'] = ['text' => $text, 'art' => $art];
+    $_SESSION['meldung'] = ['text' => $text, 'art' => $art, 'link' => $link];
 }
 
 /**
@@ -136,6 +173,39 @@ function hole_meldung(): ?array
 }
 
 /**
+ * Stand einer Buchung aus Sicht des Nutzers $ich, als [Wort, Farbe] für das
+ * Feld „Stand“ (includes/schild-kopf.php) oder die Marke in Tabellen.
+ * Farbe ist 'gruen', 'gelb', 'rot' oder 'grau'.
+ */
+function buchung_stand(CBuchung $Buchung, int $ich): array
+{
+    $heute = new DateTimeImmutable('today');
+    $status = $Buchung->GetStatusID();
+
+    // Unterwegs: überfällig, heute fällig oder noch Zeit
+    if ($status === STATUS_UNTERWEGS) {
+        if ($Buchung->IstUeberfaellig()) {
+            return ['Überfällig', 'rot'];
+        }
+
+        return $Buchung->GetEnde() == $heute ? ['Fällig', 'gelb'] : ['Unterwegs', 'grau'];
+    }
+
+    // Heute aktiv und ich bin Fahrer: Fahrt kann beginnen, sofern nichts sperrt
+    if ($Buchung->KannBeginnen($ich)) {
+        return $Buchung->GetSperreFahrtbeginn() === null ? ['Bereit', 'gruen'] : ['Gesperrt', 'rot'];
+    }
+
+    return match ($status) {
+        STATUS_OFFEN         => ['Offen', 'gelb'],
+        STATUS_GENEHMIGT     => ['Genehmigt', 'gruen'],
+        STATUS_ABGELEHNT     => ['Abgelehnt', 'rot'],
+        STATUS_ABGESCHLOSSEN => ['Abgeschlossen', 'grau'],
+        default              => ['Storniert', 'grau'],
+    };
+}
+
+/**
  * Leitet auf eine Seite der Anwendung um und beendet das Skript.
  *   redirect('login.php');
  */
@@ -143,4 +213,68 @@ function redirect(string $path): never
 {
     header('Location: ' . url($path));
     exit;
+}
+
+/**
+ * Kilometer mit Tausenderpunkt, Strich ohne km-Stand: „48.250“ oder „–“.
+ */
+function km_text(?int $km): string
+{
+    return $km === null ? '–' : number_format($km, 0, ',', '.');
+}
+
+/**
+ * Datum aus einem Formularfeld (JJJJ-MM-TT), null bei ungültiger Eingabe.
+ *
+ * Der Rückvergleich fängt Daten ab, die PHP sonst still umrechnet,
+ * z. B. 2026-02-31 zum 03.03.
+ */
+function datum_aus_eingabe(string $wert): ?DateTimeImmutable
+{
+    $datum = DateTimeImmutable::createFromFormat('!Y-m-d', $wert);
+
+    return $datum !== false && $datum->format('Y-m-d') === $wert ? $datum : null;
+}
+
+/**
+ * Link zur Suche nach einem Ersatzfahrzeug für eine Buchung, die abgelehnt,
+ * storniert oder gesperrt ist: gleicher Zeitraum (ab heute), Zweck, Personen
+ * und Fahrer. null, wenn der Zeitraum schon vorbei ist.
+ */
+function ersatz_link(CBuchung $Buchung, int $ich): ?string
+{
+    $heute = new DateTimeImmutable('today');
+
+    if ($Buchung->GetEnde() < $heute) {
+        return null;
+    }
+
+    $suche = [
+        'beginn'   => max($Buchung->GetStart(), $heute)->format('Y-m-d'),
+        'ende'     => $Buchung->GetEnde()->format('Y-m-d'),
+        'personen' => $Buchung->GetPersonenanzahl(),
+        'zweck'    => $Buchung->GetZweckID(),
+    ];
+
+    // Für jemand anderen gebucht: wieder für diese Person suchen
+    if ($Buchung->GetFahrerID() !== $ich) {
+        $suche['fahrer'] = $Buchung->GetFahrerID();
+    }
+
+    return 'buchen.php?' . http_build_query($suche);
+}
+
+/**
+ * Wie lange etwas schon wartet, in Kalendertagen, passend zu „Wartet seit“:
+ * „heute“, „1 Tag“, „4 Tagen“.
+ */
+function wartet_seit(DateTimeImmutable $seit): string
+{
+    $tage = $seit->setTime(0, 0)->diff(new DateTimeImmutable('today'))->days;
+
+    return match ($tage) {
+        0       => 'heute',
+        1       => '1 Tag',
+        default => $tage . ' Tagen',
+    };
 }

@@ -2,27 +2,28 @@
 /**
  * Fahrzeug buchen, nur für Mitarbeiter.
  *
- * Eine Seite: oben die Suche (Buchen für, Zeitraum, Personen, Zweck,
- * Fahrzeugart) als GET-Formular, darunter alle passenden Fahrzeuge mit Bild,
- * darunter das Absenden. Angezeigt werden nur Fahrzeuge, die im Zeitraum
- * gebucht werden können; belegte, in Wartung, mit überfälliger Rückgabe und
- * solche, für die dem Fahrer der Führerschein oder die Freigabe für
- * Luxusautos (nutzer.darf_luxus) fehlt (Ampel „rot“), sind
- * ausgeblendet. Jedes Fahrzeug verlinkt auf seinen Steckbrief; eine eigene
- * Fahrzeugliste haben Mitarbeiter nicht.
+ * Oben die Suche als Formular-Schild (Buchen für, Von, Bis, Personen, Zweck,
+ * Fahrzeugart) per GET, darunter je freies Fahrzeug ein Schild mit Bild,
+ * Kennwerten und eigenem Knopf zum Absenden (POST): „Buchen“, wenn die
+ * Buchung sofort bestätigt ist, „Beantragen“, wenn der Fuhrparkleiter sie
+ * genehmigen muss (CFahrzeug::BrauchtGenehmigung()). Vor der Suche (ohne
+ * Zweck) stehen alle Fahrzeuge im Bestand da, nur zum Ansehen, ohne Knopf.
+ * Den Zweck „Wartung/Service“ können Mitarbeiter nicht wählen
+ * (CBuchung::IstBuchbarerZweck()).
  *
- * Ampel: Autos und Transporter werden beantragt (Status „offen“), Roller und
- * Fahrräder sind sofort bestätigt („genehmigt“), siehe CFahrzeug::BrauchtGenehmigung().
+ * Angezeigt werden nur Fahrzeuge, die im Zeitraum gebucht werden können;
+ * belegte, in Wartung, mit überfälliger Rückgabe und solche, für die dem
+ * Fahrer der Führerschein oder die Freigabe für Luxusautos fehlt, sind
+ * ausgeblendet. Zweck und Fahrzeugart müssen zusammenpassen
+ * (CBuchung::PasstZweck()).
  *
- * Überfällige Rückgabe: Wer selbst eine hat, kann nichts buchen; wer eine hat, kann nicht als Fahrer eingetragen
- * werden; ein Fahrzeug mit überfälliger Rückgabe ist nicht wählbar.
+ * Wer selbst eine überfällige Rückgabe hat, kann nichts buchen und sieht
+ * nur die Meldung dazu.
  *
- * Aufruf mit Vorauswahl aus dem Steckbrief: buchen.php?fahrzeug=1. Die Suche
- * steht in der Adresse, z. B. buchen.php?beginn=2026-10-07&ende=2026-10-08&zweck=1
- * (Zweck und Fahrzeugart als ID aus den Schlüsseltabellen).
- *
- * Nutzer, Fahrzeuge, Belegung und Speichern laufen über CListeNutzer,
- * CListeFahrzeuge::LadenFuerBuchung(), CListeBuchungen und CBuchung::Create().
+ * Aufruf aus dem Steckbrief: buchen.php?fahrzeug=1, das Fahrzeug steht dann
+ * oben. Die Suche steht in der Adresse, z. B.
+ * buchen.php?beginn=2026-10-07&ende=2026-10-08&zweck=1 (Zweck und
+ * Fahrzeugart als ID aus den Schlüsseltabellen).
  */
 
 declare(strict_types=1);
@@ -48,7 +49,8 @@ foreach ($ListeNutzer->GetAlle() as $Eintrag) {
 }
 
 $Zwecke = new CListeSchluessel('zwecke');
-$Fahrzeugarten = new CListeSchluessel('fahrzeugarten');
+$Arten = new CListeSchluessel('fahrzeugarten');
+$Antriebe = new CListeSchluessel('antriebe');
 
 $heute = new DateTimeImmutable('today');
 
@@ -65,7 +67,7 @@ $meineUeberfaellige = array_filter(
 // --- Suche (GET) ------------------------------------------------------------
 // Fehlt ein Wert, gilt der Standard: ich selbst, morgen, 1 Person, alle
 // Arten. Ein angegebener, aber ungültiger Wert ist ein Fehler, damit nicht
-// still ein anderer Zeitraum gebucht wird.
+// still ein anderer Zeitraum gebucht wird. Der Zweck hat keinen Standard.
 
 $fehler = [];
 
@@ -110,17 +112,24 @@ if ($personen === false) {
     $personen = 1;
 }
 
-// Zweck und Fahrzeugart als ID, 0 = nicht gewählt.
+// Zweck und Fahrzeugart als ID, 0 = nicht gewählt. Ohne Zweck in der
+// Adresse (erster Aufruf, Steckbrief) noch kein Fehler, nur keine Liste.
 $zweck = (int) (is_string($_GET['zweck'] ?? null) ? $_GET['zweck'] : 0);
-$zweck = $Zwecke->GetByID($zweck) !== null ? $zweck : 0;
-$art   = (int) (is_string($_GET['art'] ?? null) ? $_GET['art'] : 0);
-$art   = $Fahrzeugarten->GetByID($art) !== null ? $art : 0;
+$zweck = $Zwecke->GetByID($zweck) !== null && CBuchung::IstBuchbarerZweck($zweck) ? $zweck : 0;
+if ($zweck === 0 && isset($_GET['zweck'])) {
+    $fehler[] = 'Bitte wählen Sie den Zweck der Fahrt.';
+}
+
+$art = (int) (is_string($_GET['art'] ?? null) ? $_GET['art'] : 0);
+$art = $Arten->GetByID($art) !== null ? $art : 0;
 
 // Aus dem Steckbrief vorgewähltes Fahrzeug (fahrzeug.php → buchen.php?fahrzeug=1).
 $auswahl = (int) (is_string($_GET['fahrzeug'] ?? null) ? $_GET['fahrzeug'] : 0);
+$Vorwahl = $auswahl > 0 ? CFahrzeug::LoadByID($auswahl) : null;
 
-// Die Suche als Parameter, für das Buchungsformular.
-$suche = $fehler === [] && $meineSperre === null ? array_filter([
+// Die Suche als Parameter, für die Formulare der Fahrzeuge. Leer, solange
+// etwas fehlt; dann gibt es keine Liste.
+$suche = $fehler === [] && $zweck !== 0 && $meineSperre === null ? array_filter([
     'fahrer'   => $fahrer !== $ich ? $fahrer : null,
     'beginn'   => $zeitraum['beginn']->format('Y-m-d'),
     'ende'     => $zeitraum['ende']->format('Y-m-d'),
@@ -148,6 +157,7 @@ $grundText = [
 $ListeFahrzeuge = new CListeFahrzeuge();
 $stand = [];   // Fahrzeug-ID => Stand, für alle passenden
 $liste = [];   // Fahrzeug-ID => CFahrzeug, nur die freien
+$Fahrer = $nutzer[$fahrer];
 
 if ($suche !== []) {
     $ListeFahrzeuge->LadenFuerBuchung($personen, $art, $zweck);
@@ -159,7 +169,6 @@ if ($suche !== []) {
 
     $belegteFahrzeuge = $ListeBelegung->GetFahrzeugIDs();
     $ueberfaelligeFahrzeuge = $ListeUeberfaellige->GetFahrzeugIDs();
-    $Fahrer = $nutzer[$fahrer];
 
     foreach ($ListeFahrzeuge->GetAlle() as $Fahrzeug) {
         $id = $Fahrzeug->GetID();
@@ -178,51 +187,91 @@ if ($suche !== []) {
             $liste[$id] = $Fahrzeug;
         }
     }
+
+    // Das vorgewählte Fahrzeug steht oben.
+    if (isset($liste[$auswahl])) {
+        $liste = [$auswahl => $liste[$auswahl]] + $liste;
+    }
 }
 
-// Aus dem Steckbrief vorgewählt, aber im Zeitraum nicht buchbar: Hinweis
-// statt stillem Fehlen.
-$auswahlHinweis = isset($stand[$auswahl]) && $stand[$auswahl] !== 'frei'
-    ? $ListeFahrzeuge->GetByID($auswahl)->GetName() . ' ' . $grundText[$stand[$auswahl]] . '.'
-    : null;
+// Vor der Suche: alle Fahrzeuge im Bestand zum Ansehen, ohne Knopf zum
+// Buchen. Das vorgewählte steht oben.
+$alleFahrzeuge = [];
+
+if ($suche === [] && $meineSperre === null) {
+    $ListeAlle = new CListeFahrzeuge();
+    $ListeAlle->LadenImBestand();
+
+    foreach ($ListeAlle->GetAlle() as $Fahrzeug) {
+        $alleFahrzeuge[$Fahrzeug->GetID()] = $Fahrzeug;
+    }
+
+    if (isset($alleFahrzeuge[$auswahl])) {
+        $alleFahrzeuge = [$auswahl => $alleFahrzeuge[$auswahl]] + $alleFahrzeuge;
+    }
+}
+
+// Aus dem Steckbrief vorgewählt, aber nicht in der Liste: Hinweis mit dem
+// Grund statt stillem Fehlen.
+$auswahlHinweis = null;
+
+if ($suche !== [] && $Vorwahl !== null && !isset($liste[$auswahl])) {
+    $zweckGrund = CBuchung::ZweckHindernis($zweck, $Vorwahl->GetArtID());
+
+    if (isset($stand[$auswahl])) {
+        $auswahlHinweis = $Vorwahl->GetName() . ' ' . $grundText[$stand[$auswahl]] . '.';
+    } elseif ($zweckGrund !== null) {
+        $auswahlHinweis = $Vorwahl->GetName() . ': ' . $zweckGrund;
+    } elseif ($Vorwahl->GetSitzplaetze() < $personen) {
+        $auswahlHinweis = $Vorwahl->GetName() . ' hat nur ' . $Vorwahl->GetSitzplaetze() . ' Sitzplätze.';
+    }
+}
 
 // --- Buchung absenden (POST) ------------------------------------------------
-// Läuft vor header.php, damit die Weiterleitung möglich ist. Die Suche kommt
-// über die Adresse des Formulars mit. Die Prüfungen hier nennen dem Nutzer den
-// genauen Grund; verbindlich prüft CBuchung::Create() noch einmal beim Speichern.
+// Jedes Fahrzeug-Schild hat ein eigenes Formular mit der Fahrzeug-ID; die
+// Suche kommt über die Adresse mit. Läuft vor header.php, damit die
+// Weiterleitung möglich ist. Die Prüfungen hier nennen den genauen Grund;
+// verbindlich prüft CBuchung::Create() noch einmal beim Speichern.
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $auswahl = (int) (is_string($_POST['fahrzeug'] ?? null) ? $_POST['fahrzeug'] : 0);
+    $gewaehlt = (int) (is_string($_POST['fahrzeug'] ?? null) ? $_POST['fahrzeug'] : 0);
 
     if ($meineSperre !== null) {
         $fehler[] = 'Sie können derzeit nicht buchen. ' . $meineSperre;
+    } elseif ($fehler === [] && $suche === []) {
+        $fehler[] = 'Bitte wählen Sie den Zweck der Fahrt.';
     } elseif ($fehler === []) {
-        if ($zweck === 0) {
-            $fehler[] = 'Bitte wählen Sie oben den Zweck der Fahrt.';
-        }
-
-        if (isset($stand[$auswahl]) && $stand[$auswahl] !== 'frei') {
-            $fehler[] = 'Das Fahrzeug ' . $grundText[$stand[$auswahl]]
-                . ' und kann nicht gebucht werden.';
-        } elseif (!isset($liste[$auswahl])) {
-            $fehler[] = 'Bitte wählen Sie ein Fahrzeug aus der Liste.';
+        if (isset($stand[$gewaehlt]) && $stand[$gewaehlt] !== 'frei') {
+            $fehler[] = 'Das Fahrzeug ' . $grundText[$stand[$gewaehlt]]
+                . '. Bitte wählen Sie ein anderes Fahrzeug aus der Liste.';
+        } elseif (!isset($liste[$gewaehlt])) {
+            $fehler[] = 'Dieses Fahrzeug passt nicht zur Suche. Bitte wählen Sie eines aus der Liste.';
         }
     }
 
     if ($fehler === []) {
         try {
             $Buchung = CBuchung::Create(
-                $auswahl, $ich, $fahrer, $zeitraum['beginn'], $zeitraum['ende'], $zweck, $personen
+                $gewaehlt, $ich, $fahrer, $zeitraum['beginn'], $zeitraum['ende'], $zweck, $personen
             );
             $bestaetigt = $Buchung->GetStatusID() === STATUS_GENEHMIGT;
 
+            // Ergebnis, Fahrzeug, Zeitraum und Zweck; den Fahrer nur, wenn
+            // für jemand anderen gebucht wurde
+            $satz = $Buchung->GetFahrzeugName() . ' ' . zeitraum_satz($zeitraum['beginn'], $zeitraum['ende'])
+                . ', ' . $Zwecke->GetBezeichnung($zweck)
+                . ($fahrer !== $ich ? ', Fahrer: ' . $Fahrer->GetName() : '') . '.';
+
             merke_meldung(
-                ($bestaetigt ? 'Buchung bestätigt. ' : 'Antrag gestellt. Er liegt dem Fuhrparkleiter zur Genehmigung vor. ')
-                    . $Buchung->GetFahrzeugName() . ' ' . zeitraum_satz($zeitraum['beginn'], $zeitraum['ende'])
-                    . ', ' . $Zwecke->GetBezeichnung($zweck) . ', Fahrer: ' . $Fahrer->GetName() . '.',
+                $bestaetigt
+                    ? 'Buchung bestätigt: ' . $satz
+                    : 'Antrag gestellt: ' . $satz . ' Der Fuhrparkleiter entscheidet darüber.',
                 $bestaetigt ? 'erfolg' : 'hinweis',
+                ['Zu meinen Buchungen', 'meine-buchungen.php'],
             );
-            redirect('buchen.php?gebucht=1');
+
+            // Zurück zur selben Suche, z. B. für ein zweites Fahrzeug
+            redirect('buchen.php?' . http_build_query($suche));
         } catch (CFachlicherFehler $Fehler) {
             $fehler[] = $Fehler->getMessage();
         }
@@ -243,14 +292,7 @@ function zeitraum_satz(DateTimeImmutable $von, DateTimeImmutable $bis): string
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<?php if (isset($_GET['gebucht'])): ?>
-
-    <p class="section">
-        <a class="button" href="<?= url('meine-buchungen.php') ?>">Zu meinen Buchungen</a>
-        <a class="button button--zweitrangig" href="<?= url('buchen.php') ?>">Weiteres Fahrzeug buchen</a>
-    </p>
-
-<?php elseif ($meineSperre !== null): ?>
+<?php if ($meineSperre !== null): ?>
 
     <?php foreach ($meineUeberfaellige as $Buchung): ?>
         <div class="banner">
@@ -266,151 +308,194 @@ require_once __DIR__ . '/includes/header.php';
 
 <?php else: ?>
 
-    <!-- Suche: als GET, damit sie in der Adresse steht und erhalten bleibt -->
-    <form class="form form--breit" method="get" action="<?= url('buchen.php') ?>">
-        <h2 class="form__titel">1. Wer, wann, wozu?</h2>
-
-        <?php if ($auswahl > 0): ?>
-            <input type="hidden" name="fahrzeug" value="<?= e((string) $auswahl) ?>">
-        <?php endif; ?>
-
-        <div class="form__raster">
-            <div class="form__row">
-                <label class="form__label" for="fahrer">Buchen für</label>
-                <select class="form__input" id="fahrer" name="fahrer">
-                    <?php foreach ($nutzer as $id => $Eintrag): ?>
-                        <option value="<?= e((string) $id) ?>"<?= $id === $fahrer ? ' selected' : '' ?>>
-                            <?= e($id === $ich ? 'mich selbst (' . $Eintrag->GetName() . ')' : $Eintrag->GetName()) ?>
-                            <?= $Eintrag->GetSperreBuchen() !== null ? '(Rückgabe überfällig)' : '' ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="form__row">
-                <label class="form__label" for="beginn">Von</label>
-                <input class="form__input" type="date" id="beginn" name="beginn"
-                       min="<?= e($heute->format('Y-m-d')) ?>"
-                       value="<?= e(($zeitraum['beginn'] ?? $heute->modify('+1 day'))->format('Y-m-d')) ?>">
-            </div>
-
-            <div class="form__row">
-                <label class="form__label" for="ende">Bis</label>
-                <input class="form__input" type="date" id="ende" name="ende"
-                       min="<?= e($heute->format('Y-m-d')) ?>"
-                       value="<?= e(($zeitraum['ende'] ?? $zeitraum['beginn'] ?? $heute->modify('+1 day'))->format('Y-m-d')) ?>">
-            </div>
-
-            <div class="form__row">
-                <label class="form__label" for="personen">Personen</label>
-                <input class="form__input" type="number" id="personen" name="personen"
-                       min="1" max="9" value="<?= e((string) $personen) ?>">
-                <span class="form__hinweis">einschließlich Fahrer</span>
-            </div>
-
-            <div class="form__row">
-                <label class="form__label" for="zweck">Zweck</label>
-                <select class="form__input" id="zweck" name="zweck">
-                    <option value="">bitte wählen</option>
-                    <?php foreach ($Zwecke->GetAlle() as $Zweck): ?>
-                        <option value="<?= e((string) $Zweck->GetID()) ?>"<?= $Zweck->GetID() === $zweck ? ' selected' : '' ?>><?= e($Zweck->GetBezeichnung()) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <span class="form__hinweis">Montage und Materialtransport nur mit Auto oder Transporter</span>
-            </div>
-
-            <div class="form__row">
-                <label class="form__label" for="art">Fahrzeugart</label>
-                <select class="form__input" id="art" name="art">
-                    <option value="">alle</option>
-                    <?php foreach ($Fahrzeugarten->GetAlle() as $Art): ?>
-                        <option value="<?= e((string) $Art->GetID()) ?>"<?= $Art->GetID() === $art ? ' selected' : '' ?>><?= e($Art->GetBezeichnung()) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-        </div>
-
-        <button class="button" type="submit">Fahrzeuge anzeigen</button>
-    </form>
-
     <?php if ($fehler !== []): ?>
-        <div class="alert section">
+        <div class="alert">
             <?php foreach ($fehler as $meldung): ?>
                 <p class="alert__zeile"><?= e($meldung) ?></p>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
 
-    <?php if ($suche !== []): ?>
-        <!-- Fahrzeug wählen und absenden -->
-        <form class="form form--breit section" method="post"
-              action="<?= e(url('buchen.php?' . http_build_query($suche))) ?>">
-            <h2 class="form__titel">2. Fahrzeug auswählen</h2>
+    <!-- Suche: als GET, damit sie in der Adresse steht und erhalten bleibt -->
+    <form class="schild schild--formular buchungssuche" method="get" action="<?= url('buchen.php') ?>">
+        <?php if ($auswahl > 0): ?>
+            <input type="hidden" name="fahrzeug" value="<?= e((string) $auswahl) ?>">
+        <?php endif; ?>
 
-            <p class="lead">
-                <?= e(zeitraum_satz($zeitraum['beginn'], $zeitraum['ende'])) ?>
-                für <?= e((string) $personen) ?> <?= $personen === 1 ? 'Person' : 'Personen' ?>,
-                Fahrer: <?= e($Fahrer->GetName()) ?>.
-                <?= e((string) count($liste)) ?> <?= count($liste) === 1 ? 'Fahrzeug ist' : 'Fahrzeuge sind' ?> frei.
-                Autos und Transporter werden beim Fuhrparkleiter beantragt, Roller und Fahrräder sind
-                sofort bestätigt.
-            </p>
+        <div class="schild__koerper">
+            <div class="formfelder buchungssuche__felder">
+                <div class="formfeld">
+                    <label class="form__label" for="fahrer">Buchen für</label>
+                    <select class="form__input" id="fahrer" name="fahrer">
+                        <?php foreach ($nutzer as $id => $Eintrag): ?>
+                            <option value="<?= e((string) $id) ?>"<?= $id === $fahrer ? ' selected' : '' ?>>
+                                <?= e($id === $ich ? 'mich selbst' : $Eintrag->GetName()) ?>
+                                <?= $Eintrag->GetSperreBuchen() !== null ? '(Rückgabe überfällig)' : '' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-            <?php if ($auswahlHinweis !== null): ?>
-                <p class="alert alert--hinweis"><?= e($auswahlHinweis) ?> Bitte wählen Sie ein anderes Fahrzeug oder einen anderen Zeitraum.</p>
-            <?php endif; ?>
+                <div class="formfeld">
+                    <label class="form__label" for="beginn">Von</label>
+                    <input class="form__input" type="date" id="beginn" name="beginn" required
+                           min="<?= e($heute->format('Y-m-d')) ?>"
+                           value="<?= e(($zeitraum['beginn'] ?? $heute->modify('+1 day'))->format('Y-m-d')) ?>">
+                </div>
 
-            <div class="fahrzeugwahl">
-                <?php foreach ($liste as $id => $Fahrzeug): ?>
-                    <label class="fahrzeugkarte">
-                        <input class="fahrzeugkarte__auswahl" type="radio" name="fahrzeug" required
-                               value="<?= e((string) $id) ?>"
-                               <?= $id === $auswahl ? 'checked' : '' ?>>
+                <div class="formfeld">
+                    <label class="form__label" for="ende">Bis</label>
+                    <input class="form__input" type="date" id="ende" name="ende"
+                           min="<?= e($heute->format('Y-m-d')) ?>"
+                           value="<?= e(($zeitraum['ende'] ?? $zeitraum['beginn'] ?? $heute->modify('+1 day'))->format('Y-m-d')) ?>">
+                </div>
 
-                        <?php if ($Fahrzeug->GetBild() !== null && is_file(__DIR__ . '/assets/img/' . $Fahrzeug->GetBild())): ?>
-                            <img class="fahrzeugkarte__bild" src="<?= url('assets/img/' . $Fahrzeug->GetBild()) ?>"
-                                 alt="" loading="lazy">
-                        <?php else: ?>
-                            <span class="fahrzeugkarte__bild fahrzeugkarte__bild--platzhalter"><?= e($Fahrzeug->GetTyp()) ?></span>
-                        <?php endif; ?>
+                <div class="formfeld">
+                    <label class="form__label" for="personen">Personen</label>
+                    <input class="form__input" type="number" id="personen" name="personen"
+                           min="1" max="9" value="<?= e((string) $personen) ?>">
+                    <span class="form__hinweis">mit Fahrer</span>
+                </div>
 
-                        <span class="fahrzeugkarte__kopf">
-                            <strong><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></strong>
-                        </span>
+                <div class="formfeld">
+                    <label class="form__label" for="zweck">Zweck</label>
+                    <select class="form__input" id="zweck" name="zweck" required>
+                        <option value="">bitte wählen</option>
+                        <?php foreach ($Zwecke->GetAlle() as $Zweck): ?>
+                            <?php if (!CBuchung::IstBuchbarerZweck($Zweck->GetID())) continue; ?>
+                            <option value="<?= e((string) $Zweck->GetID()) ?>"<?= $Zweck->GetID() === $zweck ? ' selected' : '' ?>><?= e($Zweck->GetBezeichnung()) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-                        <span class="fahrzeugkarte__daten">
-                            <?= e($Fahrzeug->GetKennzeichen()) ?> &middot;
-                            <?= e($Fahrzeugarten->GetBezeichnung($Fahrzeug->GetArtID())) ?> &middot;
-                            <?= e((string) $Fahrzeug->GetSitzplaetze()) ?> <?= $Fahrzeug->GetSitzplaetze() === 1 ? 'Sitz' : 'Sitze' ?>
-                            <?php if ($Fahrzeug->GetFuehrerschein() !== null): ?>
-                                &middot; Klasse <?= e($Fahrzeug->GetFuehrerschein()) ?>
-                            <?php endif; ?>
-                        </span>
-
-                        <span class="fahrzeugkarte__fuss">
-                            <span><?= $Fahrzeug->BrauchtGenehmigung() ? 'Antrag nötig' : 'sofort bestätigt' ?></span>
-                            <a href="<?= url('fahrzeug.php?id=' . $id) ?>">Steckbrief</a>
-                        </span>
-                    </label>
-                <?php endforeach; ?>
+                <div class="formfeld">
+                    <label class="form__label" for="art">Fahrzeugart</label>
+                    <select class="form__input" id="art" name="art">
+                        <option value="">alle</option>
+                        <?php foreach ($Arten->GetAlle() as $Art): ?>
+                            <option value="<?= e((string) $Art->GetID()) ?>"<?= $Art->GetID() === $art ? ' selected' : '' ?>><?= e($Art->GetBezeichnung()) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
             </div>
 
-            <?php if ($liste === []): ?>
-                <p class="note">
-                    Im gewählten Zeitraum ist kein passendes Fahrzeug frei. Ein anderer Zeitraum,
-                    weniger Personen oder eine andere Fahrzeugart?
-                </p>
-            <?php else: ?>
-                <h2 class="form__titel section">3. Absenden</h2>
+            <div class="schild__aktionen">
+                <button class="button" type="submit">Fahrzeuge anzeigen</button>
+            </div>
+        </div>
+    </form>
 
-                <?php if ($zweck === 0): ?>
-                    <p class="note">Bitte wählen Sie oben noch den Zweck der Fahrt.</p>
-                <?php endif; ?>
-
-                <button class="button" type="submit">Buchung absenden</button>
-            <?php endif; ?>
-        </form>
+    <?php if ($suche === []): ?>
+        <!-- Noch keine Suche: alle Fahrzeuge zum Ansehen, gebucht wird nach der Suche -->
+        <section aria-labelledby="treffer">
+            <h2 class="abschnitt" id="treffer">
+                Alle Fahrzeuge
+                <span class="abschnitt__wert"><?= e((string) count($alleFahrzeuge)) ?> im Bestand</span>
+                <span class="abschnitt__zusatz">
+                    <?php if ($Vorwahl !== null): ?>
+                        Wählen Sie Zeitraum und Zweck, dann sehen Sie, ob <?= e($Vorwahl->GetName()) ?> frei ist.
+                    <?php else: ?>
+                        Wählen Sie Zeitraum und Zweck, dann sehen Sie, welche frei sind.
+                    <?php endif; ?>
+                </span>
+            </h2>
+    <?php else: ?>
+        <?php $anzahl = count($liste); ?>
+        <section aria-labelledby="treffer">
+            <h2 class="abschnitt" id="treffer">
+                Freie Fahrzeuge
+                <span class="abschnitt__wert">
+                    <?= $anzahl === 0 ? 'keines frei' : e((string) $anzahl) . ($anzahl === 1 ? ' Fahrzeug frei' : ' Fahrzeuge frei') ?>
+                </span>
+                <span class="abschnitt__zusatz">
+                    <?= e(zeitraum_kurz($zeitraum['beginn'], $zeitraum['ende'])) ?>
+                    &middot; <?= e($Zwecke->GetBezeichnung($zweck)) ?>
+                    &middot; <?= e((string) $personen) ?> <?= $personen === 1 ? 'Person' : 'Personen' ?>
+                    <?php if ($fahrer !== $ich): ?>
+                        &middot; für <?= e($Fahrer->GetName()) ?>
+                    <?php endif; ?>
+                </span>
+            </h2>
     <?php endif; ?>
+
+            <?php if ($auswahlHinweis !== null): ?>
+                <p class="alert alert--hinweis"><?= e($auswahlHinweis) ?> Bitte wählen Sie ein anderes Fahrzeug, einen anderen Zeitraum oder Zweck.</p>
+            <?php endif; ?>
+
+            <?php foreach ($suche !== [] ? $liste : $alleFahrzeuge as $id => $SchildFahrzeug): ?>
+                <?php
+                $antrag = $SchildFahrzeug->BrauchtGenehmigung();
+                $marke = $antrag ? ['Antrag', 'gelb'] : ['Sofort bestätigt', 'gruen'];
+                $bild = $SchildFahrzeug->GetBild();
+                $antrieb = $SchildFahrzeug->GetAntriebID();
+                ?>
+                <article class="schild treffer">
+                    <?php require __DIR__ . '/includes/schild-kopf.php'; ?>
+
+                    <div class="schild__koerper">
+                        <div class="treffer__inhalt">
+                            <?php if ($bild !== null && is_file(__DIR__ . '/assets/img/' . $bild)): ?>
+                                <img class="treffer__bild" src="<?= url('assets/img/' . $bild) ?>" alt="" loading="lazy">
+                            <?php else: ?>
+                                <span class="treffer__bild treffer__bild--platzhalter">kein Bild</span>
+                            <?php endif; ?>
+
+                            <dl class="felder felder--treffer">
+                                <div class="feld">
+                                    <dt>Typ</dt>
+                                    <dd><?= e($SchildFahrzeug->GetTyp()) ?></dd>
+                                </div>
+                                <div class="feld">
+                                    <dt>Sitze</dt>
+                                    <dd><?= e((string) $SchildFahrzeug->GetSitzplaetze()) ?></dd>
+                                </div>
+                                <div class="feld">
+                                    <dt>Antrieb</dt>
+                                    <dd><?= $antrieb !== null ? e($Antriebe->GetBezeichnung($antrieb)) : '–' ?></dd>
+                                </div>
+                                <div class="feld">
+                                    <dt>Führerschein</dt>
+                                    <dd><?= $SchildFahrzeug->GetFuehrerschein() !== null ? 'Klasse ' . e($SchildFahrzeug->GetFuehrerschein()) : 'keiner nötig' ?></dd>
+                                </div>
+                            </dl>
+                        </div>
+
+                        <?php if ($suche !== []): ?>
+                            <!-- Eigenes Formular je Fahrzeug, die Suche steht in der Adresse -->
+                            <form class="schild__aktionen" method="post"
+                                  action="<?= e(url('buchen.php?' . http_build_query($suche))) ?>">
+                                <input type="hidden" name="fahrzeug" value="<?= e((string) $id) ?>">
+                                <button class="button button--klein" type="submit"><?= $antrag ? 'Beantragen' : 'Buchen' ?></button>
+                                <p class="schild__hinweis">
+                                    <?= $antrag ? 'Der Fuhrparkleiter entscheidet über den Antrag.' : 'Die Buchung gilt sofort.' ?>
+                                </p>
+                            </form>
+                        <?php else: ?>
+                            <!-- Vor der Suche: kein Knopf, nur der Weg dorthin -->
+                            <div class="schild__aktionen">
+                                <p class="schild__hinweis">
+                                    Zum Buchen oben Zeitraum und Zweck wählen.
+                                </p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+
+            <?php if ($suche !== [] && $liste === []): ?>
+                <?php $artGrund = $art !== 0 ? CBuchung::ZweckHindernis($zweck, $art) : null; ?>
+                <div class="schild schild--leer">
+                    <p>
+                        <?php if ($artGrund !== null): ?>
+                            <?= e($artGrund) ?> Wählen Sie einen anderen Zweck oder eine andere Fahrzeugart.
+                        <?php else: ?>
+                            Im gewählten Zeitraum ist kein passendes Fahrzeug frei. Versuchen Sie einen anderen
+                            Zeitraum, weniger Personen oder eine andere Fahrzeugart.
+                        <?php endif; ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+        </section>
 
 <?php endif; ?>
 

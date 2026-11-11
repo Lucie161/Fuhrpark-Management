@@ -4,21 +4,28 @@
  *
  * Aufruf: fahrzeug.php?id=1
  *
- * Stammdaten, noch nicht behobene Schäden, Belegung der nächsten 14 Tage und
- * darunter das Fahrtenbuch des Fahrzeugs mit Summe der km und Anzahl der
- * Fahrten. Den Fahrer sieht nur der Fuhrparkleiter, im Fahrtenbuch wie in der
- * Belegung; für Mitarbeiter wird der Name gar nicht erst abgefragt
- * (Datenschutz). Fahrzeuge ohne km-Stand (Fahrrad)
- * zeigen im Fahrtenbuch keine km-Spalten.
+ * Oben das Fahrzeug als großes Schild: Kopf mit Kennzeichen, Modell und
+ * Stand, Bild und Merkmale als Kennwertfelder, rechts die Aktion
+ * („Dieses Fahrzeug buchen“ für Mitarbeiter, das Wartungsformular für den
+ * Fuhrparkleiter), darunter Hinweise zu Wartung und Luxusauto. Danach die
+ * noch nicht behobenen Schäden, die Belegung der nächsten 14 Tage als Reihe
+ * von Tagesfeldern und, nur für den Fuhrparkleiter, das Fahrtenbuch als
+ * Tabelle mit den gefahrenen km je Fahrt, der Anzahl der Fahrten und der
+ * Summe der km.
+ *
+ * Mitarbeiter sehen kein Fahrtenbuch und in der Belegung keine Fahrer; ihre
+ * Namen werden gar nicht erst abgefragt (Datenschutz). Fotos von Schäden zeigt
+ * die Seite nicht, die sieht der Fuhrparkleiter in schaeden.php. Fahrzeuge
+ * ohne km-Stand (Fahrrad) zeigen im Fahrtenbuch keine km-Spalten.
  *
  * Ausgemusterte Fahrzeuge (geloescht_am gesetzt) sind über das Fahrtenbuch
  * weiter erreichbar, aber ohne Belegung und Buchen.
  *
  * Daten: CFahrzeug::LoadByID() mit laufender Wartung, die Belegung aus
  * CListeBuchungen::LadenBelegung() und die Fahrten aus
- * CListeBuchungen::LadenFahrtenbuch() (Namen jeweils nur für den
- * Fuhrparkleiter), die Wartungen im Fahrtenbuch aus
- * CListeWartungen::LadenZuFahrzeug(), die Schäden aus CListeSchaeden.
+ * CListeBuchungen::LadenFahrtenbuch() (nur für den Fuhrparkleiter), die
+ * Wartungen aus CListeWartungen::LadenZuFahrzeug(), die offenen Schäden aus
+ * CListeSchaeden.
  */
 
 declare(strict_types=1);
@@ -32,17 +39,22 @@ $fuhrparkleiter = ist_fuhrparkleiter();
 $Fahrzeugarten = new CListeSchluessel('fahrzeugarten');
 $Antriebe = new CListeSchluessel('antriebe');
 $Zwecke = new CListeSchluessel('zwecke');
-$Schweregrade = new CListeSchluessel('schweregrade');
 $Anlaesse = new CListeSchluessel('schadensanlaesse');
 
-// Angezeigter Fahrzeugstatus => Beschriftung (wie in fahrzeuge.php); zugleich
-// CSS-Klasse (.badge--wartung usw.), siehe CFahrzeug::GetStand().
-$statusText = [
-    'verfuegbar'   => 'verfügbar',
-    'unterwegs'    => 'unterwegs',
-    'wartung'      => 'in Wartung',
-    'ausgemustert' => 'ausgemustert',
+// Stand eines Fahrzeugs (CFahrzeug::GetStand()) => [Wort, Farbe] für das
+// Feld „Stand“, wie in fahrzeuge.php
+$standMarke = [
+    'verfuegbar'   => ['Frei', 'gruen'],
+    'unterwegs'    => ['Unterwegs', 'grau'],
+    'wartung'      => ['In Wartung', 'gelb'],
+    'ausgemustert' => ['Ausgemustert', 'grau'],
 ];
+
+// Zurück zur Fahrzeugliste der Rolle: fahrzeuge.php ist für Mitarbeiter
+// gesperrt, sie wählen Fahrzeuge in buchen.php.
+$pageZurueck = $fuhrparkleiter
+    ? ['Alle Fahrzeuge', 'fahrzeuge.php']
+    : ['Zur Fahrzeugauswahl', 'buchen.php'];
 
 // --- Fahrzeug ermitteln -----------------------------------------------------
 
@@ -51,47 +63,78 @@ $Fahrzeug = CFahrzeug::LoadByID($id);
 
 if ($Fahrzeug === null) {
     http_response_code(404);
+    $pageTitle = 'Fahrzeug nicht gefunden';
+
+    require_once __DIR__ . '/includes/header.php';
+    ?>
+    <div class="schild schild--leer">
+        <p>Zu dieser Angabe gibt es kein Fahrzeug.</p>
+        <a class="button button--zweitrangig" href="<?= url($pageZurueck[1]) ?>"><?= e($pageZurueck[0]) ?></a>
+    </div>
+    <?php
+    require_once __DIR__ . '/includes/footer.php';
+    exit;
 }
 
-$pageTitle = $Fahrzeug !== null
-    ? $Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()
-    : 'Fahrzeug nicht gefunden';
+$pageTitle = $Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell();
+$pageZusatz = 'Steckbrief';
 
 $heute = new DateTimeImmutable('today');
+$ausgemustert = $Fahrzeug->IstAusgemustert();
+$ueberfaellig = $Fahrzeug->IstUeberfaellig();
 
-$ausgemustert = $Fahrzeug !== null && $Fahrzeug->IstAusgemustert();
+// Stand im Schildkopf; eine überfällige Rückgabe ist rot. Wartung geht vor,
+// die überfällige Rückgabe steht dann im Hinweis zur Wartung.
+$stand = $Fahrzeug->GetStand();
+$marke = $stand === 'unterwegs' && $ueberfaellig ? ['Überfällig', 'rot'] : $standMarke[$stand];
 
-// Typabhängige Merkmale: Beschriftung => Wert, in Anzeigereihenfolge.
-// Ein Fahrzeug zeigt nur die Felder, die für seine Art belegt sind, z. B.
-// keine HU/AU und keinen km-Stand beim Fahrrad.
-$merkmale = [];
+// --- Merkmale ---------------------------------------------------------------
+// Beschriftung => Wert, in Anzeigereihenfolge. km-Stand und HU/AU nur, wenn
+// das Fahrzeug sie hat (nicht beim Fahrrad).
 
-if ($Fahrzeug !== null) {
-    // Felder ohne Wert stehen als null in der Liste; array_filter entfernt
-    // sie am Ende.
-    $merkmale = array_filter([
-        'Kennzeichen'   => $Fahrzeug->GetKennzeichen(),
-        'Fahrzeugart'   => $Fahrzeugarten->GetBezeichnung($Fahrzeug->GetArtID()),
-        'Typ'           => $Fahrzeug->GetTyp(),
-        'Baujahr'       => $Fahrzeug->GetBaujahr() !== null ? (string) $Fahrzeug->GetBaujahr() : null,
-        'Sitzplätze'    => (string) $Fahrzeug->GetSitzplaetze(),
-        'Antrieb'       => $Fahrzeug->GetAntriebID() !== null ? $Antriebe->GetBezeichnung($Fahrzeug->GetAntriebID()) : null,
-        'km-Stand'      => $Fahrzeug->GetKmStand() !== null ? km_text($Fahrzeug->GetKmStand()) . ' km' : null,
-        'Führerschein'  => $Fahrzeug->GetFuehrerschein() !== null ? 'Klasse ' . $Fahrzeug->GetFuehrerschein() : null,
-        'Nächste HU/AU' => $Fahrzeug->GetHuAu()?->format('m/Y'),
-    ], fn (?string $wert): bool => $wert !== null);
+$antrieb = $Fahrzeug->GetAntriebID();
+
+$merkmale = [
+    'Fahrzeugart'  => $Fahrzeugarten->GetBezeichnung($Fahrzeug->GetArtID()),
+    'Typ'          => $Fahrzeug->GetTyp(),
+    'Baujahr'      => $Fahrzeug->GetBaujahr() !== null ? (string) $Fahrzeug->GetBaujahr() : '–',
+    'Sitzplätze'   => (string) $Fahrzeug->GetSitzplaetze(),
+    'Antrieb'      => $antrieb !== null ? $Antriebe->GetBezeichnung($antrieb) : '–',
+    'Führerschein' => $Fahrzeug->GetFuehrerschein() !== null ? 'Klasse ' . $Fahrzeug->GetFuehrerschein() : 'keiner nötig',
+];
+
+if ($Fahrzeug->GetKmStand() !== null) {
+    $merkmale['km-Stand'] = km_text($Fahrzeug->GetKmStand()) . ' km';
 }
+
+if ($Fahrzeug->GetHuAu() !== null) {
+    $merkmale['Nächste HU/AU'] = $Fahrzeug->GetHuAu()->format('m/Y');
+}
+
+// HU/AU in Ampelsprache wie in fahrzeuge.php
+$huAuMarke = match ($Fahrzeug->GetHuAuStand()) {
+    'ueberfaellig' => ['Überfällig', 'rot'],
+    'faellig'      => ['Bald fällig', 'gelb'],
+    default        => null,
+};
+
+// Bild aus assets/img/, sonst Platzhalter
+$bildDatei = $Fahrzeug->GetBild();
+$hatBild = $bildDatei !== null && is_file(__DIR__ . '/assets/img/' . $bildDatei);
+
+// Laufende Wartung für den Hinweis im Schild (Grund und Ende)
+$LaufendeWartung = CWartung::LoadLaufende($id);
 
 // --- Belegung der nächsten 14 Tage ------------------------------------------
 // Je Tag: 'frei', 'vergeben' oder 'wartung'. In Wartung sind die Tage bis zum
 // voraussichtlichen Ende; ist das Ende offen, alle Tage (wie im Kalender).
 // Ein Tag ist vergeben, wenn eine beantragte, genehmigte oder laufende
 // Buchung ihn einschließt; eine überfällige Rückgabe belegt heute. Fahrer und
-// Zweck stehen nur für den Fuhrparkleiter im Hinweis (title-Attribut).
+// Zweck sieht nur der Fuhrparkleiter.
 
 $belegung = [];
 
-if ($Fahrzeug !== null && !$ausgemustert) {
+if (!$ausgemustert) {
     // Belegende Buchungen der 14 Tage laden (für alle Fahrzeuge) und auf
     // dieses Fahrzeug beschränken. Namen nur für den Fuhrparkleiter.
     $ListeBelegung = new CListeBuchungen();
@@ -110,7 +153,8 @@ if ($Fahrzeug !== null && !$ausgemustert) {
         $eintrag = [
             'datum'   => $datum,
             'zustand' => $inWartung ? 'wartung' : 'frei',
-            'hinweis' => $inWartung ? 'in Wartung' : 'frei',
+            'fahrer'  => null,
+            'hinweis' => null,
         ];
 
         // Sonst die erste Buchung suchen, die den Tag einschließt. Eine
@@ -123,9 +167,11 @@ if ($Fahrzeug !== null && !$ausgemustert) {
 
                 if ($belegt) {
                     $eintrag['zustand'] = 'vergeben';
-                    $eintrag['hinweis'] = $fuhrparkleiter
-                        ? $Buchung->GetFahrerName() . ': ' . $Zwecke->GetBezeichnung($Buchung->GetZweckID())
-                        : 'vergeben';
+
+                    if ($fuhrparkleiter) {
+                        $eintrag['fahrer'] = $Buchung->GetFahrerName();
+                        $eintrag['hinweis'] = $Buchung->GetFahrerName() . ': ' . $Zwecke->GetBezeichnung($Buchung->GetZweckID());
+                    }
                     break;
                 }
             }
@@ -135,45 +181,45 @@ if ($Fahrzeug !== null && !$ausgemustert) {
     }
 }
 
-$wochentage = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-
-$zustandText = [
-    'frei'     => 'frei',
-    'vergeben' => 'vergeben',
-    'wartung'  => 'in Wartung',
+// Zustand eines Tages => [Wort, Farbe] für die Marke
+$zustandMarke = [
+    'frei'     => ['frei', 'gruen'],
+    'vergeben' => ['vergeben', 'grau'],
+    'wartung'  => ['in Wartung', 'gelb'],
 ];
 
+$wochentage = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+
+$freieTage = count(array_filter($belegung, fn (array $tag): bool => $tag['zustand'] === 'frei'));
+
 // --- Schäden ----------------------------------------------------------------
-// Noch nicht behobene Schäden, für beide Rollen ohne Namen. Schäden aus der
-// Rückgabe stehen außerdem im Fahrtenbuch an der jeweiligen Fahrt.
+// Noch nicht behobene Schäden, für beide Rollen ohne Namen.
 
 $ListeOffene = new CListeSchaeden();
 $ListeOffene->LadenOffene($id);
 
-$ListeSchaeden = new CListeSchaeden();
-$ListeSchaeden->LadenZuFahrzeug($id);
-
 // --- Fahrtenbuch des Fahrzeugs ----------------------------------------------
-// Den Fahrer fragt die Abfrage nur für den Fuhrparkleiter ab; für Mitarbeiter
-// liefert GetFahrerName() null.
+// Nur für den Fuhrparkleiter; für Mitarbeiter wird nichts davon geladen.
 
 $ListeFahrten = new CListeBuchungen();
-$ListeFahrten->LadenFahrtenbuch($id, $fuhrparkleiter);
+$ListeWartungen = new CListeWartungen();
+
+if ($fuhrparkleiter) {
+    $ListeFahrten->LadenFahrtenbuch($id, true);
+    $ListeWartungen->LadenZuFahrzeug($id);
+}
 
 // Ohne km-Stand (Fahrrad) entfallen die km-Spalten und die Summe.
-$mitKm = $Fahrzeug !== null && $Fahrzeug->GetKmStand() !== null;
+$mitKm = $Fahrzeug->GetKmStand() !== null;
 
 $summeKm = 0;
 foreach ($ListeFahrten->GetAlle() as $Fahrt) {
-    $summeKm += $Fahrt->GetKmEnde() !== null ? $Fahrt->GetKmEnde() - $Fahrt->GetKmStart() : 0;
+    $summeKm += $Fahrt->GetGefahreneKm() ?? 0;
 }
 
 // Wartungen stehen als eigene Zeilen zwischen den Fahrten. Sie zählen nicht
 // zu den Fahrten und km. Sortiert wird nach dem Ende (Rückgabe bzw. Freigabe),
 // eine laufende Wartung steht ganz oben.
-$ListeWartungen = new CListeWartungen();
-$ListeWartungen->LadenZuFahrzeug($id);
-
 $eintraege = [];
 
 foreach ($ListeFahrten->GetAlle() as $Fahrt) {
@@ -186,228 +232,279 @@ foreach ($ListeWartungen->GetAlle() as $Wartung) {
 
 usort($eintraege, fn (array $a, array $b): int => $b['datum'] <=> $a['datum']);
 
-// Spalten des Fahrtenbuchs: Datum, Zweck, Zustand; dazu Fahrer (nur
-// Fuhrparkleiter) und zwei km-Spalten.
-$anzahlSpalten = 3 + ($fuhrparkleiter ? 1 : 0) + ($mitKm ? 2 : 0);
+// Spalten des Fahrtenbuchs: Datum, Fahrer, Zweck; dazu drei km-Spalten
+// (Anfang, Ende, gefahren).
+$anzahlSpalten = 3 + ($mitKm ? 3 : 0);
 
-// Bild aus assets/img/, sonst Platzhalter.
-$bildDatei = $Fahrzeug?->GetBild();
-$hatBild = $bildDatei !== null && is_file(__DIR__ . '/assets/img/' . $bildDatei);
-
-// Zurück zur Fahrzeugliste der Rolle: fahrzeuge.php ist für Mitarbeiter
-// gesperrt, sie wählen Fahrzeuge in buchen.php.
-$zurueckZurListe = $fuhrparkleiter
-    ? ['datei' => 'fahrzeuge.php', 'text' => 'Alle Fahrzeuge']
-    : ['datei' => 'buchen.php',    'text' => 'Zur Fahrzeugauswahl'];
-
-/**
- * Kilometer mit Tausenderpunkt, Strich ohne km-Stand.
- */
-function km_text(?int $km): string
-{
-    return $km === null ? '–' : number_format($km, 0, ',', '.');
-}
+$anzahlFahrten = $ListeFahrten->Count();
+$anzahlWartungen = $ListeWartungen->Count();
 
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<?php if ($Fahrzeug === null): ?>
-
-    <p class="alert">Zu dieser Angabe gibt es kein Fahrzeug.</p>
-    <p><a href="<?= url($zurueckZurListe['datei']) ?>"><?= e($zurueckZurListe['text']) ?></a></p>
-
-<?php else: ?>
-
-    <?php $stand = $Fahrzeug->GetStand(); ?>
-
-    <p><a href="<?= url($zurueckZurListe['datei']) ?>">&larr; <?= e($zurueckZurListe['text']) ?></a></p>
-
-    <section class="steckbrief">
-        <?php if ($hatBild): ?>
-            <img class="steckbrief__bild" src="<?= url('assets/img/' . $bildDatei) ?>"
-                 alt="<?= e($pageTitle) ?>">
-        <?php else: ?>
-            <div class="steckbrief__bild steckbrief__bild--platzhalter"><?= e($Fahrzeug->GetTyp()) ?></div>
-        <?php endif; ?>
-
-        <div class="steckbrief__daten">
-            <p>
-                <span class="badge badge--<?= e($stand) ?>">
-                    <?= e($statusText[$stand]) ?>
-                </span>
-                <?php if ($Fahrzeug->IstUeberfaellig()): ?>
-                    <span class="badge badge--abgelehnt">Rückgabe überfällig</span>
-                <?php endif; ?>
+<!-- Das Fahrzeug als großes Schild -->
+<article class="schild steckbrief">
+    <div class="schild__kopf">
+        <div class="schild__name">
+            <h2 class="schild__kennzeichen"><?= e($Fahrzeug->GetKennzeichen()) ?></h2>
+            <p class="schild__modell">
+                <?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?>
+                &middot; <?= e($Fahrzeugarten->GetBezeichnung($Fahrzeug->GetArtID())) ?>
             </p>
+        </div>
+        <p class="stand stand--<?= e($marke[1]) ?>">
+            <span class="stand__label">Stand</span>
+            <span class="stand__wert"><?= e($marke[0]) ?></span>
+        </p>
+    </div>
 
-            <dl class="merkmale">
+    <div class="schild__koerper">
+        <div class="steckbrief__inhalt">
+            <?php if ($hatBild): ?>
+                <img class="steckbrief__bild" src="<?= url('assets/img/' . $bildDatei) ?>" alt="<?= e($pageTitle) ?>">
+            <?php else: ?>
+                <span class="steckbrief__bild steckbrief__bild--platzhalter">kein Bild</span>
+            <?php endif; ?>
+
+            <dl class="felder felder--steckbrief">
                 <?php foreach ($merkmale as $beschriftung => $wert): ?>
-                    <dt><?= e($beschriftung) ?></dt>
-                    <dd><?= e($wert) ?></dd>
+                    <div class="feld">
+                        <dt><?= e($beschriftung) ?></dt>
+                        <dd>
+                            <?= e($wert) ?>
+                            <?php if ($beschriftung === 'Nächste HU/AU' && $huAuMarke !== null): ?>
+                                <small><span class="marke marke--<?= e($huAuMarke[1]) ?>"><?= e($huAuMarke[0]) ?></span></small>
+                            <?php endif; ?>
+                        </dd>
+                    </div>
                 <?php endforeach; ?>
             </dl>
+        </div>
 
-            <?php if ($Fahrzeug->IstLuxus() && !$ausgemustert): ?>
-                <p class="note">
-                    Luxusauto: Fahren dürfen es nur freigegebene Mitarbeiter, und schon ein
-                    Kleinschaden sperrt es bis zur Reparatur.
-                    <?php if (!$fuhrparkleiter && $Fahrzeug->FehltFreigabe(CNutzer::LoadByID(aktueller_nutzer()))): ?>
-                        Sie sind dafür nicht freigegeben, können es aber für einen freigegebenen
-                        Kollegen buchen.
-                    <?php endif; ?>
-                </p>
-            <?php endif; ?>
-
+        <!-- Aktion je Rolle; ohne mögliche Aktion ein Hinweis mit Grund -->
+        <div class="schild__aktionen">
             <?php if ($ausgemustert): ?>
-                <p class="note">
-                    Ausgemustert am <?= e($Fahrzeug->GetGeloeschtAm()->format('d.m.Y')) ?>. Das Fahrzeug kann
-                    nicht mehr gebucht werden; das Fahrtenbuch bleibt erhalten.
+                <p class="schild__hinweis">Nicht mehr buchbar.</p>
+            <?php elseif ($fuhrparkleiter): ?>
+                <?php
+                // Dasselbe Formular wie in fahrzeuge.php, dort unter dem Fahrzeug
+                $knopf = match (true) {
+                    !$Fahrzeug->IstInWartung()            => 'In Wartung setzen',
+                    $Fahrzeug->GetWartungBis() === null   => 'Wartungsende eintragen',
+                    default                               => 'Ende ändern',
+                };
+                ?>
+                <a class="button button--klein" href="<?= url('fahrzeuge.php?formular=' . $id) ?>#formular"><?= e($knopf) ?></a>
+                <p class="schild__hinweis">
+                    <?= $Fahrzeug->IstInWartung() ? 'Freigeben unter Fahrzeuge.' : 'Sperrt das Fahrzeug für Wartung oder Reparatur.' ?>
                 </p>
             <?php elseif ($Fahrzeug->IstWartungEndeOffen()): ?>
-                <p class="note">
-                    Das Fahrzeug ist in Wartung. Wann es wieder gebucht werden kann, steht noch nicht
-                    fest.
-                </p>
+                <p class="schild__hinweis">In Wartung. Buchen ist erst wieder möglich, wenn der Fuhrparkleiter ein Ende festlegt.</p>
             <?php elseif ($Fahrzeug->IstInWartung()): ?>
                 <?php $buchbarAb = $Fahrzeug->GetWartungBis()->modify('+1 day'); ?>
-                <p class="note">
-                    Das Fahrzeug ist in Wartung, voraussichtlich bis
-                    <?= e($Fahrzeug->GetWartungBis()->format('d.m.Y')) ?>. Danach kann es wieder gebucht werden.
-                </p>
-                <?php if (!$fuhrparkleiter): ?>
-                    <a class="button" href="<?= url('buchen.php?' . http_build_query(['fahrzeug' => $id, 'beginn' => $buchbarAb->format('Y-m-d')])) ?>">Ab <?= e($buchbarAb->format('d.m.')) ?> buchen</a>
-                <?php endif; ?>
-            <?php elseif (!$fuhrparkleiter): ?>
-                <a class="button" href="<?= url('buchen.php?fahrzeug=' . $id) ?>">Dieses Fahrzeug buchen</a>
+                <a class="button button--klein" href="<?= url('buchen.php?' . http_build_query(['fahrzeug' => $id, 'beginn' => $buchbarAb->format('Y-m-d')])) ?>">Ab <?= e($buchbarAb->format('d.m.')) ?> buchen</a>
+                <p class="schild__hinweis">Bis <?= e($Fahrzeug->GetWartungBis()->format('d.m.Y')) ?> in Wartung.</p>
+            <?php else: ?>
+                <a class="button button--klein" href="<?= url('buchen.php?fahrzeug=' . $id) ?>">Dieses Fahrzeug buchen</a>
+                <p class="schild__hinweis">Zeitraum und Zweck wählen Sie im nächsten Schritt.</p>
             <?php endif; ?>
         </div>
-    </section>
+    </div>
 
-    <section class="section">
-        <h2>Offene Schäden</h2>
-
-        <?php if ($ListeOffene->Count() === 0): ?>
-            <p class="note">Keine bekannten Schäden.</p>
-        <?php else: ?>
-            <ul class="schadensliste">
-                <?php foreach ($ListeOffene->GetAlle() as $Schaden): ?>
-                    <li>
-                        <span class="badge<?= $Schaden->GetSchwereID() === SCHWERE_WARTUNG ? ' badge--abgelehnt' : '' ?>">
-                            <?= e($Schweregrade->GetBezeichnung($Schaden->GetSchwereID())) ?>
-                        </span>
-                        <?= e($Schaden->GetBeschreibung()) ?>
-                        <span class="table__zusatz">
-                            gemeldet am <?= e($Schaden->GetGemeldetAm()->format('d.m.Y')) ?>
-                            <?= e($Anlaesse->GetBezeichnung($Schaden->GetAnlassID())) ?>
-                        </span>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
-    </section>
-
-    <?php if (!$ausgemustert): ?>
-    <section class="section">
-        <h2>Belegung der nächsten 14 Tage</h2>
-
-        <ol class="belegung">
-            <?php foreach ($belegung as $tag): ?>
-                <li class="belegung__tag belegung__tag--<?= e($tag['zustand']) ?>"
-                    title="<?= e($tag['hinweis']) ?>">
-                    <span class="belegung__wochentag"><?= e($wochentage[(int) $tag['datum']->format('w')]) ?></span>
-                    <span class="belegung__datum"><?= e($tag['datum']->format('d.m.')) ?></span>
-                    <span class="belegung__zustand"><?= e($zustandText[$tag['zustand']]) ?></span>
-                </li>
-            <?php endforeach; ?>
-        </ol>
-    </section>
+    <?php if ($ausgemustert): ?>
+        <div class="schild__text">
+            <p class="schild__grund">Ausgemustert am <?= e($Fahrzeug->GetGeloeschtAm()->format('d.m.Y')) ?></p>
+            <p>Das Fahrzeug kann nicht mehr gebucht werden; das Fahrtenbuch bleibt erhalten.</p>
+        </div>
+    <?php elseif ($LaufendeWartung !== null): ?>
+        <div class="schild__text">
+            <p class="schild__grund">In Wartung: <?= e($LaufendeWartung->GetGrund()) ?></p>
+            <p>
+                <?php if ($Fahrzeug->IstWartungEndeOffen()): ?>
+                    Wann es wieder gebucht werden kann, steht noch nicht fest (<?= e($Fahrzeug->GetWartungText()) ?>).
+                <?php else: ?>
+                    Voraussichtlich bis <?= e($Fahrzeug->GetWartungBis()->format('d.m.Y')) ?>. Danach kann es wieder gebucht werden.
+                <?php endif; ?>
+                <?php if ($ueberfaellig): ?>
+                    Die Rückgabe der laufenden Fahrt ist überfällig.
+                <?php endif; ?>
+            </p>
+        </div>
     <?php endif; ?>
 
-    <section class="section" id="fahrtenbuch">
-        <h2>Fahrtenbuch</h2>
-
-        <?php if ($eintraege !== []): ?>
-            <p class="lead">
-                <?= e((string) $ListeFahrten->Count()) ?> <?= $ListeFahrten->Count() === 1 ? 'Fahrt' : 'Fahrten' ?><?php if ($mitKm): ?>,
-                    zusammen <?= e(km_text($summeKm)) ?> km<?php endif; ?><?php if ($ListeWartungen->Count() > 0): ?>,
-                    dazu <?= e((string) $ListeWartungen->Count()) ?> <?= $ListeWartungen->Count() === 1 ? 'Wartung' : 'Wartungen' ?><?php endif; ?>.
-                Neueste zuerst.
+    <?php if ($Fahrzeug->IstLuxus() && !$ausgemustert): ?>
+        <div class="schild__text">
+            <p class="schild__grund">Luxusauto</p>
+            <p>
+                Fahren dürfen es nur freigegebene Mitarbeiter, und schon ein Kleinschaden sperrt es bis
+                zur Reparatur.
+                <?php if (!$fuhrparkleiter && $Fahrzeug->FehltFreigabe(CNutzer::LoadByID(aktueller_nutzer()))): ?>
+                    Sie sind dafür nicht freigegeben, können es aber für einen freigegebenen Kollegen buchen.
+                <?php endif; ?>
             </p>
-        <?php endif; ?>
+        </div>
+    <?php endif; ?>
+</article>
 
-        <table class="table">
+<!-- Noch nicht behobene Schäden, ohne Namen -->
+<section class="steckbrief__abschnitt" aria-labelledby="offene-schaeden">
+    <?php $anzahlOffen = $ListeOffene->Count(); ?>
+    <h2 class="abschnitt" id="offene-schaeden">
+        Offene Schäden
+        <span class="abschnitt__wert">
+            <?= $anzahlOffen === 0 ? 'keine bekannten' : e((string) $anzahlOffen) . ($anzahlOffen === 1 ? ' Schaden' : ' Schäden') ?>
+        </span>
+    </h2>
+
+    <?php if ($anzahlOffen > 0): ?>
+        <table class="table table--stapel">
+            <thead>
+                <tr>
+                    <th>Gemeldet</th>
+                    <th>Stand</th>
+                    <th>Beschreibung</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($ListeOffene->GetAlle() as $Schaden): ?>
+                    <?php $inWartung = $Schaden->HaeltInWartung(); ?>
+                    <tr>
+                        <td>
+                            <?= e($Schaden->GetGemeldetAm()->format('d.m.Y')) ?>
+                            <span class="table__zusatz"><?= e($Anlaesse->GetBezeichnung($Schaden->GetAnlassID())) ?></span>
+                        </td>
+                        <!-- Stand wie in schaeden.php; hält der Schaden das Fahrzeug in Wartung, steht die Art darunter -->
+                        <td class="table__stand" data-label="Stand">
+                            <?php if ($inWartung): ?>
+                                <span class="marke marke--gelb">In Wartung</span>
+                                <span class="table__zusatz"><?= $Schaden->GetSchwereID() === SCHWERE_WARTUNG ? 'Schaden mit Wartung' : 'Kleinschaden' ?></span>
+                            <?php else: ?>
+                                <span class="marke marke--grau">Kleinschaden</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="table__breit" data-label="Beschreibung"><?= e($Schaden->GetBeschreibung()) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <?php if ($fuhrparkleiter): ?>
+            <p class="weiter"><a href="<?= url('schaeden.php') ?>">Zu den Schäden</a></p>
+        <?php endif; ?>
+    <?php endif; ?>
+</section>
+
+<?php if (!$ausgemustert): ?>
+    <!-- Belegung: je Tag ein Feld, zwei Wochen -->
+    <section class="steckbrief__abschnitt" aria-labelledby="belegung">
+        <h2 class="abschnitt" id="belegung">
+            Belegung
+            <span class="abschnitt__wert">
+                <?php if ($freieTage === 14): ?>
+                    alle 14 Tage frei
+                <?php elseif ($freieTage === 0): ?>
+                    kein Tag frei
+                <?php else: ?>
+                    <?= e((string) $freieTage) ?> von 14 Tagen frei
+                <?php endif; ?>
+            </span>
+            <span class="abschnitt__zusatz"><?= e(zeitraum_kurz($heute, $heute->modify('+13 day'))) ?></span>
+        </h2>
+
+        <div class="schild steckbrief__belegung">
+            <ol class="steckbrief__tage">
+                <?php foreach ($belegung as $nr => $tag): ?>
+                    <?php $tagMarke = $zustandMarke[$tag['zustand']]; ?>
+                    <li class="steckbrief__tag steckbrief__tag--<?= e($tag['zustand']) ?>"<?= $tag['hinweis'] !== null ? ' title="' . e($tag['hinweis']) . '"' : '' ?>>
+                        <span class="steckbrief__datum">
+                            <?= $nr === 0 ? 'Heute' : e($wochentage[(int) $tag['datum']->format('w')]) ?>
+                            <?= e($tag['datum']->format('d.m.')) ?>
+                        </span>
+                        <span class="marke marke--<?= e($tagMarke[1]) ?>"><?= e($tagMarke[0]) ?></span>
+                        <?php if ($tag['fahrer'] !== null): ?>
+                            <small class="steckbrief__fahrer"><?= e($tag['fahrer']) ?></small>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ol>
+        </div>
+    </section>
+<?php endif; ?>
+
+<?php if ($fuhrparkleiter): ?>
+    <!-- Fahrtenbuch, nur für den Fuhrparkleiter: abgeschlossene Fahrten und Wartungen, neueste zuerst -->
+    <section class="steckbrief__abschnitt" id="fahrtenbuch" aria-labelledby="fahrtenbuch-titel">
+        <h2 class="abschnitt" id="fahrtenbuch-titel">
+            Fahrtenbuch
+            <span class="abschnitt__wert">
+                <?= $anzahlFahrten === 0 ? 'keine Fahrten' : e((string) $anzahlFahrten) . ($anzahlFahrten === 1 ? ' Fahrt' : ' Fahrten') ?><?php if ($mitKm && $anzahlFahrten > 0): ?>,
+                    <?= e(km_text($summeKm)) ?> km<?php endif; ?>
+            </span>
+            <span class="abschnitt__zusatz">
+                <?php if ($anzahlWartungen > 0): ?>
+                    dazu <?= e((string) $anzahlWartungen) ?> <?= $anzahlWartungen === 1 ? 'Wartung' : 'Wartungen' ?> &middot;
+                <?php endif; ?>
+                neueste zuerst
+            </span>
+        </h2>
+
+        <table class="table table--stapel fahrtenbuch">
             <thead>
                 <tr>
                     <th>Datum</th>
-                    <?php if ($fuhrparkleiter): ?>
-                        <th>Fahrer</th>
-                    <?php endif; ?>
+                    <th>Fahrer</th>
                     <th>Zweck</th>
                     <?php if ($mitKm): ?>
-                        <th class="table__num">km-Stand Anfang</th>
-                        <th class="table__num">km-Stand Ende</th>
+                        <th class="table__num">km Anfang</th>
+                        <th class="table__num">km Ende</th>
+                        <th class="table__num">Gefahren</th>
                     <?php endif; ?>
-                    <th>Zustand</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($eintraege as $eintrag): ?>
                     <?php if ($eintrag['art'] === 'wartung'): ?>
                         <?php $Wartung = $eintrag['daten']; ?>
-                        <tr class="table__zeile--wartung">
+                        <!-- Wartung zwischen den Fahrten; der Grund steht statt des Zwecks -->
+                        <tr>
                             <td>
-                                <?php if (!$Wartung->IstLaufend()): ?>
-                                    <?= e(zeitraum_text($Wartung->GetBegonnenAm(), $Wartung->GetFreigegebenAm())) ?>
-                                <?php else: ?>
+                                <?php if ($Wartung->IstLaufend()): ?>
                                     seit <?= e($Wartung->GetBegonnenAm()->format('d.m.Y')) ?>
+                                <?php else: ?>
+                                    <?= e(zeitraum_text($Wartung->GetBegonnenAm(), $Wartung->GetFreigegebenAm())) ?>
                                 <?php endif; ?>
                             </td>
-                            <?php if ($fuhrparkleiter): ?>
-                                <td>&ndash;</td>
-                            <?php endif; ?>
-                            <td>Wartung</td>
-                            <?php if ($mitKm): ?>
-                                <td class="table__num">&ndash;</td>
-                                <td class="table__num">&ndash;</td>
-                            <?php endif; ?>
-                            <td>
-                                <?= e($Wartung->GetGrund()) ?>
+                            <td class="table__leer">&ndash;</td>
+                            <td class="table__breit" data-label="Zweck">
+                                <?php if ($Wartung->IstLaufend()): ?>
+                                    <span class="marke marke--gelb">In Wartung</span>
+                                <?php else: ?>
+                                    <span class="marke marke--grau">Wartung</span>
+                                <?php endif; ?>
+                                <span class="table__zusatz"><?= e($Wartung->GetGrund()) ?></span>
                                 <?php if ($Wartung->IstLaufend()): ?>
                                     <span class="table__zusatz">läuft, <?= e($Fahrzeug->GetWartungText()) ?></span>
                                 <?php endif; ?>
                             </td>
+                            <?php if ($mitKm): ?>
+                                <td class="table__num table__leer">&ndash;</td>
+                                <td class="table__num table__leer">&ndash;</td>
+                                <td class="table__num table__leer">&ndash;</td>
+                            <?php endif; ?>
                         </tr>
                         <?php continue; ?>
                     <?php endif; ?>
 
-                    <?php
-                    $Fahrt = $eintrag['daten'];
-                    $Schaden = $ListeSchaeden->GetBeiRueckgabe($Fahrt->GetID());
-                    ?>
+                    <?php $Fahrt = $eintrag['daten']; ?>
                     <tr>
                         <td><?= e(zeitraum_text($Fahrt->GetStart(), $Fahrt->GetZurueckgegebenAm())) ?></td>
-                        <?php if ($fuhrparkleiter): ?>
-                            <td><?= e($Fahrt->GetFahrerName()) ?></td>
-                        <?php endif; ?>
-                        <td><?= e($Zwecke->GetBezeichnung($Fahrt->GetZweckID())) ?></td>
+                        <td data-label="Fahrer"><?= e($Fahrt->GetFahrerName()) ?></td>
+                        <td data-label="Zweck"><?= e($Zwecke->GetBezeichnung($Fahrt->GetZweckID())) ?></td>
                         <?php if ($mitKm): ?>
-                            <td class="table__num"><?= e(km_text($Fahrt->GetKmStart())) ?></td>
-                            <td class="table__num"><?= e(km_text($Fahrt->GetKmEnde())) ?></td>
+                            <td class="table__num" data-label="km Anfang"><?= e(km_text($Fahrt->GetKmStart())) ?></td>
+                            <td class="table__num" data-label="km Ende"><?= e(km_text($Fahrt->GetKmEnde())) ?></td>
+                            <td class="table__num" data-label="Gefahren"><?= e(km_text($Fahrt->GetGefahreneKm())) ?> km</td>
                         <?php endif; ?>
-                        <td>
-                            <?php if ($Schaden !== null): ?>
-                                <span class="badge<?= $Schaden->GetSchwereID() === SCHWERE_WARTUNG ? ' badge--abgelehnt' : '' ?>"><?= e($Schweregrade->GetBezeichnung($Schaden->GetSchwereID())) ?></span>
-                                <span class="table__zusatz"><?= e($Schaden->GetBeschreibung()) ?></span>
-                            <?php elseif ($Fahrt->GetBemerkung() !== ''): ?>
-                                <span class="badge">Bemerkung</span>
-                            <?php else: ?>
-                                &ndash;
-                            <?php endif; ?>
-
-                            <?php if ($Fahrt->GetBemerkung() !== ''): ?>
-                                <span class="table__zusatz"><?= e($Fahrt->GetBemerkung()) ?></span>
-                            <?php endif; ?>
-                        </td>
                     </tr>
                 <?php endforeach; ?>
 
@@ -419,7 +516,6 @@ require_once __DIR__ . '/includes/header.php';
             </tbody>
         </table>
     </section>
-
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

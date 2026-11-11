@@ -25,9 +25,13 @@ class CBuchung
            JOIN nutzer fa ON fa.id = b.fahrer_id
            JOIN nutzer an ON an.id = b.antragsteller_id';
 
-    // Montage und Materialtransport gehen nur mit Auto oder Transporter.
-    private const ZWECKE_NUR_AUTO = [ZWECK_MONTAGE, ZWECK_MATERIALTRANSPORT];
+    // Montage und Materialtransport gehen nur mit Auto oder Transporter,
+    // Transporter umgekehrt nur für diese beiden Zwecke.
+    private const ZWECKE_MATERIAL = [ZWECK_MONTAGE, ZWECK_MATERIALTRANSPORT];
     private const ARTEN_FUER_MATERIAL = [ART_AUTO, ART_TRANSPORTER];
+
+    // Zwecke, die Mitarbeiter beim Buchen nicht wählen können
+    private const ZWECKE_NICHT_BUCHBAR = [ZWECK_SERVICE];
 
     private const MAX_KOMMENTAR = 500;
 
@@ -47,6 +51,7 @@ class CBuchung
     private ?int $m_EntscheidungVon;
     private ?DateTimeImmutable $m_EntscheidungAm;
     private string $m_EntscheidungKommentar;
+    private ?DateTimeImmutable $m_EntscheidungGelesenAm;
     private ?DateTimeImmutable $m_BegonnenAm;
     private ?int $m_KmStart;
     private ?DateTimeImmutable $m_ZurueckgegebenAm;
@@ -76,6 +81,7 @@ class CBuchung
         $this->m_EntscheidungVon  = self::ZahlOderNull($in_Zeile['entscheidung_von']);
         $this->m_EntscheidungAm   = self::DatumOderNull($in_Zeile['entscheidung_am']);
         $this->m_EntscheidungKommentar = $in_Zeile['entscheidung_kommentar'] ?? '';
+        $this->m_EntscheidungGelesenAm = self::DatumOderNull($in_Zeile['entscheidung_gelesen_am'] ?? null);
         $this->m_BegonnenAm       = self::DatumOderNull($in_Zeile['begonnen_am']);
         $this->m_KmStart          = self::ZahlOderNull($in_Zeile['km_start']);
         $this->m_ZurueckgegebenAm = self::DatumOderNull($in_Zeile['zurueckgegeben_am']);
@@ -253,12 +259,14 @@ class CBuchung
     {
         $Zwecke = new CListeSchluessel('zwecke');
 
-        if ($Zwecke->GetByID($in_ZweckID) === null) {
+        if ($Zwecke->GetByID($in_ZweckID) === null || !self::IstBuchbarerZweck($in_ZweckID)) {
             throw new CFachlicherFehler('Bitte wählen Sie den Zweck der Fahrt.');
         }
 
-        if (!self::PasstZweck($in_ZweckID, $in_Fahrzeug->GetArtID())) {
-            throw new CFachlicherFehler('Für diesen Zweck kommen nur Autos und Transporter in Frage.');
+        $ZweckHindernis = self::ZweckHindernis($in_ZweckID, $in_Fahrzeug->GetArtID());
+
+        if ($ZweckHindernis !== null) {
+            throw new CFachlicherFehler($ZweckHindernis);
         }
 
         if ($in_Personenanzahl < 1 || $in_Personenanzahl > $in_Fahrzeug->GetSitzplaetze()) {
@@ -267,12 +275,43 @@ class CBuchung
     }
 
     /**
+     * Darf ein Mitarbeiter mit diesem Zweck buchen? Wartung/Service bucht er
+     * nicht selbst; der Zweck bleibt nur für frühere Fahrten erhalten.
+     */
+    public static function IstBuchbarerZweck(int $in_ZweckID): bool
+    {
+        return !in_array($in_ZweckID, self::ZWECKE_NICHT_BUCHBAR, true);
+    }
+
+    /**
      * Passt der Zweck zur Fahrzeugart? 0 heißt: noch kein Zweck gewählt.
      */
     public static function PasstZweck(int $in_ZweckID, int $in_ArtID): bool
     {
-        return !in_array($in_ZweckID, self::ZWECKE_NUR_AUTO, true)
-            || in_array($in_ArtID, self::ARTEN_FUER_MATERIAL, true);
+        return self::ZweckHindernis($in_ZweckID, $in_ArtID) === null;
+    }
+
+    /**
+     * Warum der Zweck nicht zur Fahrzeugart passt, als Satz für den Nutzer;
+     * null, wenn er passt oder noch kein Zweck gewählt ist (0).
+     */
+    public static function ZweckHindernis(int $in_ZweckID, int $in_ArtID): ?string
+    {
+        if ($in_ZweckID === 0) {
+            return null;
+        }
+
+        $Material = in_array($in_ZweckID, self::ZWECKE_MATERIAL, true);
+
+        if ($Material && !in_array($in_ArtID, self::ARTEN_FUER_MATERIAL, true)) {
+            return 'Für Montage und Materialtransport kommen nur Autos und Transporter in Frage.';
+        }
+
+        if (!$Material && $in_ArtID === ART_TRANSPORTER) {
+            return 'Transporter gibt es nur für Montage und Materialtransport.';
+        }
+
+        return null;
     }
 
     /**
@@ -360,6 +399,26 @@ class CBuchung
         $this->m_EntscheidungKommentar = $in_Kommentar ?? '';
     }
 
+    /**
+     * Markiert die Benachrichtigung über eine Ablehnung oder eine Stornierung
+     * wegen Wartung als gelesen. Das dürfen Antragsteller und Fahrer; danach
+     * verschwindet sie für beide von der Übersicht.
+     */
+    public function EntscheidungGelesen(int $in_NutzerID): void
+    {
+        $Betroffen = in_array($in_NutzerID, [$this->m_AntragstellerID, $this->m_FahrerID], true);
+        $Abgesagt = in_array($this->m_StatusID, [STATUS_ABGELEHNT, STATUS_STORNIERT], true);
+
+        if (!$Betroffen || !$Abgesagt) {
+            throw new CFachlicherFehler('Diese Benachrichtigung gibt es nicht.');
+        }
+
+        $Statement = db()->prepare('UPDATE buchungen SET entscheidung_gelesen_am = NOW() WHERE id = ?');
+        $Statement->execute([$this->m_ID]);
+
+        $this->m_EntscheidungGelesenAm = new DateTimeImmutable();
+    }
+
     // --- Ablauf der Fahrt ---------------------------------------------------
 
     /**
@@ -382,6 +441,101 @@ class CBuchung
         }
 
         $this->m_StatusID = STATUS_STORNIERT;
+    }
+
+    /**
+     * Ändert den Zeitraum der Buchung.
+     *
+     * Beantragt oder genehmigt: neues Von und Bis. Unterwegs: nur ein neues
+     * Bis (verlängern oder kürzen, nicht vor heute). Prüft in einer
+     * Transaktion, ob das Fahrzeug im neuen Zeitraum frei ist. Braucht das
+     * Fahrzeug eine Genehmigung, wird eine genehmigte Buchung wieder zum
+     * Antrag. Steht etwas im Weg, wirft sie CFachlicherFehler.
+     */
+    public function AendereZeitraum(int $in_NutzerID, DateTimeImmutable $in_Start, DateTimeImmutable $in_Ende): void
+    {
+        if (!$this->KannAendern($in_NutzerID)) {
+            throw new CFachlicherFehler('Diese Buchung können Sie nicht ändern.');
+        }
+
+        $Heute = new DateTimeImmutable('today');
+        $Unterwegs = $this->m_StatusID === STATUS_UNTERWEGS;
+
+        // Unterwegs bleibt der Beginn; das neue Ende muss heute oder später sein
+        $Start = $Unterwegs ? $this->m_Start : $in_Start;
+
+        if ($Unterwegs && $in_Ende < $Heute) {
+            throw new CFachlicherFehler('Das neue Ende darf nicht vor heute liegen.');
+        }
+
+        if (!$Unterwegs) {
+            self::PruefeZeitraum($Start, $in_Ende);
+        }
+
+        if ($Start == $this->m_Start && $in_Ende == $this->m_Ende) {
+            throw new CFachlicherFehler('Der Zeitraum ist unverändert.');
+        }
+
+        $Sperre = CNutzer::LoadByID($in_NutzerID)->GetSperreBuchen();
+
+        if ($Sperre !== null && !$Unterwegs) {
+            throw new CFachlicherFehler('Sie können derzeit keine Buchung ändern. ' . $Sperre);
+        }
+
+        db()->beginTransaction();
+
+        try {
+            // Fahrzeug sperren, dann Wartung und andere Buchungen prüfen.
+            // Unterwegs zählt eine Wartung erst ab heute.
+            self::SperreFahrzeug($this->m_FahrzeugID);
+            $Fahrzeug = CFahrzeug::LoadByID($this->m_FahrzeugID);
+
+            if ($Fahrzeug->SperrtWartung($Unterwegs ? $Heute : $Start, $in_Ende)) {
+                throw new CFachlicherFehler('Das Fahrzeug ist im neuen Zeitraum in Wartung.');
+            }
+
+            if (self::IstVergeben($this->m_FahrzeugID, $Start, $in_Ende, STATUS_OFFEN, $this->m_ID)) {
+                throw new CFachlicherFehler('Das Fahrzeug ist im neuen Zeitraum bereits vergeben.');
+            }
+
+            // Genehmigt und genehmigungspflichtig: wieder ein Antrag, die
+            // alte Entscheidung entfällt
+            $NeuerAntrag = $this->m_StatusID === STATUS_GENEHMIGT && $Fahrzeug->BrauchtGenehmigung();
+
+            if ($NeuerAntrag) {
+                $Statement = db()->prepare(
+                    'UPDATE buchungen
+                        SET start = ?, ende = ?, status_id = ?, beantragt_am = NOW(),
+                            entscheidung_von = NULL, entscheidung_am = NULL
+                      WHERE id = ? AND status_id = ?'
+                );
+                $Statement->execute([
+                    $Start->format('Y-m-d'), $in_Ende->format('Y-m-d'), STATUS_OFFEN, $this->m_ID, STATUS_GENEHMIGT,
+                ]);
+            } else {
+                $Statement = db()->prepare('UPDATE buchungen SET start = ?, ende = ? WHERE id = ? AND status_id = ?');
+                $Statement->execute([$Start->format('Y-m-d'), $in_Ende->format('Y-m-d'), $this->m_ID, $this->m_StatusID]);
+            }
+
+            // Nur ändern, solange der Status noch derselbe ist
+            if ($Statement->rowCount() === 0) {
+                throw new CFachlicherFehler('Die Buchung hat sich inzwischen geändert. Bitte prüfen Sie sie noch einmal.');
+            }
+
+            db()->commit();
+        } catch (Throwable $Fehler) {
+            db()->rollBack();
+            throw $Fehler;
+        }
+
+        $this->m_Start = $Start;
+        $this->m_Ende = $in_Ende;
+
+        if ($NeuerAntrag) {
+            $this->m_StatusID = STATUS_OFFEN;
+            $this->m_EntscheidungVon = null;
+            $this->m_EntscheidungAm = null;
+        }
     }
 
     /**
@@ -660,6 +814,20 @@ class CBuchung
     }
 
     /**
+     * Ändern dürfen Antragsteller und Fahrer, solange die Fahrt nicht begonnen
+     * hat. Eine laufende Fahrt verlängert nur der Fahrer, und nur, solange die
+     * Rückgabe nicht überfällig ist.
+     */
+    public function KannAendern(int $in_NutzerID): bool
+    {
+        if ($this->m_StatusID === STATUS_UNTERWEGS) {
+            return $in_NutzerID === $this->m_FahrerID && !$this->IstUeberfaellig();
+        }
+
+        return $this->KannStornieren($in_NutzerID);
+    }
+
+    /**
      * Beginnen darf nur der Fahrer an der aktiven Buchung. Ob die Fahrt wirklich
      * beginnen kann, sagt GetSperreFahrtbeginn().
      */
@@ -814,6 +982,11 @@ class CBuchung
         return $this->m_EntscheidungKommentar;
     }
 
+    public function GetEntscheidungGelesenAm(): ?DateTimeImmutable
+    {
+        return $this->m_EntscheidungGelesenAm;
+    }
+
     public function GetBegonnenAm(): ?DateTimeImmutable
     {
         return $this->m_BegonnenAm;
@@ -837,6 +1010,14 @@ class CBuchung
     public function GetBemerkung(): string
     {
         return $this->m_Bemerkung;
+    }
+
+    /**
+     * Gefahrene km einer abgeschlossenen Fahrt, null ohne km-Stand (Fahrrad).
+     */
+    public function GetGefahreneKm(): ?int
+    {
+        return $this->m_KmEnde !== null && $this->m_KmStart !== null ? $this->m_KmEnde - $this->m_KmStart : null;
     }
 
     /**

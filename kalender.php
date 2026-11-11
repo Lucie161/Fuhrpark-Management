@@ -3,15 +3,16 @@
  * Buchungskalender für beide Rollen
  * mit unterschiedlichem Inhalt.
  *
- * Belegung über 14 Tage: Zeilen sind Fahrzeuge, Spalten Tage. Wochenweise
- * blättern, höchstens 4 Wochen über die heutige Ansicht hinaus, nicht in die
- * Vergangenheit: kalender.php?woche=0 bis 4. Reine Anzeige ohne JavaScript
- * und ohne Verschieben.
+ * Belegung über 14 Tage: Zeilen sind Fahrzeuge, Spalten Tage. Jede Buchung
+ * und jede Wartung ist ein Balken über ihre Tage (colspan), freie Tage sind
+ * einzelne Zellen. Wochenweise blättern, höchstens 4 Wochen über die heutige
+ * Ansicht hinaus, nicht in die Vergangenheit: kalender.php?woche=0 bis 4.
+ * Reine Anzeige ohne JavaScript und ohne Verschieben.
  * Gerechnet wird in ganzen Tagen.
  *
- * Fuhrparkleiter: alle Fahrzeuge und alle Buchungen mit Fahrer und Zweck.
- * Beantragt und vergeben sind getrennte Zustände; ein Antrag führt zu den
- * offenen Anträgen.
+ * Fuhrparkleiter: alle Fahrzeuge und alle Buchungen, im Balken der Vorname
+ * des Fahrers, Fahrer und Zweck im title. Ein Antrag führt zu den offenen
+ * Anträgen.
  *
  * Mitarbeiter: nur die eigenen Buchungen (beantragt oder als Fahrer
  * eingetragen) und nur die Fahrzeuge, zu denen es eine gibt. Fremde
@@ -19,10 +20,16 @@
  * Buchung bleiben neutral, nicht „frei“, denn dort kann jemand anderes gebucht
  * haben. Ob ein Fahrzeug frei ist, zeigt buchen.php.
  *
+ * Jeder Tag gehört genau einem Balken: Wartung geht vor, sonst behält die
+ * früher beginnende Buchung den Tag. Beide Balken nennen die Überschneidung
+ * im title, der volle Zeitraum steht dort ohnehin. Reicht ein Balken über den Rand des
+ * Zeitraums, ist er dort gerade abgeschnitten.
+ *
  * Die Buchungen laden CListeBuchungen::LadenBelegung() und
  * LadenEigeneBelegung(); überfällige Fahrten sind in der Ansicht ab heute dabei.
  * Die Fahrzeuge mit ihrer laufenden Wartung lädt
- * CListeFahrzeuge::LadenImBestand(), die Gruppenüberschriften kommen aus
+ * CListeFahrzeuge::LadenImBestand(), den Beginn der Wartung
+ * CWartung::LoadLaufende(), die Gruppenüberschriften kommen aus
  * CListeSchluessel::GetPlural().
  */
 
@@ -41,24 +48,17 @@ $ich = aktueller_nutzer();
 $anzahlTage = 14;
 $maxWochen  = 4;
 
-// Stand einer belegenden Buchung => [Zustand der Zelle, Beschriftung]. Der
-// Zustand dient zugleich als CSS-Modifier (.kalender__zelle--beantragt).
-$standText = [
-    STATUS_OFFEN     => ['beantragt', 'beantragt'],
-    STATUS_GENEHMIGT => ['vergeben',  'vergeben'],
-    STATUS_UNTERWEGS => ['vergeben',  'unterwegs'],
-];
-
 // --- Woche (GET) ------------------------------------------------------------
 // 0 ist die Ansicht ab heute; Werte außerhalb werden auf den Bereich begrenzt.
 
 $woche = filter_var($_GET['woche'] ?? 0, FILTER_VALIDATE_INT);
 $woche = $woche === false ? 0 : max(0, min($maxWochen, $woche));
 
-// Erster angezeigter Tag, relativ zu heute.
-$ersterTag = $woche * 7;
-
 $heute = new DateTimeImmutable('today');
+
+// Erster und letzter angezeigter Tag
+$ansichtVon = $heute->modify('+' . ($woche * 7) . ' day');
+$ansichtBis = $ansichtVon->modify('+' . ($anzahlTage - 1) . ' day');
 
 // Fahrzeuge im Bestand, nach ID: Fahrzeug-ID => CFahrzeug
 $ListeFahrzeuge = new CListeFahrzeuge();
@@ -71,9 +71,6 @@ foreach ($ListeFahrzeuge->GetAlle() as $Fahrzeug) {
 
 $Zwecke = new CListeSchluessel('zwecke');
 $Fahrzeugarten = new CListeSchluessel('fahrzeugarten');
-
-$ansichtVon = $heute->modify('+' . $ersterTag . ' day');
-$ansichtBis = $heute->modify('+' . ($ersterTag + $anzahlTage - 1) . ' day');
 
 // --- Buchungen --------------------------------------------------------------
 // Belegende Buchungen im Zeitraum (offen, genehmigt, unterwegs). Mitarbeiter
@@ -94,64 +91,67 @@ $wochentage = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 
 $tage = [];
 for ($i = 0; $i < $anzahlTage; $i++) {
-    $datum = $heute->modify('+' . ($ersterTag + $i) . ' day');
+    $datum = $ansichtVon->modify('+' . $i . ' day');
     $tage[] = [
         'datum'      => $datum,
         'wochentag'  => $wochentage[(int) $datum->format('w')],
         'wochenende' => (int) $datum->format('N') >= 6,
-        'heute'      => $ersterTag + $i === 0,
+        'heute'      => $datum == $heute,
     ];
 }
 
-$letzterTag = $tage[$anzahlTage - 1]['datum'];
+// --- Balken -----------------------------------------------------------------
+// $belegung[Fahrzeug-ID][Tag] ist der Schlüssel des Balkens, der den Tag
+// belegt, oder null (frei). Tag 0 ist der erste angezeigte Tag.
+// $balken[Schlüssel] beschreibt einen Balken:
+//   'text'    – Kurztext im Balken
+//   'hinweis' – vollständige Angabe für title und Screenreader
+//   'link'    – Ziel beim Anklicken oder null
+//   'farbe'   – Ampelfarbe des Stands: gruen, gelb, rot oder grau
+//   'antrag'  – noch nicht entschieden, wird gestrichelt gezeigt
+//   'davor', 'danach'  – beginnt vor bzw. endet nach dem Zeitraum
+//   'ueberschneidung'  – ein anderer Balken wollte einen seiner Tage
 
-// --- Zellen -----------------------------------------------------------------
-// Je Fahrzeug und Tag eine Zelle mit
-//   'zustaende' – CSS-Modifier, der erste ist frei, beantragt, vergeben,
-//                 wartung oder (Mitarbeiter) leer
-//   'text'      – sichtbarer Kurztext, oft leer
-//   'hinweis'   – vollständige Angabe für title und Screenreader
-//   'link'      – Ziel beim Anklicken oder null
-// Zuerst ist jeder Tag frei, für Mitarbeiter neutral; dann kommen die
-// Wartungstage (für beide Rollen), danach die Buchungen. $i ist der Index der
-// Spalte, $tag der Tag relativ zu heute.
-//
-// Wartung: bis einschließlich zum voraussichtlichen Ende. Ist das Ende offen
-// (noch nicht festgelegt oder überschritten), alle Tage, und der erste ist
-// markiert wie eine überfällige Rückgabe.
+$belegung = [];
+$balken = [];
 
-$zellen = [];
-
+// Wartung zuerst, sie geht vor. Sie gilt ab heute bis einschließlich zum
+// voraussichtlichen Ende. Ist das Ende offen (noch nicht festgelegt oder
+// überschritten), gilt sie für alle Tage und ist rot wie eine überfällige
+// Rückgabe.
 foreach ($fahrzeuge as $id => $Fahrzeug) {
-    $wartungBis = null;
-    $endeOffen = $Fahrzeug->IstWartungEndeOffen();
+    $belegung[$id] = array_fill(0, $anzahlTage, null);
 
-    if ($Fahrzeug->IstInWartung()) {
-        $wartungBis = $endeOffen
-            ? PHP_INT_MAX
-            : (int) $heute->diff($Fahrzeug->GetWartungBis())->format('%r%a');
-        $wartungHinweis = 'in Wartung, ' . $Fahrzeug->GetWartungText();
+    if (!$Fahrzeug->IstInWartung()) {
+        continue;
     }
 
-    foreach ($tage as $i => $tagDaten) {
-        $tag = $ersterTag + $i;
+    $endeOffen = $Fahrzeug->IstWartungEndeOffen();
 
-        if ($wartungBis !== null && $tag <= $wartungBis) {
-            $zellen[$id][$i] = [
-                'zustaende' => $endeOffen && $i === 0 ? ['wartung', 'ueberfaellig'] : ['wartung'],
-                'text'      => $i === 0 ? 'Wartung' : '',
-                'hinweis'   => $wartungHinweis,
-                'link'      => null,
-                'wartung'   => true,
-            ];
-        } else {
-            $zellen[$id][$i] = $fuhrparkleiter
-                ? ['zustaende' => ['frei'], 'text' => '', 'hinweis' => 'frei',                 'link' => null, 'wartung' => false]
-                : ['zustaende' => ['leer'], 'text' => '', 'hinweis' => 'keine eigene Buchung', 'link' => null, 'wartung' => false];
-        }
+    // Letzter Wartungstag als Tag im Zeitraum
+    $bis = $endeOffen
+        ? $anzahlTage - 1
+        : min((int) $ansichtVon->diff($Fahrzeug->GetWartungBis())->format('%r%a'), $anzahlTage - 1);
+
+    $schluessel = 'w' . $id;
+    $balken[$schluessel] = [
+        'text'            => 'Wartung',
+        'hinweis'         => 'In Wartung, ' . $Fahrzeug->GetWartungText(),
+        'link'            => null,
+        'farbe'           => $endeOffen ? 'rot' : 'gelb',
+        'antrag'          => false,
+        'davor'           => CWartung::LoadLaufende($id)->GetBegonnenAm() < $ansichtVon,
+        'danach'          => $endeOffen || $Fahrzeug->GetWartungBis() > $ansichtBis,
+        'ueberschneidung' => false,
+    ];
+
+    // Endet die Wartung vor dem Zeitraum, ist $bis negativ und nichts wird belegt.
+    for ($tag = 0; $tag <= $bis; $tag++) {
+        $belegung[$id][$tag] = $schluessel;
     }
 }
 
+// Dann die Buchungen, nach Beginn sortiert.
 foreach ($ListeBuchungen->GetAlle() as $Buchung) {
     $id = $Buchung->GetFahrzeugID();
 
@@ -161,62 +161,85 @@ foreach ($ListeBuchungen->GetAlle() as $Buchung) {
 
     // Eine begonnene Fahrt, deren Ende vorbei ist, blockiert das Fahrzeug bis
     // zur Rückgabe. Wann die kommt, ist unbekannt, daher nur heute.
-    $ueberfaellig = $Buchung->IstUeberfaellig();
+    $ende = $Buchung->IstUeberfaellig() ? $heute : $Buchung->GetEnde();
 
-    $von = $ueberfaellig ? 0 : max((int) $heute->diff($Buchung->GetStart())->format('%r%a'), $ersterTag);
-    $bis = $ueberfaellig ? 0 : min((int) $heute->diff($Buchung->GetEnde())->format('%r%a'), $ersterTag + $anzahlTage - 1);
+    // Erster und letzter Tag im Zeitraum
+    $von = max((int) $ansichtVon->diff($Buchung->GetStart())->format('%r%a'), 0);
+    $bis = min((int) $ansichtVon->diff($ende)->format('%r%a'), $anzahlTage - 1);
 
-    [$zustand, $stand] = $standText[$Buchung->GetStatusID()];
+    // Stand wie überall; der Fuhrparkleiter sieht einen offenen Antrag als „Antrag“.
+    $marke = buchung_stand($Buchung, $ich);
+    $antrag = $Buchung->GetStatusID() === STATUS_OFFEN;
+    if ($fuhrparkleiter && $antrag) {
+        $marke = ['Antrag', 'gelb'];
+    }
+
     $zweck = $Zwecke->GetBezeichnung($Buchung->GetZweckID());
+    $zeitraum = zeitraum_text($Buchung->GetStart(), $Buchung->GetEnde());
 
     // Hier entscheidet sich, was die Rolle sieht.
     if ($fuhrparkleiter) {
-        // Hat jemand anderes für den Fahrer gebucht, steht das dabei.
-        $hinweis = $stand . ': ' . $Buchung->GetFahrerName()
-            . ($Buchung->GetAntragstellerID() !== $Buchung->GetFahrerID() ? ' (gebucht von ' . $Buchung->GetAntragstellerName() . ')' : '')
-            . ', ' . $zweck;
+        // Vorname im Balken; hat jemand anderes für den Fahrer gebucht, steht das dabei.
         $text = $Buchung->GetFahrerVorname();
-        $link = $Buchung->GetStatusID() === STATUS_OFFEN ? 'genehmigungen.php' : null;
+        $hinweis = $marke[0] . ': ' . $Buchung->GetFahrerName()
+            . ($Buchung->GetAntragstellerID() !== $Buchung->GetFahrerID() ? ' (gebucht von ' . $Buchung->GetAntragstellerName() . ')' : '')
+            . ', ' . $zeitraum . ', ' . $zweck;
+        $link = $antrag ? 'genehmigungen.php' : null;
     } else {
-        // Eigene Buchung: andere Namen nur, wenn ich nicht selbst fahre oder
-        // nicht selbst gebucht habe.
-        $hinweis = ($Buchung->GetStatusID() === STATUS_GENEHMIGT ? 'genehmigt' : $stand) . ': ' . $zweck
+        // Eigene Buchung: der Stand im Balken; andere Namen nur, wenn ich nicht
+        // selbst fahre oder nicht selbst gebucht habe.
+        $text = $marke[0];
+        $hinweis = $marke[0] . ': ' . $zweck . ', ' . $zeitraum
             . ($Buchung->GetFahrerID() !== $ich ? ', Fahrer: ' . $Buchung->GetFahrerName() : '')
             . ($Buchung->GetAntragstellerID() !== $ich ? ', gebucht von ' . $Buchung->GetAntragstellerName() : '');
-        $text = '';
-        $link = $ueberfaellig ? 'rueckgabe.php?buchung=' . $Buchung->GetID() : 'meine-buchungen.php';
+        $link = $Buchung->IstUeberfaellig() ? 'rueckgabe.php?buchung=' . $Buchung->GetID() : 'meine-buchungen.php';
     }
 
-    $zustaende = [$zustand];
+    $schluessel = 'b' . $Buchung->GetID();
+    $balken[$schluessel] = [
+        'text'            => $text,
+        'hinweis'         => $hinweis,
+        'link'            => $link,
+        'farbe'           => $marke[1],
+        'antrag'          => $antrag,
+        'davor'           => $Buchung->GetStart() < $ansichtVon,
+        'danach'          => $ende > $ansichtBis,
+        'ueberschneidung' => false,
+    ];
 
-    if ($ueberfaellig) {
-        $hinweis .= ', Rückgabe überfällig';
-        $zustaende[] = 'ueberfaellig';
-    }
-
+    // Tage belegen. Ein schon belegter Tag bleibt beim ersten Balken; beide
+    // nennen dann die Überschneidung.
     for ($tag = $von; $tag <= $bis; $tag++) {
-        // Wartung geht vor; Buchungen in der Wartung werden storniert.
-        if ($zellen[$id][$tag - $ersterTag]['wartung']) {
-            continue;
-        }
+        $erster = $belegung[$id][$tag];
 
-        $zellen[$id][$tag - $ersterTag] = [
-            'zustaende' => $zustaende,
-            // Kurztext nur am ersten Tag, sonst wiederholt er sich über die
-            // ganze Buchung.
-            'text'      => $tag === $von ? $text : '',
-            'hinweis'   => $hinweis,
-            'link'      => $link,
-            'wartung'   => false,
-        ];
+        if ($erster === null) {
+            $belegung[$id][$tag] = $schluessel;
+        } else {
+            $balken[$erster]['ueberschneidung'] = true;
+            $balken[$schluessel]['ueberschneidung'] = true;
+        }
     }
 }
 
-// CSS-Klassen je Zelle, damit das Template sie nur noch ausgibt.
-foreach ($zellen as $id => $zeile) {
-    foreach ($zeile as $i => $zelle) {
-        $zellen[$id][$i]['klasse'] = 'kalender__zelle kalender__zelle--'
-            . implode(' kalender__zelle--', $zelle['zustaende']);
+// --- Spannen je Fahrzeug ----------------------------------------------------
+// Eine Spanne ist eine Tabellenzelle: ['balken' => Schlüssel oder null,
+// 'tag' => erster Tag, 'tage' => colspan]. Gehört ein Tag zum selben Balken
+// wie der Vortag, wird die letzte Spanne um einen Tag länger; sonst beginnt
+// eine neue. Freie Tage bleiben einzelne Zellen.
+
+$spannen = [];
+
+foreach ($belegung as $id => $tageBelegt) {
+    $spannen[$id] = [];
+
+    foreach ($tageBelegt as $tag => $schluessel) {
+        $letzte = count($spannen[$id]) - 1;
+
+        if ($schluessel !== null && $letzte >= 0 && $spannen[$id][$letzte]['balken'] === $schluessel) {
+            $spannen[$id][$letzte]['tage']++;
+        } else {
+            $spannen[$id][] = ['balken' => $schluessel, 'tag' => $tag, 'tage' => 1];
+        }
     }
 }
 
@@ -229,132 +252,155 @@ foreach ($fahrzeuge as $id => $Fahrzeug) {
     $gruppen[$Fahrzeug->GetArtID()][$id] = $Fahrzeug;
 }
 
-// Nur für den Fuhrparkleiter und nur in der Ansicht ab heute: Mitarbeiter
-// sehen nicht alle Fahrzeuge.
-$freiHeute = 0;
-foreach ($zellen as $zeile) {
-    if ($zeile[0]['zustaende'][0] === 'frei') {
-        $freiHeute++;
-    }
-}
+// Freier Tag: Text für den Screenreader
+$freiText = $fuhrparkleiter ? 'frei' : 'keine eigene Buchung';
 
-// Zustand => Beschriftung.
-$legende = $fuhrparkleiter
-    ? [
-        'frei'         => 'frei',
-        'beantragt'    => 'beantragt',
-        'vergeben'     => 'vergeben',
-        'wartung'      => 'in Wartung',
-        'ueberfaellig' => 'überfällig (Rückgabe oder Wartung)',
-    ]
-    : [
-        'beantragt'    => 'beantragt',
-        'vergeben'     => 'genehmigt oder unterwegs',
-        'wartung'      => 'in Wartung',
-        'ueberfaellig' => 'überfällig (Rückgabe oder Wartung)',
-        'leer'         => 'keine eigene Buchung',
-    ];
+// Legende: [CSS-Modifier des Musters, Beschriftung]; leer heißt freier Tag.
+$legende = [
+    ['gelb kalender__balken--antrag', $fuhrparkleiter ? 'Antrag' : 'Offen'],
+    ['gruen', 'Genehmigt'],
+    ['grau',  'Unterwegs'],
+    ['gelb',  'In Wartung, Rückgabe heute fällig'],
+    ['rot',   $fuhrparkleiter ? 'Überfällig (Rückgabe oder Wartung)' : 'Überfällig oder gesperrt'],
+    ['',      $fuhrparkleiter ? 'frei' : 'keine eigene Buchung'],
+];
+
+// Rote Meldung über dem Titel: meine überfälligen Fahrten als Fahrer
+if (!$fuhrparkleiter) {
+    $ListeLaufende = new CListeBuchungen();
+    $ListeLaufende->LadenLaufendeFahrten($ich);
+    $bannerFahrten = array_filter($ListeLaufende->GetAlle(), fn (CBuchung $Buchung): bool => $Buchung->IstUeberfaellig());
+    $bannerMitNamen = false;
+}
 
 require_once __DIR__ . '/includes/header.php';
 ?>
 
 <p class="lead">
     <?php if ($fuhrparkleiter): ?>
-        Belegung vom <?= e($tage[0]['datum']->format('d.m.')) ?> bis <?= e($letzterTag->format('d.m.Y')) ?>.
-        <?php if ($woche === 0): ?>
-            Heute frei: <?= e((string) $freiHeute) ?> von <?= e((string) count($fahrzeuge)) ?> Fahrzeugen.
-        <?php endif; ?>
-        Fahrer und Zweck erscheinen beim Zeigen auf eine Buchung; beantragte Buchungen führen zu den
-        offenen Anträgen.
+        Belegung aller Fahrzeuge über 14 Tage. Fahrer und Zweck erscheinen beim Zeigen auf eine
+        Buchung; Anträge führen zu den offenen Anträgen.
     <?php else: ?>
-        Ihre Buchungen vom <?= e($tage[0]['datum']->format('d.m.')) ?> bis <?= e($letzterTag->format('d.m.Y')) ?>,
-        nur die Fahrzeuge, die Sie gebucht haben. Buchungen anderer sehen Sie hier nicht; ob ein
-        Fahrzeug frei ist, zeigt <a href="<?= url('buchen.php') ?>">Fahrzeug buchen</a>.
+        Ihre Buchungen über 14 Tage, nur die Fahrzeuge, die Sie gebucht haben. Buchungen anderer
+        sehen Sie hier nicht; ob ein Fahrzeug frei ist, zeigt
+        <a href="<?= url('buchen.php') ?>">Fahrzeug buchen</a>.
     <?php endif; ?>
 </p>
 
-<!-- Wochenweise blättern, ohne JavaScript. -->
-<nav class="blaettern" aria-label="Zeitraum wechseln">
-    <?php if ($woche > 0): ?>
-        <a class="button button--klein button--zweitrangig"
-           href="<?= url('kalender.php' . ($woche > 1 ? '?woche=' . ($woche - 1) : '')) ?>">&larr; Vorige Woche</a>
-    <?php endif; ?>
-    <?php if ($woche > 1): ?>
-        <a class="button button--klein button--zweitrangig" href="<?= url('kalender.php') ?>">Ab heute</a>
-    <?php endif; ?>
-    <?php if ($woche < $maxWochen): ?>
-        <a class="button button--klein button--zweitrangig"
-           href="<?= url('kalender.php?woche=' . ($woche + 1)) ?>">Nächste Woche &rarr;</a>
-    <?php endif; ?>
-</nav>
+<section aria-labelledby="belegung">
+    <div class="kalender-kopf">
+        <h2 class="abschnitt" id="belegung">
+            <?= $fuhrparkleiter ? 'Belegung' : 'Ihre Buchungen' ?>
+            <span class="abschnitt__wert"><?= e(zeitraum_kurz($ansichtVon, $ansichtBis)) ?></span>
+        </h2>
 
-<?php if ($fahrzeuge === []): ?>
-
-    <p class="note">Sie haben in diesem Zeitraum keine Buchungen.</p>
-
-<?php else: ?>
-
-    <ul class="legende">
-        <?php foreach ($legende as $zustand => $beschriftung): ?>
-            <li class="legende__eintrag">
-                <span class="legende__muster kalender__zelle--<?= e($zustand) ?>"></span>
-                <?= e($beschriftung) ?>
-            </li>
-        <?php endforeach; ?>
-    </ul>
-
-    <div class="kalender">
-        <table class="kalender__tabelle">
-            <thead>
-                <tr>
-                    <th class="kalender__fahrzeug" scope="col">Fahrzeug</th>
-                    <?php foreach ($tage as $tag): ?>
-                        <th class="kalender__kopf<?= $tag['wochenende'] ? ' kalender__kopf--wochenende' : '' ?><?= $tag['heute'] ? ' kalender__kopf--heute' : '' ?>"
-                            scope="col">
-                            <span class="kalender__wochentag"><?= e($tag['wochentag']) ?></span>
-                            <?= e($tag['datum']->format('d.m.')) ?>
-                        </th>
-                    <?php endforeach; ?>
-                </tr>
-            </thead>
-
-            <?php foreach ($Fahrzeugarten->GetAlle() as $Art): ?>
-                <?php if (isset($gruppen[$Art->GetID()])): ?>
-                    <tbody>
-                        <tr class="kalender__gruppe">
-                            <th colspan="<?= $anzahlTage + 1 ?>" scope="colgroup"><?= e($Art->GetPlural() ?? $Art->GetBezeichnung()) ?></th>
-                        </tr>
-
-                        <?php foreach ($gruppen[$Art->GetID()] as $id => $Fahrzeug): ?>
-                            <tr>
-                                <th class="kalender__fahrzeug" scope="row">
-                                    <a href="<?= url('fahrzeug.php?id=' . $id) ?>"><?= e($Fahrzeug->GetKennzeichen()) ?></a>
-                                    <span class="kalender__modell"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></span>
-                                </th>
-
-                                <?php foreach ($zellen[$id] as $zelle): ?>
-                                    <td class="<?= e($zelle['klasse']) ?>" title="<?= e($zelle['hinweis']) ?>">
-                                        <?php if ($zelle['link'] !== null): ?>
-                                            <a class="kalender__inhalt" href="<?= e(url($zelle['link'])) ?>">
-                                                <span aria-hidden="true"><?= e($zelle['text']) ?></span>
-                                                <span class="nur-vorlesen"><?= e($zelle['hinweis']) ?></span>
-                                            </a>
-                                        <?php else: ?>
-                                            <span class="kalender__inhalt">
-                                                <span aria-hidden="true"><?= e($zelle['text']) ?></span>
-                                                <span class="nur-vorlesen"><?= e($zelle['hinweis']) ?></span>
-                                            </span>
-                                        <?php endif; ?>
-                                    </td>
-                                <?php endforeach; ?>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                <?php endif; ?>
-            <?php endforeach; ?>
-        </table>
+        <!-- Wochenweise blättern, ohne JavaScript -->
+        <nav class="blaettern" aria-label="Zeitraum wechseln">
+            <?php if ($woche > 0): ?>
+                <a class="button button--klein button--zweitrangig"
+                   href="<?= url('kalender.php' . ($woche > 1 ? '?woche=' . ($woche - 1) : '')) ?>">&larr; Vorige Woche</a>
+            <?php endif; ?>
+            <?php if ($woche > 1): ?>
+                <a class="button button--klein button--zweitrangig" href="<?= url('kalender.php') ?>">Ab heute</a>
+            <?php endif; ?>
+            <?php if ($woche < $maxWochen): ?>
+                <a class="button button--klein button--zweitrangig"
+                   href="<?= url('kalender.php?woche=' . ($woche + 1)) ?>">Nächste Woche &rarr;</a>
+            <?php endif; ?>
+        </nav>
     </div>
 
-<?php endif; ?>
+    <?php if ($fahrzeuge === []): ?>
+
+        <div class="schild schild--leer">
+            <p>Sie haben in diesem Zeitraum keine Buchungen.</p>
+            <a class="button button--zweitrangig" href="<?= url('buchen.php') ?>">Fahrzeug buchen</a>
+        </div>
+
+    <?php else: ?>
+
+        <ul class="legende">
+            <?php foreach ($legende as [$muster, $beschriftung]): ?>
+                <li class="legende__eintrag">
+                    <span class="legende__muster<?= $muster !== '' ? ' kalender__balken--' . e($muster) : '' ?>"></span>
+                    <?= e($beschriftung) ?>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+
+        <!-- Der Rahmen scrollt auf schmalen Bildschirmen seitlich -->
+        <div class="kalender">
+            <table class="kalender__tabelle">
+                <thead>
+                    <tr>
+                        <th class="kalender__fahrzeug" scope="col">Fahrzeug</th>
+                        <?php foreach ($tage as $tag): ?>
+                            <th class="kalender__kopf<?= $tag['wochenende'] ? ' kalender__kopf--wochenende' : '' ?><?= $tag['heute'] ? ' kalender__kopf--heute' : '' ?>"
+                                scope="col">
+                                <span class="kalender__wochentag"><?= e($tag['wochentag']) ?></span>
+                                <?= e($tag['datum']->format('d.m.')) ?>
+                            </th>
+                        <?php endforeach; ?>
+                    </tr>
+                </thead>
+
+                <?php foreach ($Fahrzeugarten->GetAlle() as $Art): ?>
+                    <?php if (isset($gruppen[$Art->GetID()])): ?>
+                        <tbody>
+                            <tr class="kalender__gruppe">
+                                <th colspan="<?= $anzahlTage + 1 ?>" scope="colgroup">
+                                    <span><?= e($Art->GetPlural() ?? $Art->GetBezeichnung()) ?></span>
+                                </th>
+                            </tr>
+
+                            <?php foreach ($gruppen[$Art->GetID()] as $id => $Fahrzeug): ?>
+                                <tr>
+                                    <th class="kalender__fahrzeug table__kennzeichen" scope="row">
+                                        <a href="<?= url('fahrzeug.php?id=' . $id) ?>"><?= e($Fahrzeug->GetKennzeichen()) ?></a>
+                                        <span class="table__zusatz"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></span>
+                                    </th>
+
+                                    <?php foreach ($spannen[$id] as $spanne): ?>
+                                        <?php if ($spanne['balken'] === null): ?>
+                                            <!-- Freier Tag -->
+                                            <td class="kalender__tag<?= $tage[$spanne['tag']]['wochenende'] ? ' kalender__tag--wochenende' : '' ?>">
+                                                <span class="nur-vorlesen"><?= e($freiText) ?></span>
+                                            </td>
+                                        <?php else: ?>
+                                            <?php
+                                            // Balken über seine Tage; am Rand des Zeitraums gerade abgeschnitten
+                                            $b = $balken[$spanne['balken']];
+                                            $hinweis = $b['hinweis'] . ($b['ueberschneidung'] ? ', überschneidet sich mit einer weiteren Buchung' : '');
+                                            $zelleKlasse = 'kalender__belegt'
+                                                . ($b['davor'] && $spanne['tag'] === 0 ? ' kalender__belegt--davor' : '')
+                                                . ($b['danach'] && $spanne['tag'] + $spanne['tage'] === $anzahlTage ? ' kalender__belegt--danach' : '');
+                                            $balkenKlasse = 'kalender__balken kalender__balken--' . $b['farbe']
+                                                . ($b['antrag'] ? ' kalender__balken--antrag' : '');
+                                            ?>
+                                            <td class="<?= e($zelleKlasse) ?>" colspan="<?= e((string) $spanne['tage']) ?>">
+                                                <?php if ($b['link'] !== null): ?>
+                                                    <a class="<?= e($balkenKlasse) ?>" href="<?= e(url($b['link'])) ?>" title="<?= e($hinweis) ?>">
+                                                        <span aria-hidden="true"><?= e($b['text']) ?></span>
+                                                        <span class="nur-vorlesen"><?= e($hinweis) ?></span>
+                                                    </a>
+                                                <?php else: ?>
+                                                    <span class="<?= e($balkenKlasse) ?>" title="<?= e($hinweis) ?>">
+                                                        <span aria-hidden="true"><?= e($b['text']) ?></span>
+                                                        <span class="nur-vorlesen"><?= e($hinweis) ?></span>
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </table>
+        </div>
+
+    <?php endif; ?>
+</section>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

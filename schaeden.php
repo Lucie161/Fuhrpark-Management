@@ -2,19 +2,22 @@
 /**
  * Schäden, nur für den Fuhrparkleiter.
  *
- * Alle gemeldeten Schäden, zuerst die offenen, dann die behobenen, jeweils
- * neueste zuerst: Schäden aus Rückgaben (Kleinschaden oder mit Wartung) und
- * vorhandene Schäden, die ein Fahrer bei Fahrtbeginn notiert hat („bei
- * Übernahme“). Gemeldet hat jeweils der Fahrer der Buchung. Bemerkungen ohne
- * Schaden stehen nur im Fahrtenbuch.
+ * Oben die offenen Schäden als Schilder, neueste zuerst: Stand „In Wartung“
+ * (der Schaden hält das Fahrzeug in Wartung) oder „Kleinschaden“, Felder
+ * Gemeldet, Fahrer, Anlass, darunter Beschreibung und Fotos. Darunter die
+ * behobenen Schäden als kompakte Tabelle. Gemeldet hat jeweils der Fahrer der
+ * Buchung, bei der Rückgabe oder schon bei Fahrtbeginn („bei Übernahme“).
+ * Bemerkungen ohne Schaden stehen nur im Fahrtenbuch.
  *
  * Bei Luxusautos sperrt schon ein Kleinschaden das Fahrzeug
  * (CSchaden::Sperrt()); er wird wie ein Schaden mit Wartung durch das
- * Freigeben behoben und ist markiert.
+ * Freigeben behoben.
  *
- * Ein offener Schaden lässt sich als behoben markieren. Hält er das Fahrzeug
- * in Wartung, wird es stattdessen freigegeben; das Formular schickt an
- * fahrzeuge.php, das Freigeben gilt dort zugleich als „behoben“.
+ * Ein Kleinschaden lässt sich als behoben markieren. Hält der Schaden das
+ * Fahrzeug in Wartung, wird stattdessen das Fahrzeug freigegeben; das
+ * Formular schickt an fahrzeuge.php (mit zurueck=schaeden), das Freigeben
+ * gilt dort zugleich als „behoben“. Das Wartungsende trägt der Fuhrparkleiter
+ * in fahrzeuge.php ein (Link öffnet dort das Formular des Fahrzeugs).
  *
  * Daten: CListeSchaeden::LadenAlle() mit dem Namen des Fahrers, die Fahrzeuge
  * aus CListeFahrzeuge::LadenAlle(). Speichern über CSchaden::Beheben().
@@ -50,7 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $Schaden->Beheben($ich);
 
-        merke_meldung('Schaden an ' . CFahrzeug::LoadByID($Schaden->GetFahrzeugID())->GetName() . ' als behoben markiert.');
+        // Nächster Schritt: Im Steckbrief steht der Schaden nicht mehr offen.
+        $fahrzeugID = $Schaden->GetFahrzeugID();
+        merke_meldung(
+            'Schaden an ' . CFahrzeug::LoadByID($fahrzeugID)->GetName() . ' als behoben markiert.',
+            'erfolg',
+            ['Zum Steckbrief', 'fahrzeug.php?id=' . $fahrzeugID]
+        );
         redirect('schaeden.php');
     } catch (CFachlicherFehler $Fehler) {
         $fehler[] = $Fehler->getMessage();
@@ -70,17 +79,19 @@ $behobene = array_filter($ListeSchaeden->GetAlle(), fn (CSchaden $Schaden): bool
 $Fahrzeuge = new CListeFahrzeuge();
 $Fahrzeuge->LadenAlle();
 
-$Schweregrade = new CListeSchluessel('schweregrade');
+$Arten = new CListeSchluessel('fahrzeugarten');
 $Anlaesse = new CListeSchluessel('schadensanlaesse');
+
+$anzahlOffen = count($offene);
+$anzahlWartung = $ListeSchaeden->CountSperrende();
 
 require_once __DIR__ . '/includes/header.php';
 ?>
 
 <p class="lead">
-    Gemeldete Schäden, zuerst die offenen. <?= e((string) count($offene)) ?> offen, davon
-    <?= e((string) $ListeSchaeden->CountSperrende()) ?> mit Wartung. Ein Kleinschaden sperrt das Fahrzeug nicht und
-    muss nicht sofort behoben werden; die Fahrer sehen ihn vor Fahrtbeginn und müssen ihn nicht
-    erneut melden. Ausnahme Luxusautos: Dort sperrt jeder Schaden bis zur Freigabe. Bemerkungen ohne Schaden stehen im Fahrtenbuch.
+    Ein Kleinschaden sperrt das Fahrzeug nicht; die Fahrer sehen ihn vor Fahrtbeginn und müssen ihn
+    nicht erneut melden. Ein Schaden mit Wartung sperrt das Fahrzeug bis zur Freigabe, bei
+    Luxusautos schon ein Kleinschaden.
 </p>
 
 <?php if ($fehler !== []): ?>
@@ -91,87 +102,154 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 <?php endif; ?>
 
-<?php foreach (['Offen' => $offene, 'Behoben' => $behobene] as $titel => $liste): ?>
-    <section class="section">
-        <h2><?= e($titel) ?></h2>
+<!-- Offene Schäden: je ein Schild -->
+<section aria-labelledby="offene-schaeden">
+    <h2 class="abschnitt" id="offene-schaeden">
+        Offen
+        <span class="abschnitt__wert">
+            <?= $anzahlOffen === 0 ? 'keine Schäden' : e((string) $anzahlOffen) . ($anzahlOffen === 1 ? ' Schaden' : ' Schäden') ?>
+        </span>
+        <?php if ($anzahlWartung > 0): ?>
+            <span class="abschnitt__zusatz">davon <?= e((string) $anzahlWartung) ?> in Wartung</span>
+        <?php endif; ?>
+    </h2>
 
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Gemeldet</th>
-                    <th>Fahrzeug</th>
-                    <th>Fahrer</th>
-                    <th>Art</th>
-                    <th>Beschreibung</th>
-                    <th><?= $titel === 'Offen' ? 'Aktionen' : 'Behoben am' ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($liste as $Schaden): ?>
-                    <?php $Fahrzeug = $Fahrzeuge->GetByID($Schaden->GetFahrzeugID()); ?>
-                    <tr>
-                        <td><?= e($Schaden->GetGemeldetAm()->format('d.m.Y')) ?></td>
-                        <td>
-                            <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>"><?= e($Fahrzeug->GetName()) ?></a>
-                            <?php if ($Fahrzeug->IstInWartung() && $Schaden->IstOffen()): ?>
-                                <span class="table__zusatz">in Wartung</span>
-                            <?php endif; ?>
-                        </td>
-                        <td><?= e($Schaden->GetFahrerName()) ?></td>
-                        <td>
-                            <span class="badge<?= $Schaden->Sperrt() ? ' badge--abgelehnt' : '' ?>"><?= e($Schweregrade->GetBezeichnung($Schaden->GetSchwereID())) ?></span>
-                            <?php if ($Schaden->GetSchwereID() === SCHWERE_KLEIN && $Schaden->Sperrt() && $Schaden->IstOffen()): ?>
-                                <?php if ($Schaden->HaeltInWartung()): ?>
-                                    <span class="table__zusatz">Luxusauto: sperrt das Fahrzeug</span>
-                                <?php elseif ($Schaden->GetAnlassID() === ANLASS_UEBERNAHME): ?>
-                                    <span class="table__zusatz">Luxusauto: wird nach der Rückgabe gesperrt</span>
-                                <?php endif; ?>
-                            <?php endif; ?>
-                            <span class="table__zusatz"><?= e($Anlaesse->GetBezeichnung($Schaden->GetAnlassID())) ?></span>
-                        </td>
-                        <td>
-                            <?= e($Schaden->GetBeschreibung()) ?>
+    <?php foreach ($offene as $Schaden): ?>
+        <?php
+        $SchildFahrzeug = $Fahrzeuge->GetByID($Schaden->GetFahrzeugID());
+        $fahrzeugID = $SchildFahrzeug->GetID();
+        $inWartung = $Schaden->HaeltInWartung();
+        $marke = $inWartung ? ['In Wartung', 'gelb'] : ['Kleinschaden', 'grau'];
 
-                            <?php if ($Schaden->GetFotos() !== []): ?>
-                                <ul class="schadensfotos" aria-label="Fotos zum Schaden">
-                                    <?php foreach ($Schaden->GetFotos() as $nr => $Foto): ?>
-                                        <li>
-                                            <a href="<?= url('foto.php?id=' . $Foto->GetID()) ?>" target="_blank">
-                                                <img class="schadensfotos__bild" src="<?= url('foto.php?id=' . $Foto->GetID()) ?>"
-                                                     alt="Foto <?= e((string) ($nr + 1)) ?> zum Schaden" loading="lazy">
-                                            </a>
-                                        </li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if (!$Schaden->IstOffen()): ?>
-                                <?= e($Schaden->GetBehobenAm()->format('d.m.Y')) ?>
-                            <?php elseif ($Schaden->HaeltInWartung()): ?>
-                                <form method="post" action="<?= url('fahrzeuge.php') ?>">
-                                    <input type="hidden" name="fahrzeug" value="<?= e((string) $Fahrzeug->GetID()) ?>">
-                                    <input type="hidden" name="aktion" value="freigeben">
-                                    <button class="button button--klein" type="submit">Fahrzeug freigeben</button>
-                                </form>
-                            <?php else: ?>
-                                <form method="post" action="<?= url('schaeden.php') ?>">
-                                    <input type="hidden" name="schaden" value="<?= e((string) $Schaden->GetID()) ?>">
-                                    <button class="button button--klein" type="submit">Als behoben markieren</button>
-                                </form>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
+        // Zweite Zeile im Text: was der Schaden für das Fahrzeug bedeutet
+        if ($inWartung && $Schaden->GetSchwereID() === SCHWERE_KLEIN) {
+            $folge = 'Luxusauto: Schon ein Kleinschaden sperrt das Fahrzeug bis zur Freigabe ('
+                . $SchildFahrzeug->GetWartungText() . ').';
+        } elseif ($inWartung) {
+            $folge = 'Das Fahrzeug bleibt bis zur Freigabe gesperrt (' . $SchildFahrzeug->GetWartungText() . ').';
+        } elseif ($Schaden->Sperrt()) {
+            $folge = 'Luxusauto: Das Fahrzeug wird nach der Rückgabe gesperrt.';
+        } else {
+            $folge = 'Sperrt das Fahrzeug nicht.';
+        }
+        ?>
+        <article class="schild" id="schaden-<?= e((string) $Schaden->GetID()) ?>">
+            <?php require __DIR__ . '/includes/schild-kopf.php'; ?>
 
-                <?php if ($liste === []): ?>
-                    <tr>
-                        <td colspan="6" class="table__empty"><?= $titel === 'Offen' ? 'Keine offenen Schäden.' : 'Noch keine behobenen Schäden.' ?></td>
-                    </tr>
+            <div class="schild__koerper">
+                <dl class="felder">
+                    <div class="feld">
+                        <dt>Gemeldet</dt>
+                        <dd><?= e($Schaden->GetGemeldetAm()->format('d.m.Y')) ?></dd>
+                    </div>
+                    <div class="feld">
+                        <dt>Fahrer</dt>
+                        <dd><?= e($Schaden->GetFahrerName()) ?></dd>
+                    </div>
+                    <div class="feld">
+                        <dt>Anlass</dt>
+                        <dd><?= e($Anlaesse->GetBezeichnung($Schaden->GetAnlassID())) ?></dd>
+                    </div>
+                </dl>
+
+                <div class="schild__aktionen">
+                    <div class="aktionen">
+                        <?php if ($inWartung): ?>
+                            <form method="post" action="<?= url('fahrzeuge.php') ?>">
+                                <input type="hidden" name="fahrzeug" value="<?= e((string) $fahrzeugID) ?>">
+                                <input type="hidden" name="aktion" value="freigeben">
+                                <input type="hidden" name="zurueck" value="schaeden">
+                                <button class="button button--klein" type="submit">Freigeben</button>
+                            </form>
+                            <a class="button button--klein button--zweitrangig"
+                               href="<?= url('fahrzeuge.php?formular=' . $fahrzeugID . '#formular') ?>">
+                                <?= $SchildFahrzeug->GetWartungBis() === null ? 'Wartungsende eintragen' : 'Ende ändern' ?>
+                            </a>
+                        <?php else: ?>
+                            <form method="post" action="<?= url('schaeden.php') ?>">
+                                <input type="hidden" name="schaden" value="<?= e((string) $Schaden->GetID()) ?>">
+                                <button class="button button--klein" type="submit">Als behoben markieren</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="schild__text">
+                <p class="schild__grund"><?= e($Schaden->GetBeschreibung()) ?></p>
+                <p><?= e($folge) ?></p>
+
+                <?php if ($Schaden->GetFotos() !== []): ?>
+                    <ul class="schild__fotos" aria-label="Fotos zum Schaden">
+                        <?php foreach ($Schaden->GetFotos() as $nr => $Foto): ?>
+                            <li>
+                                <a href="<?= url('foto.php?id=' . $Foto->GetID()) ?>" target="_blank">
+                                    <img src="<?= url('foto.php?id=' . $Foto->GetID()) ?>"
+                                         alt="Foto <?= e((string) ($nr + 1)) ?> zum Schaden" loading="lazy">
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
                 <?php endif; ?>
-            </tbody>
-        </table>
-    </section>
-<?php endforeach; ?>
+            </div>
+        </article>
+    <?php endforeach; ?>
+
+    <?php if ($offene === []): ?>
+        <div class="schild schild--leer">
+            <p>Keine offenen Schäden. Neue Schäden melden die Fahrer bei der Rückgabe.</p>
+        </div>
+    <?php endif; ?>
+</section>
+
+<!-- Behobene Schäden: kompakte Tabelle, neueste zuerst -->
+<section class="schaeden-behoben" aria-labelledby="behobene-schaeden">
+    <h2 class="abschnitt" id="behobene-schaeden">
+        Behoben
+        <span class="abschnitt__wert"><?= e((string) count($behobene)) ?></span>
+    </h2>
+
+    <table class="table table--stapel">
+        <thead>
+            <tr>
+                <th>Fahrzeug</th>
+                <th>Gemeldet</th>
+                <th>Art</th>
+                <th>Stand</th>
+                <th>Beschreibung</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($behobene as $Schaden): ?>
+                <?php $Fahrzeug = $Fahrzeuge->GetByID($Schaden->GetFahrzeugID()); ?>
+                <tr>
+                    <td class="table__kennzeichen">
+                        <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>"><?= e($Fahrzeug->GetKennzeichen()) ?></a>
+                        <span class="table__zusatz"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></span>
+                    </td>
+                    <td data-label="Gemeldet">
+                        <?= e($Schaden->GetGemeldetAm()->format('d.m.Y')) ?>
+                        <span class="table__zusatz">von <?= e($Schaden->GetFahrerName()) ?></span>
+                    </td>
+                    <td data-label="Art">
+                        <?= $Schaden->GetSchwereID() === SCHWERE_WARTUNG ? 'Schaden mit Wartung' : 'Kleinschaden' ?>
+                        <span class="table__zusatz"><?= e($Anlaesse->GetBezeichnung($Schaden->GetAnlassID())) ?></span>
+                    </td>
+                    <td class="table__stand" data-label="Stand">
+                        <span class="marke marke--grau">Behoben</span>
+                        <span class="table__zusatz">am <?= e($Schaden->GetBehobenAm()->format('d.m.Y')) ?></span>
+                    </td>
+                    <td class="table__breit" data-label="Beschreibung"><?= e($Schaden->GetBeschreibung()) ?></td>
+                </tr>
+            <?php endforeach; ?>
+
+            <?php if ($behobene === []): ?>
+                <tr>
+                    <td colspan="5" class="table__empty">Noch keine behobenen Schäden.</td>
+                </tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</section>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
