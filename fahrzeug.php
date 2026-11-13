@@ -4,8 +4,8 @@
  *
  * Aufruf: fahrzeug.php?id=1
  *
- * Oben das Fahrzeug als großes Schild: Kopf mit Kennzeichen, Modell und
- * Stand, Bild und Merkmale als Kennwertfelder, rechts die Aktion
+ * Oben das Fahrzeug als großes Schild (der Name steht im Titel): Kopf mit
+ * Kennzeichen und Stand, Bild und Merkmale als Kennwertfelder, rechts die Aktion
  * („Dieses Fahrzeug buchen“ für Mitarbeiter, das Wartungsformular für den
  * Fuhrparkleiter), darunter Hinweise zu Wartung und Luxusauto. Danach die
  * noch nicht behobenen Schäden, die Belegung der nächsten 14 Tage als Reihe
@@ -246,10 +246,10 @@ require_once __DIR__ . '/includes/header.php';
 <article class="schild steckbrief">
     <div class="schild__kopf">
         <div class="schild__name">
-            <h2 class="schild__kennzeichen"><?= e($Fahrzeug->GetKennzeichen()) ?></h2>
-            <p class="schild__modell">
-                <?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?>
-                &middot; <?= e($Fahrzeugarten->GetBezeichnung($Fahrzeug->GetArtID())) ?>
+            <!-- Der Name steht schon im Titel, hier das Kennzeichen als Feld -->
+            <p class="schild__kennwert">
+                <span class="stand__label">Kennzeichen</span>
+                <span class="schild__kennwert-wert"><?= e($Fahrzeug->GetKennzeichen()) ?></span>
             </p>
         </div>
         <p class="stand stand--<?= e($marke[1]) ?>">
@@ -263,7 +263,10 @@ require_once __DIR__ . '/includes/header.php';
             <?php if ($hatBild): ?>
                 <img class="steckbrief__bild" src="<?= url('assets/img/' . $bildDatei) ?>" alt="<?= e($pageTitle) ?>">
             <?php else: ?>
-                <span class="steckbrief__bild steckbrief__bild--platzhalter">kein Bild</span>
+                <span class="steckbrief__bild ohne-bild">
+                    <span class="icon icon--<?= art_icon($Fahrzeug->GetArtID()) ?>" aria-hidden="true"></span>
+                    Noch kein Foto
+                </span>
             <?php endif; ?>
 
             <dl class="felder felder--steckbrief">

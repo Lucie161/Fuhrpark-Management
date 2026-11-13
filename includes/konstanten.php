@@ -63,7 +63,6 @@ const STATUS_STORNIERT     = 6;
 const ZWECK_MONTAGE           = 1;
 const ZWECK_SERVICE           = 2;
 const ZWECK_KUNDENTERMIN      = 3;
-const ZWECK_AUFMASS           = 4;
 const ZWECK_MATERIALTRANSPORT = 5;
 const ZWECK_LIEFERANT         = 6;
 const ZWECK_SCHULUNG          = 7;

@@ -15,7 +15,7 @@
 -- 6 Jonas (Fuhrparkleiter), 7 Paul (ausgeschieden).
 --
 -- IDs aus den Schlüsseltabellen (schema.sql, includes/konstanten.php):
---   zweck_id   1 Montage, 2 Wartung/Service, 3 Kundentermin, 4 Aufmaß,
+--   zweck_id   1 Montage, 2 Wartung/Service, 3 Kundentermin, (4 Aufmaß entfällt),
 --              5 Materialtransport, 6 Lieferantenbesuch, 7 Schulung, 8 Sonstiges
 --   status_id  1 beantragt (offen), 2 genehmigt, 3 unterwegs, 4 abgeschlossen,
 --              5 abgelehnt, 6 storniert
@@ -36,7 +36,7 @@ INSERT INTO buchungen
      beantragt_am, entscheidung_von, entscheidung_am, entscheidung_kommentar)
 VALUES
     -- Lucie: heute mit Rad 1, kann beginnen
-    (11, 8, 1, 1, @heute,                    @heute,                    4, 1, 2,
+    (11, 8, 1, 1, @heute,                    @heute,                    3, 1, 2,
         TIMESTAMP(@heute - INTERVAL 2 DAY, '09:10'), NULL, NULL, NULL),
     (13, 5, 1, 1, @heute + INTERVAL 2 DAY,   @heute + INTERVAL 2 DAY,   3, 1, 2,
         TIMESTAMP(@heute - INTERVAL 4 DAY, '11:20'), 6, TIMESTAMP(@heute - INTERVAL 4 DAY, '15:00'), NULL),
@@ -53,7 +53,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 12 DAY, '13:00'), 6, TIMESTAMP(@heute - INTERVAL 11 DAY, '09:00'), NULL),
     (19, 3, 4, 4, @heute + INTERVAL 3 DAY,   @heute + INTERVAL 4 DAY,   5, 2, 1,
         TIMESTAMP(@heute - INTERVAL 5 DAY, '14:12'), NULL, NULL, NULL),
-    (20, 6, 4, 4, @heute + INTERVAL 8 DAY,   @heute + INTERVAL 9 DAY,   4, 1, 1,
+    (20, 6, 4, 4, @heute + INTERVAL 8 DAY,   @heute + INTERVAL 9 DAY,   3, 1, 1,
         TIMESTAMP(@heute - INTERVAL 2 DAY, '16:30'), NULL, NULL, NULL),
     -- Ella: heute, kann wegen ihrer überfälligen Tesla-Rückgabe nicht beginnen
     (21, 1, 2, 2, @heute,                    @heute,                    3, 2, 2,
@@ -62,7 +62,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 8 DAY, '08:15'), 6, TIMESTAMP(@heute - INTERVAL 7 DAY, '09:40'), NULL),
     (26, 3, 5, 5, @heute + INTERVAL 7 DAY,   @heute + INTERVAL 8 DAY,   5, 2, 2,
         TIMESTAMP(@heute - INTERVAL 5 DAY, '11:00'), 6, TIMESTAMP(@heute - INTERVAL 4 DAY, '08:30'), NULL),
-    (27, 9, 5, 5, @heute + INTERVAL 3 DAY,   @heute + INTERVAL 4 DAY,   4, 1, 2,
+    (27, 9, 5, 5, @heute + INTERVAL 3 DAY,   @heute + INTERVAL 4 DAY,   3, 1, 2,
         TIMESTAMP(@heute - INTERVAL 3 DAY, '12:00'), NULL, NULL, NULL),
     -- Ella: genehmigt, aber ihre Tesla-Rückgabe ist überfällig
     (31, 9, 2, 2, @heute + INTERVAL 6 DAY,   @heute + INTERVAL 6 DAY,   3, 1, 2,
@@ -70,7 +70,7 @@ VALUES
     -- Larissa bucht für Ella; fünfter offener Antrag
     (32, 2, 5, 2, @heute + INTERVAL 9 DAY,   @heute + INTERVAL 9 DAY,   1, 3, 1,
         TIMESTAMP(@heute - INTERVAL 1 DAY, '15:20'), NULL, NULL, NULL),
-    (33, 9, 5, 5, @heute + INTERVAL 1 DAY,   @heute + INTERVAL 1 DAY,   4, 1, 6,
+    (33, 9, 5, 5, @heute + INTERVAL 1 DAY,   @heute + INTERVAL 1 DAY,   3, 1, 6,
         TIMESTAMP(@heute - INTERVAL 6 DAY, '08:00'), NULL, NULL, NULL),
     (34, 5, 4, 4, @heute - INTERVAL 4 DAY,   @heute - INTERVAL 4 DAY,   3, 2, 5,
         TIMESTAMP(@heute - INTERVAL 7 DAY, '10:30'), 6, TIMESTAMP(@heute - INTERVAL 6 DAY, '08:50'),
@@ -82,7 +82,7 @@ VALUES
     -- Lucie: ID.3 an zwei Tagen hintereinander, übermorgen genehmigt (13), danach offen
     (56, 5, 1, 1, @heute + INTERVAL 3 DAY,   @heute + INTERVAL 3 DAY,   3, 1, 1,
         TIMESTAMP(@heute - INTERVAL 1 DAY, '08:30'), NULL, NULL, NULL),
-    (57, 7, 1, 1, @heute + INTERVAL 7 DAY,   @heute + INTERVAL 7 DAY,   4, 1, 2,
+    (57, 7, 1, 1, @heute + INTERVAL 7 DAY,   @heute + INTERVAL 7 DAY,   3, 1, 2,
         TIMESTAMP(@heute - INTERVAL 2 DAY, '13:10'), NULL, NULL, NULL),
     (58, 11, 3, 3, @heute + INTERVAL 1 DAY,  @heute + INTERVAL 2 DAY,   3, 2, 2,
         TIMESTAMP(@heute - INTERVAL 5 DAY, '09:45'), 6, TIMESTAMP(@heute - INTERVAL 4 DAY, '10:20'), NULL),
@@ -127,7 +127,7 @@ INSERT INTO buchungen
      zurueckgegeben_am, km_ende, bemerkung)
 VALUES
     -- Kleinschaden (Schaden 7)
-    (48, 8, 2, 2, @heute - INTERVAL 5 DAY,   @heute - INTERVAL 5 DAY,   4, 1, 4,
+    (48, 8, 2, 2, @heute - INTERVAL 5 DAY,   @heute - INTERVAL 5 DAY,   3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 7 DAY, '16:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 5 DAY, '08:30'), NULL,
         TIMESTAMP(@heute - INTERVAL 5 DAY, '15:10'), NULL, NULL),
@@ -140,7 +140,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 13 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 12 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 9 DAY, '08:00'), 31494,
         TIMESTAMP(@heute - INTERVAL 9 DAY, '16:20'), 31540, NULL),
-    (23, 8, 1, 1, @heute - INTERVAL 10 DAY,  @heute - INTERVAL 10 DAY,  4, 1, 4,
+    (23, 8, 1, 1, @heute - INTERVAL 10 DAY,  @heute - INTERVAL 10 DAY,  3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 11 DAY, '14:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 10 DAY, '08:15'), NULL,
         TIMESTAMP(@heute - INTERVAL 10 DAY, '14:30'), NULL, 'Akku nach Rückkehr wieder angeschlossen.'),
@@ -157,7 +157,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 18 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 17 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 14 DAY, '07:30'), 112304,
         TIMESTAMP(@heute - INTERVAL 14 DAY, '16:00'), 112400, NULL),
-    (38, 1, 5, 5, @heute - INTERVAL 16 DAY,  @heute - INTERVAL 16 DAY,  4, 1, 4,
+    (38, 1, 5, 5, @heute - INTERVAL 16 DAY,  @heute - INTERVAL 16 DAY,  3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 20 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 19 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 16 DAY, '08:00'), 48034,
         TIMESTAMP(@heute - INTERVAL 16 DAY, '15:30'), 48166, 'Klappergeräusch hinten rechts bei Tempo über 100.'),
@@ -178,7 +178,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 29 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 28 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 25 DAY, '07:00'), 11832,
         TIMESTAMP(@heute - INTERVAL 25 DAY, '18:10'), 12020, NULL),
-    (42, 9, 5, 5, @heute - INTERVAL 28 DAY,  @heute - INTERVAL 28 DAY,  4, 1, 4,
+    (42, 9, 5, 5, @heute - INTERVAL 28 DAY,  @heute - INTERVAL 28 DAY,  3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 30 DAY, '12:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 28 DAY, '09:00'), NULL,
         TIMESTAMP(@heute - INTERVAL 28 DAY, '12:30'), NULL, NULL),
@@ -242,7 +242,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 2 DAY, '07:30'), 23290,
         TIMESTAMP(@heute - INTERVAL 1 DAY, '16:15'), 23480, NULL),
     -- Larissa, Fiat 500e
-    (61, 13, 5, 5, @heute - INTERVAL 3 DAY, @heute - INTERVAL 3 DAY, 4, 1, 4,
+    (61, 13, 5, 5, @heute - INTERVAL 3 DAY, @heute - INTERVAL 3 DAY, 3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 7 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 6 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 3 DAY, '07:30'), 14236,
         TIMESTAMP(@heute - INTERVAL 3 DAY, '16:15'), 14280, NULL),
@@ -297,7 +297,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 19 DAY, '07:30'), 18330,
         TIMESTAMP(@heute - INTERVAL 19 DAY, '16:15'), 18510, NULL),
     -- Lucie, Rad 2
-    (72, 9, 1, 1, @heute - INTERVAL 20 DAY, @heute - INTERVAL 20 DAY, 4, 1, 4,
+    (72, 9, 1, 1, @heute - INTERVAL 20 DAY, @heute - INTERVAL 20 DAY, 3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 24 DAY, '10:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 20 DAY, '07:30'), NULL,
         TIMESTAMP(@heute - INTERVAL 20 DAY, '16:15'), NULL, NULL),
@@ -307,7 +307,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 23 DAY, '07:30'), 9480,
         TIMESTAMP(@heute - INTERVAL 23 DAY, '16:15'), 9620, NULL),
     -- Kenneth, Ioniq 5
-    (74, 12, 4, 4, @heute - INTERVAL 24 DAY, @heute - INTERVAL 24 DAY, 4, 1, 4,
+    (74, 12, 4, 4, @heute - INTERVAL 24 DAY, @heute - INTERVAL 24 DAY, 3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 28 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 27 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 24 DAY, '07:30'), 27020,
         TIMESTAMP(@heute - INTERVAL 24 DAY, '16:15'), 27190, NULL),
@@ -327,7 +327,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 30 DAY, '07:30'), 22960,
         TIMESTAMP(@heute - INTERVAL 30 DAY, '16:15'), 23130, NULL),
     -- Finn, Fiat 500e
-    (78, 13, 3, 3, @heute - INTERVAL 31 DAY, @heute - INTERVAL 31 DAY, 4, 1, 4,
+    (78, 13, 3, 3, @heute - INTERVAL 31 DAY, @heute - INTERVAL 31 DAY, 3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 35 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 34 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 31 DAY, '07:30'), 14130,
         TIMESTAMP(@heute - INTERVAL 31 DAY, '16:15'), 14190, NULL),
@@ -337,7 +337,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 33 DAY, '07:30'), 31290,
         TIMESTAMP(@heute - INTERVAL 33 DAY, '16:15'), 31402, NULL),
     -- Larissa, Rad 1
-    (80, 8, 5, 5, @heute - INTERVAL 33 DAY, @heute - INTERVAL 33 DAY, 4, 1, 4,
+    (80, 8, 5, 5, @heute - INTERVAL 33 DAY, @heute - INTERVAL 33 DAY, 3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 37 DAY, '10:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 33 DAY, '07:30'), NULL,
         TIMESTAMP(@heute - INTERVAL 33 DAY, '16:15'), NULL, NULL),
@@ -382,7 +382,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 47 DAY, '07:30'), 10720,
         TIMESTAMP(@heute - INTERVAL 47 DAY, '16:15'), 10900, NULL),
     -- Ella, ID.3
-    (89, 5, 2, 2, @heute - INTERVAL 48 DAY, @heute - INTERVAL 48 DAY, 4, 1, 4,
+    (89, 5, 2, 2, @heute - INTERVAL 48 DAY, @heute - INTERVAL 48 DAY, 3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 52 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 51 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 48 DAY, '07:30'), 31150,
         TIMESTAMP(@heute - INTERVAL 48 DAY, '16:15'), 31290, NULL),
@@ -462,7 +462,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 78 DAY, '07:30'), 47488,
         TIMESTAMP(@heute - INTERVAL 78 DAY, '16:15'), 47588, NULL),
     -- Lucie, Vespa
-    (105, 7, 1, 1, @heute - INTERVAL 80 DAY, @heute - INTERVAL 80 DAY, 4, 1, 4,
+    (105, 7, 1, 1, @heute - INTERVAL 80 DAY, @heute - INTERVAL 80 DAY, 3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 84 DAY, '10:00'), NULL, NULL,
         TIMESTAMP(@heute - INTERVAL 80 DAY, '07:30'), 6255,
         TIMESTAMP(@heute - INTERVAL 80 DAY, '16:15'), 6300, NULL),
@@ -477,7 +477,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 85 DAY, '07:30'), 47395,
         TIMESTAMP(@heute - INTERVAL 85 DAY, '16:15'), 47488, NULL),
     -- Kenneth, Enyaq
-    (108, 11, 4, 4, @heute - INTERVAL 86 DAY, @heute - INTERVAL 86 DAY, 4, 1, 4,
+    (108, 11, 4, 4, @heute - INTERVAL 86 DAY, @heute - INTERVAL 86 DAY, 3, 1, 4,
         TIMESTAMP(@heute - INTERVAL 90 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 89 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 86 DAY, '07:30'), 17760,
         TIMESTAMP(@heute - INTERVAL 86 DAY, '16:15'), 17940, NULL),

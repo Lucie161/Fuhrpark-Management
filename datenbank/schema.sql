@@ -102,7 +102,6 @@ INSERT INTO zwecke (id, bezeichnung) VALUES
     (1, 'Montage'),
     (2, 'Wartung/Service'),
     (3, 'Kundentermin'),
-    (4, 'Aufmaß'),
     (5, 'Materialtransport'),
     (6, 'Lieferantenbesuch'),
     (7, 'Schulung'),

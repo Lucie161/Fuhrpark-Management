@@ -278,3 +278,16 @@ function wartet_seit(DateTimeImmutable $seit): string
         default => $tage . ' Tagen',
     };
 }
+
+/**
+ * Icon einer Fahrzeugart für Fahrzeuge ohne Foto (Klasse icon--…).
+ */
+function art_icon(int $artId): string
+{
+    return match ($artId) {
+        ART_TRANSPORTER => 'transporter',
+        ART_ROLLER      => 'roller',
+        ART_FAHRRAD     => 'fahrrad',
+        default         => 'auto',
+    };
+}

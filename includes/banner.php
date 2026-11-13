@@ -30,7 +30,7 @@ $bannerHeute = new DateTimeImmutable('today');
         <details class="banner">
             <summary class="banner__zeile">
                 <span class="banner__text">
-                    <strong><?= e((string) $bannerAnzahl) ?> <?= $bannerAnzahl === 1 ? 'Rückgabe' : 'Rückgaben' ?> überfällig.</strong>
+                    <span class="icon icon--warnung" aria-hidden="true"></span><strong><?= e((string) $bannerAnzahl) ?> <?= $bannerAnzahl === 1 ? 'Rückgabe' : 'Rückgaben' ?> überfällig.</strong>
                     <span class="banner__zusatz">Bitte mit den Fahrern klären.</span>
                 </span>
                 <span class="button button--klein banner__knopf banner__knopf--details">Details</span>
@@ -52,12 +52,12 @@ $bannerHeute = new DateTimeImmutable('today');
             <?php $BannerFahrzeug = CFahrzeug::LoadByID($Fahrt->GetFahrzeugID()); ?>
             <div class="banner banner__zeile">
                 <p class="banner__text">
-                    <strong>Rückgabe überfällig:</strong>
+                    <span class="icon icon--warnung" aria-hidden="true"></span><strong>Rückgabe überfällig:</strong>
                     <?= e($BannerFahrzeug->GetHersteller() . ' ' . $BannerFahrzeug->GetModell()) ?>, fällig am <?= e($Fahrt->GetEnde()->format('d.m.Y')) ?>.
                     <span class="banner__zusatz">Buchen und neue Fahrten sind bis dahin gesperrt.</span>
                 </p>
                 <?php if ($Fahrt->GetID() !== ($bannerOhneKnopf ?? null)): ?>
-                    <a class="button button--klein banner__knopf" href="<?= url('rueckgabe.php?buchung=' . $Fahrt->GetID()) ?>">Zurückgeben</a>
+                    <a class="button button--klein banner__knopf" href="<?= url('rueckgabe.php?buchung=' . $Fahrt->GetID()) ?>"><span class="icon icon--zurueck" aria-hidden="true"></span>Zurückgeben</a>
                 <?php endif; ?>
             </div>
         <?php endforeach; ?>

@@ -56,6 +56,7 @@ $pageZusatz = datum_lang($heute);
 // genehmigungen.php), beim Mitarbeiter die nächsten (die übrigen in
 // meine-buchungen.php).
 $antraegeAufUebersicht = 3;
+$schaedenAufUebersicht = 5;
 
 $Zwecke = new CListeSchluessel('zwecke');
 $Arten = new CListeSchluessel('fahrzeugarten');
@@ -74,7 +75,7 @@ if (!ist_fuhrparkleiter()) {
     // „Fahrzeug buchen“ neben dem Titel nur, wenn Buchen gerade möglich ist
     // (nicht bei eigener überfälliger Rückgabe, dann zeigt das Banner den Weg)
     if (CNutzer::LoadByID($ich)->GetSperreBuchen() === null) {
-        $pageAktion = ['Fahrzeug buchen', 'buchen.php'];
+        $pageAktion = ['Fahrzeug buchen', 'buchen.php', 'plus'];
     }
 
     // Eigene Buchungen, die nächste zuerst; Namen sind erlaubt
@@ -140,6 +141,15 @@ if (ist_fuhrparkleiter()) {
     $ListeUeberschritten = new CListeWartungen();
     $ListeUeberschritten->LadenEndeUeberschritten();
 
+    // Bekannte Schäden, noch nicht behoben, der neueste zuerst. Ohne die
+    // Schäden, die oben schon als neu stehen (Fahrzeug in Wartung ohne Ende).
+    $neueFahrzeuge = array_map(fn (CWartung $Wartung): int => $Wartung->GetFahrzeugID(), $ListeNeueSchaeden->GetAlle());
+    $offeneSchaeden = array_values(array_filter(
+        $ListeSchaeden->GetAlle(),
+        fn (CSchaden $Schaden): bool => $Schaden->IstOffen()
+            && !($Schaden->HaeltInWartung() && in_array($Schaden->GetFahrzeugID(), $neueFahrzeuge, true)),
+    ));
+
     // Fahrten, die heute beginnen oder enden
     $ListeHeute = new CListeBuchungen();
     $ListeHeute->LadenHeute();
@@ -159,6 +169,8 @@ if (ist_fuhrparkleiter()) {
         'anzahl_antraege' => $ListeAntraege->Count(),
         'schaeden'        => $ListeSchaeden->CountSperrende(),
         'neue_schaeden'   => $ListeNeueSchaeden->GetAlle(),
+        'offene_schaeden' => array_slice($offeneSchaeden, 0, $schaedenAufUebersicht),
+        'anzahl_offene_schaeden' => count($offeneSchaeden),
         'ende_ueberschritten' => $ListeUeberschritten->GetAlle(),
         'beginnen_heute'  => $ListeHeute->CountBeginnenHeute(),
         'rueckgaben_heute' => $ListeHeute->CountRueckgabenHeute(),
@@ -240,13 +252,48 @@ require_once __DIR__ . '/includes/header.php';
                     </article>
                 <?php endforeach; ?>
 
-                <p class="zeile">
-                    <?php $schaeden = $fuhrpark['schaeden']; ?>
-                    <?= $schaeden === 0 ? 'Kein Fahrzeug' : e((string) $schaeden) . ($schaeden === 1 ? ' Fahrzeug' : ' Fahrzeuge') ?>
-                    wegen Schaden in Wartung
+                <!-- Darunter die bekannten, noch nicht behobenen Schäden als kurze Liste -->
+                <?php
+                $anzahlOffen = $fuhrpark['anzahl_offene_schaeden'];
+                $schaeden = $fuhrpark['schaeden'];
+                ?>
+                <h3 class="abschnitt abschnitt--klein">
+                    Noch nicht behoben
+                    <span class="abschnitt__wert">
+                        <?= $anzahlOffen === 0 ? 'keine' : e((string) $anzahlOffen) ?>
+                    </span>
                     <?php if ($schaeden > 0): ?>
-                        &middot; <a href="<?= url('schaeden.php') ?>">Zu den Schäden</a>
+                        <span class="abschnitt__zusatz"><?= e((string) $schaeden) ?> <?= $schaeden === 1 ? 'Fahrzeug' : 'Fahrzeuge' ?> in Wartung</span>
                     <?php endif; ?>
+                </h3>
+
+                <?php if ($fuhrpark['offene_schaeden'] !== []): ?>
+                    <article class="schild">
+                        <ul class="schadenliste">
+                            <?php foreach ($fuhrpark['offene_schaeden'] as $Schaden): ?>
+                                <?php
+                                $ListeFahrzeug = CFahrzeug::LoadByID($Schaden->GetFahrzeugID());
+                                $inWartung = $Schaden->HaeltInWartung();
+                                ?>
+                                <li class="schadenliste__eintrag">
+                                    <span class="schadenliste__kopf">
+                                        <a class="schadenliste__fahrzeug" href="<?= url('fahrzeug.php?id=' . $ListeFahrzeug->GetID()) ?>"><?= e($ListeFahrzeug->GetHersteller() . ' ' . $ListeFahrzeug->GetModell()) ?></a>
+                                        <span class="marke marke--<?= $inWartung ? 'gelb' : 'grau' ?>"><?= $inWartung ? 'In Wartung' : 'Kleinschaden' ?></span>
+                                    </span>
+                                    <span class="schadenliste__text"><?= e($Schaden->GetBeschreibung()) ?></span>
+                                    <span class="schadenliste__zusatz">
+                                        <?= e($ListeFahrzeug->GetKennzeichen()) ?> &middot; gemeldet am <?= e($Schaden->GetGemeldetAm()->format('d.m.Y')) ?>
+                                    </span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </article>
+                <?php else: ?>
+                    <p class="zeile">Alle bekannten Schäden sind behoben.</p>
+                <?php endif; ?>
+
+                <p class="weiter">
+                    <a href="<?= url('schaeden.php') ?>"><?= $anzahlOffen > count($fuhrpark['offene_schaeden']) ? 'Alle ' . e((string) $anzahlOffen) . ' offenen Schäden' : 'Zu den Schäden' ?></a>
                 </p>
 
                 <?php $ueberschritten = count($fuhrpark['ende_ueberschritten']); ?>
@@ -367,7 +414,7 @@ require_once __DIR__ . '/includes/header.php';
                         </dl>
 
                         <div class="schild__aktionen">
-                            <a class="button button--klein" href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>">Zurückgeben</a>
+                            <a class="button button--klein" href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>"><span class="icon icon--zurueck" aria-hidden="true"></span>Zurückgeben</a>
                         </div>
                     </div>
                 </article>

@@ -29,7 +29,7 @@ $heute = new DateTimeImmutable('today');
 
 // „Fahrzeug buchen“ neben dem Titel nur, wenn Buchen gerade möglich ist
 if (CNutzer::LoadByID($ich)->GetSperreBuchen() === null) {
-    $pageAktion = ['Fahrzeug buchen', 'buchen.php'];
+    $pageAktion = ['Fahrzeug buchen', 'buchen.php', 'plus'];
 }
 
 $ListeBuchungen = new CListeBuchungen();
@@ -193,7 +193,7 @@ require_once __DIR__ . '/includes/header.php';
 
                 <div class="schild__aktionen">
                     <?php if ($unterwegs && $binFahrer): ?>
-                        <a class="button button--klein" href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>">Zurückgeben</a>
+                        <a class="button button--klein" href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>"><span class="icon icon--zurueck" aria-hidden="true"></span>Zurückgeben</a>
                     <?php elseif ($Buchung->KannBeginnen($ich)): ?>
                         <?php require __DIR__ . '/includes/fahrt-beginnen.php'; ?>
                     <?php endif; ?>
@@ -219,30 +219,55 @@ require_once __DIR__ . '/includes/header.php';
                         $wertBeginn = $aenderOffen ? $aenderEingabe['beginn'] : max($Buchung->GetStart(), $heute)->format('Y-m-d');
                         $wertEnde = $aenderOffen ? $aenderEingabe['ende'] : $Buchung->GetEnde()->format('Y-m-d');
                         ?>
-                        <details class="klappaktion"<?= $aenderOffen ? ' open' : '' ?>>
-                            <summary class="button button--klein button--zweitrangig"><?= $unterwegs ? 'Verlängern' : 'Ändern' ?></summary>
+                        <!-- Als Popup wie Stornieren; nach einem Fehler öffnet main.js es wieder -->
+                        <?php $popupAendern = 'aendern-' . $nr; ?>
+                        <button class="button button--klein button--zweitrangig" type="button" popovertarget="<?= e($popupAendern) ?>">
+                            <?= $unterwegs ? 'Verlängern' : 'Ändern' ?>
+                        </button>
 
-                            <form class="klappaktion__form" method="post" action="<?= url('meine-buchungen.php') ?>">
+                        <div class="rueckfrage" id="<?= e($popupAendern) ?>" popover<?= $aenderOffen ? ' data-offen' : '' ?>>
+                            <form method="post" action="<?= url('meine-buchungen.php') ?>">
                                 <input type="hidden" name="buchung" value="<?= e($nr) ?>">
                                 <input type="hidden" name="aktion" value="aendern">
 
-                                <?php if (!$unterwegs): ?>
-                                    <label class="form__label" for="beginn-<?= e($nr) ?>">Von</label>
-                                    <input class="form__input" type="date" id="beginn-<?= e($nr) ?>" name="beginn" required
-                                           min="<?= e($heute->format('Y-m-d')) ?>" value="<?= e($wertBeginn) ?>">
-                                <?php endif; ?>
+                                <p class="rueckfrage__titel"><?= $unterwegs ? 'Rückgabe verlängern' : 'Zeitraum ändern' ?></p>
+                                <dl class="felder">
+                                    <div class="feld">
+                                        <dt>Fahrzeug</dt>
+                                        <dd><?= e($SchildFahrzeug->GetHersteller() . ' ' . $SchildFahrzeug->GetModell()) ?></dd>
+                                    </div>
+                                    <div class="feld">
+                                        <dt>Bisher</dt>
+                                        <dd><?= e(zeitraum_kurz($Buchung->GetStart(), $Buchung->GetEnde())) ?></dd>
+                                    </div>
+                                </dl>
 
-                                <label class="form__label" for="ende-<?= e($nr) ?>"><?= $unterwegs ? 'Neue Rückgabe am' : 'Bis' ?></label>
-                                <input class="form__input" type="date" id="ende-<?= e($nr) ?>" name="ende" required
-                                       min="<?= e($heute->format('Y-m-d')) ?>" value="<?= e($wertEnde) ?>">
+                                <div class="rueckfrage__inhalt rueckfrage__inhalt--zeile">
+                                    <?php if (!$unterwegs): ?>
+                                        <div>
+                                            <label class="form__label" for="beginn-<?= e($nr) ?>">Von</label>
+                                            <input class="form__input" type="date" id="beginn-<?= e($nr) ?>" name="beginn" required
+                                                   min="<?= e($heute->format('Y-m-d')) ?>" value="<?= e($wertBeginn) ?>">
+                                        </div>
+                                    <?php endif; ?>
+                                    <div>
+                                        <label class="form__label" for="ende-<?= e($nr) ?>"><?= $unterwegs ? 'Neue Rückgabe am' : 'Bis' ?></label>
+                                        <input class="form__input" type="date" id="ende-<?= e($nr) ?>" name="ende" required
+                                               min="<?= e($heute->format('Y-m-d')) ?>" value="<?= e($wertEnde) ?>">
+                                    </div>
+                                </div>
 
                                 <?php if ($Buchung->GetStatusID() === STATUS_GENEHMIGT && $SchildFahrzeug->BrauchtGenehmigung()): ?>
-                                    <p class="klappaktion__frage">Danach muss der Fuhrparkleiter die Buchung neu genehmigen.</p>
+                                    <p class="rueckfrage__text">Danach muss der Fuhrparkleiter die Buchung neu genehmigen.</p>
                                 <?php endif; ?>
 
-                                <button class="button button--klein" type="submit">Zeitraum ändern</button>
+                                <div class="aktionen">
+                                    <button class="button button--klein button--zweitrangig" type="button"
+                                            popovertarget="<?= e($popupAendern) ?>" popovertargetaction="hide">Abbrechen</button>
+                                    <button class="button button--klein" type="submit">Speichern</button>
+                                </div>
                             </form>
-                        </details>
+                        </div>
                     <?php endif; ?>
 
                     <?php if ($Buchung->KannStornieren($ich)): ?>
@@ -254,16 +279,27 @@ require_once __DIR__ . '/includes/header.php';
                             <form method="post" action="<?= url('meine-buchungen.php') ?>">
                                 <input type="hidden" name="buchung" value="<?= e((string) $Buchung->GetID()) ?>">
                                 <input type="hidden" name="aktion" value="stornieren">
-                                <p class="rueckfrage__titel">Buchung stornieren?</p>
+                                <p class="rueckfrage__titel">
+                                    <span class="icon icon--warnung" aria-hidden="true"></span>
+                                    Buchung stornieren?
+                                </p>
+                                <dl class="felder">
+                                    <div class="feld">
+                                        <dt>Fahrzeug</dt>
+                                        <dd><?= e($SchildFahrzeug->GetHersteller() . ' ' . $SchildFahrzeug->GetModell()) ?></dd>
+                                    </div>
+                                    <div class="feld">
+                                        <dt>Zeitraum</dt>
+                                        <dd><?= e(zeitraum_kurz($Buchung->GetStart(), $Buchung->GetEnde())) ?></dd>
+                                    </div>
+                                </dl>
                                 <p class="rueckfrage__text">
-                                    <?= e($Buchung->GetFahrzeugName()) ?>,
-                                    <?= e(zeitraum_text($Buchung->GetStart(), $Buchung->GetEnde())) ?>.
                                     Das Fahrzeug wird für den Zeitraum wieder freigegeben.
                                 </p>
                                 <div class="aktionen">
-                                    <button class="button button--klein button--gefahr" type="submit">Ja, stornieren</button>
                                     <button class="button button--klein button--zweitrangig" type="button"
                                             popovertarget="<?= e($popup) ?>" popovertargetaction="hide">Abbrechen</button>
+                                    <button class="button button--klein button--gefahr-voll" type="submit">Ja, stornieren</button>
                                 </div>
                             </form>
                         </div>

@@ -4,9 +4,13 @@
  *
  * Oben die Filterleiste wie in der Historie (Zeitraum, Fahrzeug oder
  * Kategorie, Mitarbeiter), darunter die Kennzahlen der gefilterten Fahrten
- * und drei Auswertungen als Tabellen mit Balken: gefahrene km je Fahrzeug,
- * Fahrten und km je Monat, Wartungen je Fahrzeug. Die Balken zeigen den
- * Anteil am größten Wert der Tabelle.
+ * und drei Diagramme: Fahrten und km je Monat als Säulen, gefahrene km je
+ * Fahrzeug und Anzahl der Wartungen je Fahrzeug als liegende Balken. Jede
+ * Säule bzw. jeder Balken zeigt den Anteil am größten Wert seines Diagramms.
+ *
+ * Darunter der Ausblick ab heute, unabhängig vom Zeitraum (Fahrzeug- und
+ * Mitarbeiterfilter gelten): gebuchte Fahrzeuge je Tag der nächsten 14 Tage
+ * und die HU/AU-Termine der nächsten zwölf Monate.
  *
  * Aufruf wie historie.php, z. B. dashboard.php?von=2026-07-01&auswahl=art:3.
  * Ohne Angabe gilt das laufende und die fünf vorigen Monate.
@@ -94,14 +98,14 @@ $kennzahlen = [
 ];
 
 // --- Auswertung 1: gefahrene km je Fahrzeug ---------------------------------
-// Fahrzeug-ID => [Name, Fahrten, km]; km null, wenn das Fahrzeug keinen
-// km-Stand hat. Der Name wie im Filter, mit „ausgemustert“. Meiste km zuerst.
+// Fahrzeug-ID => [Fahrzeug, Fahrten, km]; km null, wenn das Fahrzeug keinen
+// km-Stand hat. Meiste km zuerst.
 
 $jeFahrzeug = [];
 
 foreach ($fahrten as $Fahrt) {
     $id = $Fahrt->GetFahrzeugID();
-    $jeFahrzeug[$id] ??= ['name' => $auswahlFahrzeuge['id:' . $id], 'fahrten' => 0, 'km' => null];
+    $jeFahrzeug[$id] ??= ['fahrzeug' => $Fahrzeuge->GetByID($id), 'fahrten' => 0, 'km' => null];
     $jeFahrzeug[$id]['fahrten']++;
 
     if ($Fahrt->GetGefahreneKm() !== null) {
@@ -134,8 +138,8 @@ foreach ($fahrten as $Fahrt) {
 }
 
 // --- Auswertung 3: Wartungen je Fahrzeug ------------------------------------
-// Anzahl und Tage in Wartung, nur der Teil im Zeitraum. Eine laufende Wartung
-// zählt bis heute. Meiste Tage zuerst.
+// Anzahl der Wartungen und Tage in Wartung, nur der Teil im Zeitraum. Eine
+// laufende Wartung zählt bis heute. Meiste Wartungen zuerst, dann meiste Tage.
 
 $wartungJeFahrzeug = [];
 
@@ -145,12 +149,89 @@ foreach ($wartungen as $Wartung) {
     $ende = min($Wartung->GetFreigegebenAm() ?? $heute, $bis);
     $tage = $ende >= $beginn ? $beginn->diff($ende)->days + 1 : 0;
 
-    $wartungJeFahrzeug[$id] ??= ['name' => $auswahlFahrzeuge['id:' . $id], 'anzahl' => 0, 'tage' => 0];
+    $wartungJeFahrzeug[$id] ??= ['fahrzeug' => $Fahrzeuge->GetByID($id), 'anzahl' => 0, 'tage' => 0];
     $wartungJeFahrzeug[$id]['anzahl']++;
     $wartungJeFahrzeug[$id]['tage'] += $tage;
 }
 
-usort($wartungJeFahrzeug, fn (array $a, array $b): int => $b['tage'] <=> $a['tage']);
+usort($wartungJeFahrzeug, fn (array $a, array $b): int => [$b['anzahl'], $b['tage']] <=> [$a['anzahl'], $a['tage']]);
+
+// --- Ausblick 1: gebuchte Fahrzeuge je Tag, die nächsten 14 Tage -------------
+// Belegende Buchungen (offen, genehmigt, unterwegs). Je Tag zählt jedes
+// Fahrzeug einmal: bestätigt (genehmigt, unterwegs) geht vor Antrag. Eine
+// überfällige Fahrt belegt ihr Fahrzeug bis heute.
+
+$ausblickBis = $heute->modify('+13 day');
+$ListeAnstehende = new CListeBuchungen();
+$ListeAnstehende->LadenBelegung($heute, $ausblickBis);
+
+$jeTag = [];
+for ($tag = $heute; $tag <= $ausblickBis; $tag = $tag->modify('+1 day')) {
+    $jeTag[$tag->format('Y-m-d')] = ['datum' => $tag, 'fest' => [], 'antrag' => []];
+}
+
+foreach ($ListeAnstehende->GetAlle() as $Buchung) {
+    if (!passt_zur_auswahl($Buchung->GetFahrzeugID(), $eingabe['auswahl'], $Fahrzeuge)
+        || ($fahrerFilter !== null && $Buchung->GetFahrerID() !== $fahrerFilter)) {
+        continue;
+    }
+
+    $art = $Buchung->GetStatusID() === STATUS_OFFEN ? 'antrag' : 'fest';
+    $ende = $Buchung->IstUeberfaellig() ? $heute : min($Buchung->GetEnde(), $ausblickBis);
+
+    for ($tag = max($Buchung->GetStart(), $heute); $tag <= $ende; $tag = $tag->modify('+1 day')) {
+        $jeTag[$tag->format('Y-m-d')][$art][$Buchung->GetFahrzeugID()] = true;
+    }
+}
+
+// Maßstab: alle Fahrzeuge der Auswahl, die noch im Bestand sind
+$imBestand = array_filter(
+    $Fahrzeuge->GetAlle(),
+    fn (CFahrzeug $Fahrzeug): bool => !$Fahrzeug->IstAusgemustert()
+        && passt_zur_auswahl($Fahrzeug->GetID(), $eingabe['auswahl'], $Fahrzeuge),
+);
+$anzahlBestand = count($imBestand);
+
+// --- Ausblick 2: HU/AU je Monat, die nächsten zwölf Monate -------------------
+// Überfällige zuerst als eigene Säule. Fahrzeuge ohne HU/AU (Fahrräder)
+// zählen nicht.
+
+$dieserMonat = $heute->modify('first day of this month');
+$huAu = ['ueberfaellig' => ['name' => 'Überfällig', 'fahrzeuge' => []]];
+
+for ($i = 0; $i < 12; $i++) {
+    $monat = $dieserMonat->modify('+' . $i . ' month');
+    $huAu[$monat->format('Y-m')] = [
+        'name'      => $monatsnamen[(int) $monat->format('n') - 1] . ' ' . $monat->format('y'),
+        'fahrzeuge' => [],
+    ];
+}
+
+foreach ($imBestand as $Fahrzeug) {
+    $termin = $Fahrzeug->GetHuAu();
+
+    if ($termin === null) {
+        continue;
+    }
+
+    $schluessel = $termin < $dieserMonat ? 'ueberfaellig' : $termin->format('Y-m');
+
+    if (isset($huAu[$schluessel])) {
+        $huAu[$schluessel]['fahrzeuge'][] = $Fahrzeug;
+    }
+}
+
+/**
+ * Name eines Fahrzeugs für die Diagramme: [Hersteller und Modell,
+ * Kennzeichen mit „ausgemustert“].
+ */
+function diagramm_name(CFahrzeug $Fahrzeug): array
+{
+    return [
+        $Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell(),
+        $Fahrzeug->GetKennzeichen() . ($Fahrzeug->IstAusgemustert() ? ', ausgemustert' : ''),
+    ];
+}
 
 /**
  * Breite eines Balkens in Prozent: Anteil am größten Wert, 0 ohne Wert.
@@ -206,43 +287,7 @@ require __DIR__ . '/includes/auswertung-filterleiste.php';
         </article>
     </section>
 
-    <!-- Auswertung 1: gefahrene km je Fahrzeug -->
-    <section class="dashboard__abschnitt" aria-labelledby="km-fahrzeug">
-        <h2 class="abschnitt" id="km-fahrzeug">
-            Gefahrene km je Fahrzeug
-            <span class="abschnitt__zusatz">meiste zuerst</span>
-        </h2>
-
-        <?php $hoechster = max([0, ...array_map(fn (array $zeile): int => $zeile['km'] ?? 0, $jeFahrzeug)]); ?>
-        <table class="table dashboard-tabelle">
-            <thead>
-                <tr>
-                    <th>Fahrzeug</th>
-                    <th class="table__num">Fahrten</th>
-                    <th class="table__num">km</th>
-                    <th class="dashboard-tabelle__balken">Anteil</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($jeFahrzeug as $zeile): ?>
-                    <tr>
-                        <td><?= e($zeile['name']) ?></td>
-                        <td class="table__num"><?= e((string) $zeile['fahrten']) ?></td>
-                        <td class="table__num"><?= e(km_text($zeile['km'])) ?></td>
-                        <td class="dashboard-tabelle__balken">
-                            <span class="balken"><span class="balken__wert" style="width: <?= balken_anteil($zeile['km'], $hoechster) ?>%"></span></span>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-
-                <?php if ($jeFahrzeug === []): ?>
-                    <tr><td colspan="4" class="table__empty">Keine Fahrten für diese Auswahl im Zeitraum.</td></tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </section>
-
-    <!-- Auswertung 2: Fahrten und km je Monat -->
+    <!-- Auswertung 2 zuerst: Säulen je Monat über die ganze Breite -->
     <section class="dashboard__abschnitt" aria-labelledby="je-monat">
         <h2 class="abschnitt" id="je-monat">
             Fahrten und km je Monat
@@ -250,68 +295,175 @@ require __DIR__ . '/includes/auswertung-filterleiste.php';
         </h2>
 
         <?php $hoechster = max([0, ...array_column($jeMonat, 'km')]); ?>
-        <table class="table dashboard-tabelle">
-            <thead>
-                <tr>
-                    <th>Monat</th>
-                    <th class="table__num">Fahrten</th>
-                    <th class="table__num">km</th>
-                    <th class="dashboard-tabelle__balken">Anteil</th>
-                </tr>
-            </thead>
-            <tbody>
+        <article class="schild diagramm">
+            <ol class="saeulen">
                 <?php foreach ($jeMonat as $zeile): ?>
-                    <tr>
-                        <td><?= e($zeile['name']) ?></td>
-                        <td class="table__num"><?= e((string) $zeile['fahrten']) ?></td>
-                        <td class="table__num"><?= e(km_text($zeile['km'])) ?></td>
-                        <td class="dashboard-tabelle__balken">
-                            <span class="balken"><span class="balken__wert" style="width: <?= balken_anteil($zeile['km'], $hoechster) ?>%"></span></span>
-                        </td>
-                    </tr>
+                    <li class="saeule" title="<?= e($zeile['name'] . ': ' . $zeile['fahrten'] . ' Fahrten, ' . km_text($zeile['km']) . ' km') ?>">
+                        <span class="saeule__flaeche">
+                            <span class="saeule__wert"><?= e(km_text($zeile['km'])) ?><span class="saeule__einheit"> km</span></span>
+                            <span class="saeule__balken" style="height: <?= balken_anteil($zeile['km'], $hoechster) * 0.82 ?>%"></span>
+                        </span>
+                        <span class="saeule__monat"><?= e($zeile['name']) ?></span>
+                        <span class="saeule__zusatz"><?= e((string) $zeile['fahrten']) ?> <?= $zeile['fahrten'] === 1 ? 'Fahrt' : 'Fahrten' ?></span>
+                    </li>
                 <?php endforeach; ?>
-            </tbody>
-        </table>
+            </ol>
+        </article>
     </section>
 
-    <!-- Auswertung 3: Wartungen je Fahrzeug -->
-    <section class="dashboard__abschnitt" aria-labelledby="wartungen">
-        <h2 class="abschnitt" id="wartungen">
-            Wartungen je Fahrzeug
-            <span class="abschnitt__zusatz">Tage in Wartung im Zeitraum, meiste zuerst</span>
+    <div class="dashboard__paar">
+        <!-- Auswertung 1: gefahrene km je Fahrzeug, liegende Balken -->
+        <section class="dashboard__abschnitt" aria-labelledby="km-fahrzeug">
+            <h2 class="abschnitt" id="km-fahrzeug">
+                Gefahrene km je Fahrzeug
+                <span class="abschnitt__zusatz">meiste zuerst</span>
+            </h2>
+
+            <?php $hoechster = max([0, ...array_map(fn (array $zeile): int => $zeile['km'] ?? 0, $jeFahrzeug)]); ?>
+            <article class="schild diagramm">
+                <?php if ($jeFahrzeug === []): ?>
+                    <p class="diagramm__leer">Keine Fahrten für diese Auswahl im Zeitraum.</p>
+                <?php else: ?>
+                    <ol class="balkenliste">
+                        <?php foreach ($jeFahrzeug as $zeile): ?>
+                            <li class="balkenliste__zeile">
+                                <?php [$name, $kennzeichen] = diagramm_name($zeile['fahrzeug']); ?>
+                                <span class="balkenliste__name">
+                                    <?= e($name) ?>
+                                    <small><?= e($kennzeichen) ?> &middot; <?= e((string) $zeile['fahrten']) ?> <?= $zeile['fahrten'] === 1 ? 'Fahrt' : 'Fahrten' ?></small>
+                                </span>
+                                <span class="balkenliste__spur">
+                                    <span class="balkenliste__balken" style="--anteil: <?= balken_anteil($zeile['km'], $hoechster) / 100 ?>"></span>
+                                    <?php if ($zeile['km'] === null): ?>
+                                        <span class="balkenliste__wert balkenliste__wert--leer">kein km-Stand</span>
+                                    <?php else: ?>
+                                        <span class="balkenliste__wert"><?= e(km_text($zeile['km'])) ?> km</span>
+                                    <?php endif; ?>
+                                </span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ol>
+                <?php endif; ?>
+            </article>
+        </section>
+
+        <!-- Auswertung 3: Wartungen je Fahrzeug, Tage als liegende Balken -->
+        <section class="dashboard__abschnitt" aria-labelledby="wartungen">
+            <h2 class="abschnitt" id="wartungen">
+                Wartungen je Fahrzeug
+                <span class="abschnitt__zusatz">Anzahl im Zeitraum</span>
+            </h2>
+
+            <?php $hoechster = max([0, ...array_column($wartungJeFahrzeug, 'anzahl')]); ?>
+            <article class="schild diagramm">
+                <?php if ($fahrerFilter !== null): ?>
+                    <p class="diagramm__leer">Wartungen haben keinen Fahrer; mit dem Filter nach einem Mitarbeiter entfallen sie.</p>
+                <?php elseif ($wartungJeFahrzeug === []): ?>
+                    <p class="diagramm__leer">Keine Wartungen für diese Auswahl im Zeitraum.</p>
+                <?php else: ?>
+                    <ol class="balkenliste">
+                        <?php foreach ($wartungJeFahrzeug as $zeile): ?>
+                            <li class="balkenliste__zeile">
+                                <?php [$name, $kennzeichen] = diagramm_name($zeile['fahrzeug']); ?>
+                                <span class="balkenliste__name">
+                                    <?= e($name) ?>
+                                    <small><?= e($kennzeichen) ?> &middot; <?= e((string) $zeile['tage']) ?> <?= $zeile['tage'] === 1 ? 'Tag' : 'Tage' ?> in Wartung</small>
+                                </span>
+                                <span class="balkenliste__spur">
+                                    <span class="balkenliste__balken" style="--anteil: <?= balken_anteil($zeile['anzahl'], $hoechster) / 100 ?>"></span>
+                                    <span class="balkenliste__wert"><?= e((string) $zeile['anzahl']) ?> <?= $zeile['anzahl'] === 1 ? 'Wartung' : 'Wartungen' ?></span>
+                                </span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ol>
+                <?php endif; ?>
+            </article>
+        </section>
+    </div>
+
+    <!-- Ausblick ab heute: gebuchte Fahrzeuge je Tag und HU/AU-Termine -->
+    <section class="dashboard__abschnitt" aria-labelledby="anstehend">
+        <h2 class="abschnitt" id="anstehend">
+            Anstehende Buchungen
+            <span class="abschnitt__wert">gebuchte Fahrzeuge je Tag</span>
+            <span class="abschnitt__zusatz">ab heute, 14 Tage, unabhängig vom Zeitraum</span>
         </h2>
 
-        <?php if ($fahrerFilter !== null): ?>
-            <p class="zeile">Wartungen haben keinen Fahrer; mit dem Filter nach einem Mitarbeiter entfallen sie.</p>
-        <?php else: ?>
-            <?php $hoechster = max([0, ...array_column($wartungJeFahrzeug, 'tage')]); ?>
-            <table class="table dashboard-tabelle">
-                <thead>
-                    <tr>
-                        <th>Fahrzeug</th>
-                        <th class="table__num">Wartungen</th>
-                        <th class="table__num">Tage</th>
-                        <th class="dashboard-tabelle__balken">Anteil</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($wartungJeFahrzeug as $zeile): ?>
-                        <tr>
-                            <td><?= e($zeile['name']) ?></td>
-                            <td class="table__num"><?= e((string) $zeile['anzahl']) ?></td>
-                            <td class="table__num"><?= e((string) $zeile['tage']) ?></td>
-                            <td class="dashboard-tabelle__balken">
-                                <span class="balken"><span class="balken__wert" style="width: <?= balken_anteil($zeile['tage'], $hoechster) ?>%"></span></span>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
+        <article class="schild diagramm">
+            <ul class="diagramm__legende">
+                <li><span class="diagramm__muster"></span>Bestätigt oder unterwegs</li>
+                <li><span class="diagramm__muster diagramm__muster--antrag"></span>Antrag</li>
+            </ul>
+            <ol class="saeulen saeulen--tage">
+                <?php foreach ($jeTag as $zeile): ?>
+                    <?php
+                    $fest = count($zeile['fest']);
+                    $antrag = count(array_diff_key($zeile['antrag'], $zeile['fest']));
+                    $datum = $zeile['datum'];
+                    ?>
+                    <li class="saeule<?= (int) $datum->format('N') >= 6 ? ' saeule--wochenende' : '' ?>"
+                        title="<?= e($datum->format('d.m.Y') . ': ' . $fest . ' bestätigt, ' . $antrag . ' Antrag, von ' . $anzahlBestand . ' Fahrzeugen') ?>">
+                        <span class="saeule__flaeche">
+                            <span class="saeule__wert"><?= e((string) ($fest + $antrag)) ?></span>
+                            <?php if ($antrag > 0): ?>
+                                <span class="saeule__balken saeule__balken--antrag" style="height: <?= balken_anteil($antrag, $anzahlBestand) * 0.82 ?>%"></span>
+                            <?php endif; ?>
+                            <span class="saeule__balken<?= $antrag > 0 ? ' saeule__balken--unten' : '' ?>" style="height: <?= balken_anteil($fest, $anzahlBestand) * 0.82 ?>%"></span>
+                        </span>
+                        <span class="saeule__monat"><?= $datum == $heute ? 'heute' : e($datum->format('d.m.')) ?></span>
+                        <span class="saeule__zusatz"><?= e(['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][(int) $datum->format('w')]) ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ol>
+            <p class="diagramm__fuss">Höhe: Anteil an den <?= e((string) $anzahlBestand) ?> Fahrzeugen der Auswahl.</p>
+        </article>
+    </section>
 
-                    <?php if ($wartungJeFahrzeug === []): ?>
-                        <tr><td colspan="4" class="table__empty">Keine Wartungen für diese Auswahl im Zeitraum.</td></tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        <?php endif; ?>
+    <section class="dashboard__abschnitt" aria-labelledby="hu-au">
+        <h2 class="abschnitt" id="hu-au">
+            HU/AU-Termine
+            <span class="abschnitt__wert">Fahrzeuge je Monat</span>
+            <span class="abschnitt__zusatz">die nächsten zwölf Monate</span>
+        </h2>
+
+        <?php $hoechster = max([1, ...array_map(fn (array $zeile): int => count($zeile['fahrzeuge']), $huAu)]); ?>
+        <article class="schild diagramm">
+            <ol class="saeulen saeulen--monate">
+                <?php foreach ($huAu as $schluessel => $zeile): ?>
+                    <?php
+                    $anzahl = count($zeile['fahrzeuge']);
+                    $namen = array_map(fn (CFahrzeug $Fahrzeug): string => $Fahrzeug->GetName(), $zeile['fahrzeuge']);
+                    ?>
+                    <li class="saeule<?= $schluessel === 'ueberfaellig' ? ' saeule--ueberfaellig' : '' ?>"
+                        title="<?= e($zeile['name'] . ': ' . ($namen === [] ? 'keine' : implode(', ', $namen))) ?>">
+                        <span class="saeule__flaeche">
+                            <span class="saeule__wert"><?= e((string) $anzahl) ?></span>
+                            <span class="saeule__balken" style="height: <?= balken_anteil($anzahl, $hoechster) * 0.82 ?>%"></span>
+                        </span>
+                        <span class="saeule__monat"><?= e($zeile['name']) ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ol>
+
+            <!-- Die nächsten Termine mit Namen: überfällige und die nächsten drei Monate -->
+            <?php
+            $baldFaellig = array_merge(...array_column(array_slice($huAu, 0, 4), 'fahrzeuge'));
+            ?>
+            <?php if ($baldFaellig !== []): ?>
+                <ul class="diagramm__liste">
+                    <?php foreach ($baldFaellig as $Fahrzeug): ?>
+                        <?php $stand = $Fahrzeug->GetHuAuStand(); ?>
+                        <li>
+                            <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></a>
+                            <span class="table__zusatz"><?= e($Fahrzeug->GetKennzeichen()) ?> &middot; <?= e($Fahrzeug->GetHuAu()->format('m/Y')) ?></span>
+                            <?php if ($stand !== null): ?>
+                                <span class="marke marke--<?= $stand === 'ueberfaellig' ? 'rot' : 'gelb' ?>"><?= $stand === 'ueberfaellig' ? 'Überfällig' : 'Bald fällig' ?></span>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </article>
     </section>
 
 <?php endif; ?>

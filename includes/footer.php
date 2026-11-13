@@ -2,29 +2,24 @@
 /**
  * Fußbereich jeder Seite: schließt den Inhalt und lädt das Skript.
  *
- * Links Anwendung, Version und Firma. Für Angemeldete in der Mitte, wer
- * angemeldet ist und mit welcher Rolle; Mitarbeiter sehen dazu den
- * Fuhrparkleiter als Ansprechpartner. $Angemeldet kommt aus header.php.
+ * Links die Anwendung, in der Mitte für Mitarbeiter der Fuhrparkleiter als
+ * Ansprechpartner, rechts die Anschrift der Firma. $Angemeldet kommt aus
+ * header.php.
  */
 
 declare(strict_types=1);
 
 $FussNutzer = $Angemeldet ?? null;
-$fussRolle = '';
 $fussKontakt = [];
 
-if ($FussNutzer !== null) {
-    $fussRolle = (new CListeSchluessel('rollen'))->GetBezeichnung($FussNutzer->GetRolleID());
+// Ansprechpartner für Mitarbeiter: alle aktiven Fuhrparkleiter
+if ($FussNutzer !== null && $FussNutzer->GetRolleID() === ROLLE_MITARBEITER) {
+    $FussListe = new CListeNutzer();
+    $FussListe->LadenAktive();
 
-    // Ansprechpartner: alle aktiven Fuhrparkleiter
-    if ($FussNutzer->GetRolleID() === ROLLE_MITARBEITER) {
-        $FussListe = new CListeNutzer();
-        $FussListe->LadenAktive();
-
-        foreach ($FussListe->GetAlle() as $Eintrag) {
-            if ($Eintrag->GetRolleID() === ROLLE_FUHRPARKLEITER) {
-                $fussKontakt[] = $Eintrag->GetName();
-            }
+    foreach ($FussListe->GetAlle() as $Eintrag) {
+        if ($Eintrag->GetRolleID() === ROLLE_FUHRPARKLEITER) {
+            $fussKontakt[] = $Eintrag->GetName();
         }
     }
 }
@@ -34,20 +29,26 @@ if ($FussNutzer !== null) {
 <footer class="fussleiste">
     <div class="container fussleiste__innen">
         <div class="fussleiste__block">
-            <p><?= e(APP_NAME) ?> &middot; Version <?= e(APP_VERSION) ?></p>
-            <p>Internes Werkzeug der <?= e(FIRMA_NAME) ?>, <?= e(FIRMA_ADRESSE) ?></p>
+            <p class="fussleiste__titel"><?= e(APP_NAME) ?></p>
+            <p>Internes Werkzeug der <?= e(FIRMA_NAME) ?></p>
+            <p>&copy; <?= date('Y') ?> <?= e(FIRMA_NAME) ?></p>
         </div>
 
-        <?php if ($FussNutzer !== null): ?>
+        <?php if ($fussKontakt !== []): ?>
             <div class="fussleiste__block">
-                <p>Angemeldet als <?= e($FussNutzer->GetName()) ?>, <?= e($fussRolle) ?></p>
-                <?php if ($fussKontakt !== []): ?>
-                    <p>Fragen zum Fuhrpark: <?= e(implode(', ', $fussKontakt)) ?> (Fuhrparkleiter)</p>
-                <?php endif; ?>
+                <p class="fussleiste__titel">Fragen zum Fuhrpark</p>
+                <?php foreach ($fussKontakt as $kontakt): ?>
+                    <p><?= e($kontakt) ?>, Fuhrparkleiter</p>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
 
-        <p>&copy; <?= date('Y') ?> <?= e(FIRMA_NAME) ?></p>
+        <!-- Anschrift wie auf einem Briefkopf: Name, Straße, Ort untereinander -->
+        <address class="fussleiste__block fussleiste__anschrift">
+            <p class="fussleiste__titel"><?= e(FIRMA_NAME) ?></p>
+            <p><?= e(FIRMA_STRASSE) ?></p>
+            <p><?= e(FIRMA_ORT) ?></p>
+        </address>
     </div>
 </footer>
 

@@ -396,16 +396,22 @@ require_once __DIR__ . '/includes/header.php';
                 };
                 ?>
                 <tr<?= $offen ? ' class="table__zeile--gewaehlt"' : '' ?>>
-                    <td class="table__kennzeichen">
-                        <!-- Bild aus assets/img/, sonst Platzhalter -->
-                        <?php $bild = $Fahrzeug->GetBild(); ?>
-                        <?php if ($bild !== null && is_file(__DIR__ . '/assets/img/' . $bild)): ?>
-                            <img class="fahrzeugliste__bild" src="<?= url('assets/img/' . $bild) ?>" alt="" loading="lazy">
-                        <?php else: ?>
-                            <span class="fahrzeugliste__bild fahrzeugliste__bild--platzhalter">kein Bild</span>
-                        <?php endif; ?>
-                        <a href="<?= url('fahrzeug.php?id=' . $id) ?>"><?= e($Fahrzeug->GetKennzeichen()) ?></a>
-                        <span class="table__zusatz"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></span>
+                    <td class="table__fahrzeug">
+                        <!-- Bild aus assets/img/, sonst das Icon der Fahrzeugart -->
+                        <div class="fahrzeugliste__fahrzeug">
+                            <?php $bild = $Fahrzeug->GetBild(); ?>
+                            <?php if ($bild !== null && is_file(__DIR__ . '/assets/img/' . $bild)): ?>
+                                <img class="fahrzeugliste__bild" src="<?= url('assets/img/' . $bild) ?>" alt="" loading="lazy">
+                            <?php else: ?>
+                                <span class="fahrzeugliste__bild ohne-bild" title="kein Bild">
+                                    <span class="icon icon--<?= art_icon($Fahrzeug->GetArtID()) ?>" aria-hidden="true"></span>
+                                </span>
+                            <?php endif; ?>
+                            <div>
+                                <a href="<?= url('fahrzeug.php?id=' . $id) ?>"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></a>
+                                <span class="table__zusatz"><?= e($Fahrzeug->GetKennzeichen()) ?></span>
+                            </div>
+                        </div>
                     </td>
                     <td data-label="Art"><?= e($Fahrzeugarten->GetBezeichnung($Fahrzeug->GetArtID())) ?></td>
                     <td data-label="Baujahr"><?= $Fahrzeug->GetBaujahr() !== null ? e((string) $Fahrzeug->GetBaujahr()) : '&ndash;' ?></td>

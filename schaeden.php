@@ -223,9 +223,9 @@ require_once __DIR__ . '/includes/header.php';
             <?php foreach ($behobene as $Schaden): ?>
                 <?php $Fahrzeug = $Fahrzeuge->GetByID($Schaden->GetFahrzeugID()); ?>
                 <tr>
-                    <td class="table__kennzeichen">
-                        <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>"><?= e($Fahrzeug->GetKennzeichen()) ?></a>
-                        <span class="table__zusatz"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></span>
+                    <td class="table__fahrzeug">
+                        <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></a>
+                        <span class="table__zusatz"><?= e($Fahrzeug->GetKennzeichen()) ?></span>
                     </td>
                     <td data-label="Gemeldet">
                         <?= e($Schaden->GetGemeldetAm()->format('d.m.Y')) ?>

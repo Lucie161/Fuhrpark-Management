@@ -12,6 +12,9 @@
  *   $offenerAntrag  Antrag, dessen Ablehnen nach einem Fehler offen bleibt,
  *                   sonst null
  *   $kommentar      bisherige Eingabe der Begründung
+ *
+ * Ist das Ablehnen aufgeklappt, verschwinden Genehmigen und der Knopf
+ * „Ablehnen“; „Abbrechen“ klappt es wieder zu (ohne JavaScript: neu laden).
  */
 
 declare(strict_types=1);
@@ -37,10 +40,15 @@ declare(strict_types=1);
             <?php if ($zurueck !== ''): ?>
                 <input type="hidden" name="zurueck" value="<?= e($zurueck) ?>">
             <?php endif; ?>
-            <label class="form__label" for="kommentar-<?= e((string) $id) ?>">Begründung</label>
+            <p class="klappaktion__titel">Antrag ablehnen</p>
+            <label class="form__label" for="kommentar-<?= e((string) $id) ?>">Begründung für den Mitarbeiter</label>
             <textarea class="form__input" id="kommentar-<?= e((string) $id) ?>" name="kommentar"
                       rows="3" maxlength="500" required><?= $id === $offenerAntrag ? e($kommentar) : '' ?></textarea>
-            <button class="button button--klein button--gefahr" type="submit">Ablehnung speichern</button>
+            <div class="klappaktion__knoepfe">
+                <button class="button button--klein button--gefahr-voll" type="submit">Ablehnung speichern</button>
+                <a class="button button--klein button--zweitrangig klappaktion__abbrechen"
+                   href="<?= url($zurueck === 'index' ? 'index.php' : 'genehmigungen.php') ?>">Abbrechen</a>
+            </div>
         </form>
     </details>
 </div>

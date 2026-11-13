@@ -302,7 +302,7 @@ require_once __DIR__ . '/includes/header.php';
                 <?= e($Buchung->GetEnde()->format('d.m.Y')) ?> fällig. Nach der Rückgabe ist Buchen
                 wieder möglich.
             </p>
-            <a class="button button--klein banner__knopf" href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>">Jetzt zurückgeben</a>
+            <a class="button button--klein banner__knopf" href="<?= url('rueckgabe.php?buchung=' . $Buchung->GetID()) ?>"><span class="icon icon--zurueck" aria-hidden="true"></span>Jetzt zurückgeben</a>
         </div>
     <?php endforeach; ?>
 
@@ -391,14 +391,14 @@ require_once __DIR__ . '/includes/header.php';
             <h2 class="abschnitt" id="treffer">
                 Alle Fahrzeuge
                 <span class="abschnitt__wert"><?= e((string) count($alleFahrzeuge)) ?> im Bestand</span>
-                <span class="abschnitt__zusatz">
-                    <?php if ($Vorwahl !== null): ?>
-                        Wählen Sie Zeitraum und Zweck, dann sehen Sie, ob <?= e($Vorwahl->GetName()) ?> frei ist.
-                    <?php else: ?>
-                        Wählen Sie Zeitraum und Zweck, dann sehen Sie, welche frei sind.
-                    <?php endif; ?>
-                </span>
             </h2>
+            <p class="abschnitt__hinweis">
+                <?php if ($Vorwahl !== null): ?>
+                    Wählen Sie Zeitraum und Zweck, dann sehen Sie, ob <?= e($Vorwahl->GetName()) ?> frei ist.
+                <?php else: ?>
+                    Wählen Sie Zeitraum und Zweck, dann sehen Sie, welche frei sind.
+                <?php endif; ?>
+            </p>
     <?php else: ?>
         <?php $anzahl = count($liste); ?>
         <section aria-labelledby="treffer">
@@ -437,7 +437,10 @@ require_once __DIR__ . '/includes/header.php';
                             <?php if ($bild !== null && is_file(__DIR__ . '/assets/img/' . $bild)): ?>
                                 <img class="treffer__bild" src="<?= url('assets/img/' . $bild) ?>" alt="" loading="lazy">
                             <?php else: ?>
-                                <span class="treffer__bild treffer__bild--platzhalter">kein Bild</span>
+                                <span class="treffer__bild ohne-bild">
+                                    <span class="icon icon--<?= art_icon($SchildFahrzeug->GetArtID()) ?>" aria-hidden="true"></span>
+                                    kein Bild
+                                </span>
                             <?php endif; ?>
 
                             <dl class="felder felder--treffer">

@@ -19,6 +19,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/config.php';
 
 $pageTitle = 'Anmelden';
+$pageMitte = true;
 $fehler    = null;
 $nutzerId  = 0;
 
@@ -56,11 +57,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 require_once __DIR__ . '/includes/header.php';
 ?>
 
+<!-- Mittig: Fehler, dann Name und Passwort untereinander, darunter Anmelden -->
 <?php if ($fehler !== null): ?>
-    <p class="alert"><?= e($fehler) ?></p>
+    <p class="alert anmeldung"><?= e($fehler) ?></p>
 <?php endif; ?>
 
-<form class="schild schild--formular schild--schmal" method="post" action="<?= url('login.php') ?>">
+<form class="schild schild--formular anmeldung" method="post" action="<?= url('login.php') ?>">
     <div class="schild__koerper">
         <div class="formfelder">
             <div class="formfeld">

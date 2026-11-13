@@ -6,9 +6,11 @@
  *   $pageTitle        Titel der Seite, z. B. 'Fahrzeuge'
  *   $pageZusatz       kurzer Text neben dem Titel, z. B. das Datum
  *   $pageAktion       ['Beschriftung', 'datei.php'] für einen Knopf rechts
- *                     neben dem Titel
+ *                     neben dem Titel, optional mit Icon als drittem Wert,
+ *                     z. B. ['Fahrzeug buchen', 'buchen.php', 'plus']
  *   $pageZurueck      ['Beschriftung', 'datei.php'] für einen Link über dem
  *                     Titel, z. B. ['Meine Buchungen', 'meine-buchungen.php']
+ *   $pageMitte        true: Titel und Inhalt mittig (Anmeldung)
  *   $bannerFahrten         überfällige Fahrten für die rote Meldung (includes/banner.php)
  *   $bannerEntscheidungen  ungelesene Ablehnungen und Stornierungen (ebenda)
  */
@@ -84,7 +86,9 @@ $Angemeldet = is_logged_in() ? CNutzer::LoadByID(aktueller_nutzer()) : null;
             <div class="nav__nutzer">
                 <?php if ($Angemeldet !== null): ?>
                     <span class="nav__name"><?= e($Angemeldet->GetName()) ?></span>
-                    <a class="nav__link nav__link--klein" href="<?= url('login.php?logout=1') ?>">Abmelden</a>
+                    <a class="nav__link nav__link--klein" href="<?= url('login.php?logout=1') ?>">
+                        <span class="icon icon--abmelden" aria-hidden="true"></span>Abmelden
+                    </a>
                 <?php else: ?>
                     <a class="nav__link<?= is_current('login.php') ? ' nav__link--aktiv' : '' ?>"
                        href="<?= url('login.php') ?>">Anmelden</a>
@@ -98,10 +102,10 @@ $Angemeldet = is_logged_in() ? CNutzer::LoadByID(aktueller_nutzer()) : null;
     <?php require __DIR__ . '/banner.php'; ?>
 <?php endif; ?>
 
-<main class="container seite">
+<main class="container seite<?= ($pageMitte ?? false) ? ' seite--mitte' : '' ?>">
     <?php if (isset($pageZurueck)): ?>
         <p class="seitenkopf__zurueck">
-            <a href="<?= url($pageZurueck[1]) ?>">&larr; <?= e($pageZurueck[0]) ?></a>
+            <a href="<?= url($pageZurueck[1]) ?>"><span class="icon icon--links" aria-hidden="true"></span><?= e($pageZurueck[0]) ?></a>
         </p>
     <?php endif; ?>
 
@@ -113,7 +117,12 @@ $Angemeldet = is_logged_in() ? CNutzer::LoadByID(aktueller_nutzer()) : null;
         <?php endif; ?>
 
         <?php if (isset($pageAktion)): ?>
-            <a class="button seitenkopf__aktion" href="<?= url($pageAktion[1]) ?>"><?= e($pageAktion[0]) ?></a>
+            <a class="button seitenkopf__aktion" href="<?= url($pageAktion[1]) ?>">
+                <?php if (isset($pageAktion[2])): ?>
+                    <span class="icon icon--<?= e($pageAktion[2]) ?>" aria-hidden="true"></span>
+                <?php endif; ?>
+                <?= e($pageAktion[0]) ?>
+            </a>
         <?php endif; ?>
     </div>
 

@@ -256,14 +256,23 @@ foreach ($fahrzeuge as $id => $Fahrzeug) {
 $freiText = $fuhrparkleiter ? 'frei' : 'keine eigene Buchung';
 
 // Legende: [CSS-Modifier des Musters, Beschriftung]; leer heißt freier Tag.
-$legende = [
-    ['gelb kalender__balken--antrag', $fuhrparkleiter ? 'Antrag' : 'Offen'],
-    ['gruen', 'Genehmigt'],
-    ['grau',  'Unterwegs'],
-    ['gelb',  'In Wartung, Rückgabe heute fällig'],
-    ['rot',   $fuhrparkleiter ? 'Überfällig (Rückgabe oder Wartung)' : 'Überfällig oder gesperrt'],
-    ['',      $fuhrparkleiter ? 'frei' : 'keine eigene Buchung'],
-];
+// Mitarbeiter sehen nur ihre eigenen Buchungen, daher nur deren Stände.
+$legende = $fuhrparkleiter
+    ? [
+        ['gelb kalender__balken--antrag', 'Antrag'],
+        ['gruen', 'Genehmigt'],
+        ['grau',  'Unterwegs'],
+        ['gelb',  'In Wartung, Rückgabe heute fällig'],
+        ['rot',   'Überfällig (Rückgabe oder Wartung)'],
+        ['',      'frei'],
+    ]
+    : [
+        ['gelb kalender__balken--antrag', 'Offen'],
+        ['gruen', 'Genehmigt'],
+        ['grau',  'Unterwegs'],
+        ['gelb',  'Rückgabe heute'],
+        ['rot',   'Überfällig'],
+    ];
 
 // Rote Meldung über dem Titel: meine überfälligen Fahrten als Fahrer
 if (!$fuhrparkleiter) {
@@ -298,14 +307,14 @@ require_once __DIR__ . '/includes/header.php';
         <nav class="blaettern" aria-label="Zeitraum wechseln">
             <?php if ($woche > 0): ?>
                 <a class="button button--klein button--zweitrangig"
-                   href="<?= url('kalender.php' . ($woche > 1 ? '?woche=' . ($woche - 1) : '')) ?>">&larr; Vorige Woche</a>
+                   href="<?= url('kalender.php' . ($woche > 1 ? '?woche=' . ($woche - 1) : '')) ?>"><span class="icon icon--links" aria-hidden="true"></span>Vorige Woche</a>
             <?php endif; ?>
             <?php if ($woche > 1): ?>
                 <a class="button button--klein button--zweitrangig" href="<?= url('kalender.php') ?>">Ab heute</a>
             <?php endif; ?>
             <?php if ($woche < $maxWochen): ?>
                 <a class="button button--klein button--zweitrangig"
-                   href="<?= url('kalender.php?woche=' . ($woche + 1)) ?>">Nächste Woche &rarr;</a>
+                   href="<?= url('kalender.php?woche=' . ($woche + 1)) ?>">Nächste Woche<span class="icon icon--rechts" aria-hidden="true"></span></a>
             <?php endif; ?>
         </nav>
     </div>
@@ -355,9 +364,10 @@ require_once __DIR__ . '/includes/header.php';
 
                             <?php foreach ($gruppen[$Art->GetID()] as $id => $Fahrzeug): ?>
                                 <tr>
-                                    <th class="kalender__fahrzeug table__kennzeichen" scope="row">
-                                        <a href="<?= url('fahrzeug.php?id=' . $id) ?>"><?= e($Fahrzeug->GetKennzeichen()) ?></a>
-                                        <span class="table__zusatz"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></span>
+                                    <th class="kalender__fahrzeug table__fahrzeug" scope="row">
+                                        <?php $kalenderName = $Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell(); ?>
+                                        <a href="<?= url('fahrzeug.php?id=' . $id) ?>" title="<?= e($kalenderName) ?>"><?= e($kalenderName) ?></a>
+                                        <span class="table__zusatz"><?= e($Fahrzeug->GetKennzeichen()) ?></span>
                                     </th>
 
                                     <?php foreach ($spannen[$id] as $spanne): ?>

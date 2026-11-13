@@ -18,13 +18,17 @@
  *   $offeneFahrt     optional: Buchung, deren Formular nach einem Fehler offen
  *                    bleibt, sonst null
  *   $schadenEingabe  optional: bisherige Eingabe im Feld „Schäden“
+ *
+ * Das Formular öffnet sich als Popup (Popover-Attribut, ohne JavaScript).
+ * Nach einem Fehler öffnet assets/js/main.js es wieder (data-offen).
  */
 
 declare(strict_types=1);
 
 $fahrtID = $Buchung->GetID();
 $fahrtSperre = $Buchung->GetSperreFahrtbeginn();
-$fahrtLuxus = CFahrzeug::LoadByID($Buchung->GetFahrzeugID())->IstLuxus();
+$FahrtFahrzeug = CFahrzeug::LoadByID($Buchung->GetFahrzeugID());
+$fahrtLuxus = $FahrtFahrzeug->IstLuxus();
 $fahrtOffen = ($offeneFahrt ?? null) === $fahrtID;
 $FahrtOffeneSchaeden = new CListeSchaeden();
 $FahrtOffeneSchaeden->LadenOffene($Buchung->GetFahrzeugID());
@@ -41,42 +45,67 @@ $FahrtOffeneSchaeden->LadenOffene($Buchung->GetFahrzeugID());
         <a class="button button--klein button--zweitrangig" href="<?= e(url($fahrtErsatz)) ?>">Ersatzfahrzeug buchen</a>
     <?php endif; ?>
 <?php else: ?>
-    <details class="klappaktion"<?= $fahrtOffen ? ' open' : '' ?>>
-        <summary class="button button--klein">Fahrt beginnen</summary>
+    <?php $popup = 'fahrt-' . $fahrtID; ?>
+    <button class="button button--klein" type="button" popovertarget="<?= e($popup) ?>">
+        <span class="icon icon--schluessel" aria-hidden="true"></span>Fahrt beginnen
+    </button>
 
-        <form class="klappaktion__form" method="post" action="<?= url('meine-buchungen.php') ?>">
+    <div class="rueckfrage" id="<?= e($popup) ?>" popover<?= $fahrtOffen ? ' data-offen' : '' ?>>
+        <form method="post" action="<?= url('meine-buchungen.php') ?>">
             <input type="hidden" name="buchung" value="<?= e((string) $fahrtID) ?>">
             <input type="hidden" name="aktion" value="beginnen">
             <?php if ($zurueck !== ''): ?>
                 <input type="hidden" name="zurueck" value="<?= e($zurueck) ?>">
             <?php endif; ?>
 
-            <?php if ($FahrtOffeneSchaeden->Count() > 0): ?>
-                <p class="klappaktion__frage">
-                    Diese Schäden sind bereits bekannt. Sie müssen sie nicht erneut angeben:
-                </p>
-                <ul class="klappaktion__liste">
-                    <?php foreach ($FahrtOffeneSchaeden->GetAlle() as $FahrtSchaden): ?>
-                        <li>
-                            <?= e($FahrtSchaden->GetBeschreibung()) ?>
-                            (<?= e($FahrtSchaden->GetGemeldetAm()->format('d.m.Y')) ?>)
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            <?php endif; ?>
+            <p class="rueckfrage__titel">
+                <span class="icon icon--schluessel" aria-hidden="true"></span>
+                Fahrt beginnen
+            </p>
+            <dl class="felder">
+                <div class="feld">
+                    <dt>Fahrzeug</dt>
+                    <dd><?= e($FahrtFahrzeug->GetHersteller() . ' ' . $FahrtFahrzeug->GetModell()) ?></dd>
+                </div>
+                <div class="feld">
+                    <dt>Zeitraum</dt>
+                    <dd><?= e(zeitraum_kurz($Buchung->GetStart(), $Buchung->GetEnde())) ?></dd>
+                </div>
+            </dl>
 
-            <label class="form__label" for="schaden-<?= e((string) $fahrtID) ?>">
-                <?= $FahrtOffeneSchaeden->Count() > 0 ? 'Weitere' : 'Vorhandene' ?> Schäden, die Ihnen auffallen (optional)
-            </label>
-            <textarea class="form__input" id="schaden-<?= e((string) $fahrtID) ?>" name="schaden" rows="2"
-                      maxlength="<?= e((string) CSchaden::MAX_BESCHREIBUNG) ?>" placeholder="z. B. Kratzer am Kotflügel links"><?= $fahrtOffen ? e($schadenEingabe ?? '') : '' ?></textarea>
-            <?php if ($fahrtLuxus): ?>
-                <p class="klappaktion__frage">
-                    Luxusauto: Die Fahrt kann trotzdem beginnen. Nach der Rückgabe geht das Fahrzeug
-                    wegen des Schadens in die Wartung.
-                </p>
-            <?php endif; ?>
-            <button class="button button--klein" type="submit">Fahrzeug übernommen, Fahrt beginnen</button>
+            <div class="rueckfrage__inhalt">
+                <?php if ($FahrtOffeneSchaeden->Count() > 0): ?>
+                    <p class="klappaktion__frage">
+                        Diese Schäden sind bereits bekannt. Sie müssen sie nicht erneut angeben:
+                    </p>
+                    <ul class="klappaktion__liste">
+                        <?php foreach ($FahrtOffeneSchaeden->GetAlle() as $FahrtSchaden): ?>
+                            <li>
+                                <?= e($FahrtSchaden->GetBeschreibung()) ?>
+                                (<?= e($FahrtSchaden->GetGemeldetAm()->format('d.m.Y')) ?>)
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+
+                <label class="form__label" for="schaden-<?= e((string) $fahrtID) ?>">
+                    <?= $FahrtOffeneSchaeden->Count() > 0 ? 'Weitere' : 'Vorhandene' ?> Schäden, die Ihnen auffallen (optional)
+                </label>
+                <textarea class="form__input" id="schaden-<?= e((string) $fahrtID) ?>" name="schaden" rows="3"
+                          maxlength="<?= e((string) CSchaden::MAX_BESCHREIBUNG) ?>" placeholder="z. B. Kratzer am Kotflügel links"><?= $fahrtOffen ? e($schadenEingabe ?? '') : '' ?></textarea>
+                <?php if ($fahrtLuxus): ?>
+                    <p class="klappaktion__frage">
+                        Luxusauto: Die Fahrt kann trotzdem beginnen. Nach der Rückgabe geht das Fahrzeug
+                        wegen des Schadens in die Wartung.
+                    </p>
+                <?php endif; ?>
+            </div>
+
+            <div class="aktionen">
+                <button class="button button--klein button--zweitrangig" type="button"
+                        popovertarget="<?= e($popup) ?>" popovertargetaction="hide">Abbrechen</button>
+                <button class="button button--klein" type="submit">Fahrzeug übernommen, Fahrt beginnen</button>
+            </div>
         </form>
-    </details>
+    </div>
 <?php endif; ?>

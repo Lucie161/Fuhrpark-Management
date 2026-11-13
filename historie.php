@@ -204,9 +204,9 @@ require __DIR__ . '/includes/auswertung-filterleiste.php';
                 <?php foreach ($eintraege as $eintrag): ?>
                     <?php $Fahrzeug = $Fahrzeuge->GetByID($eintrag['daten']->GetFahrzeugID()); ?>
                     <tr>
-                        <td class="table__kennzeichen">
-                            <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>#fahrtenbuch"><?= e($Fahrzeug->GetKennzeichen()) ?></a>
-                            <span class="table__zusatz"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></span>
+                        <td class="table__fahrzeug">
+                            <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>#fahrtenbuch"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></a>
+                            <span class="table__zusatz"><?= e($Fahrzeug->GetKennzeichen()) ?></span>
                         </td>
 
                         <?php if ($eintrag['art'] === 'wartung'): ?>

@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 const APP_NAME = 'Fuhrpark-Management';
 
-// Stand der Anwendung und Firma, für den Fuß jeder Seite (fiktive Angaben)
-const APP_VERSION   = '1.0';
+// Firma und Anschrift für den Fuß jeder Seite (fiktive Angaben)
 const FIRMA_NAME    = 'Helios Solar GmbH';
-const FIRMA_ADRESSE = 'Sokratesplatz 1, 24149 Kiel';
+const FIRMA_STRASSE = 'Sokratesplatz 1';
+const FIRMA_ORT     = '24149 Kiel';
 
 // 'dev' zeigt PHP-Fehler im Browser an, 'prod' blendet sie aus.
 // Vor dem Live-Gang auf 'prod' stellen.

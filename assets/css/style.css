@@ -125,6 +125,13 @@
     --rot-meldung:   #f0d3d1;   /* Grund der Überfällig-Meldung (20 % Rot) */
     --rot-dunkel:    #8f1c13;   /* Hover des roten Knopfs in der Meldung */
 
+    /* Vergebene Tage im Steckbrief: dunkler als der Seitengrund */
+    --vergeben:      #d9dee4;
+    --vergeben-text: #464e58;
+
+    /* Diagramme im Dashboard: ein gedämpftes Zellblau, nicht klickbar */
+    --daten:         #3c5a85;
+
     --schrift:       "Barlow", system-ui, sans-serif;
     --schrift-label: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
 
@@ -144,7 +151,11 @@ html {
     scrollbar-color: var(--linie) var(--alu);
 }
 
+/* Die Fußleiste steht immer unten, auch bei kurzen Seiten */
 body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
     margin: 0;
     font-family: var(--schrift);
     font-size: 16px;
@@ -200,13 +211,105 @@ h3 {
 }
 
 .seite {
+    flex: 1 0 auto;
     padding-top: 28px;
     padding-bottom: 56px;
 }
 
+/* Anmeldung: Titel und Formular mittig, die Felder untereinander */
+.seite--mitte .seitenkopf {
+    justify-content: center;
+    margin-top: 6vh;
+}
+
+.anmeldung {
+    max-width: 24rem;
+    margin: 0 auto;
+}
+
+.alert.anmeldung {
+    margin: 0 auto 16px;
+}
+
+.anmeldung .formfelder {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.anmeldung .schild__aktionen {
+    align-items: stretch;
+    padding: 14px 18px 18px;
+    border-left: none;
+}
+
+/* Icons: eine Linie, 2px, aus einer SVG-Maske; Farbe aus dem Text.
+   <span class="icon icon--plus" aria-hidden="true"></span> */
+.icon {
+    display: inline-block;
+    flex: none;
+    width: 1.15em;
+    height: 1.15em;
+    background: currentColor;
+    -webkit-mask: var(--icon) center / contain no-repeat;
+    mask: var(--icon) center / contain no-repeat;
+    vertical-align: -0.2em;
+}
+
+:root {
+    --icon-plus: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E");
+    --icon-abmelden: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/%3E%3Cpath d='m16 17 5-5-5-5'/%3E%3Cpath d='M21 12H9'/%3E%3C/svg%3E");
+    --icon-zurueck: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 14 4 9l5-5'/%3E%3Cpath d='M4 9h10.5a5.5 5.5 0 0 1 0 11H11'/%3E%3C/svg%3E");
+    --icon-schluessel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='7.5' cy='15.5' r='5.5'/%3E%3Cpath d='m21 2-9.6 9.6'/%3E%3Cpath d='m15.5 7.5 3 3L22 7l-3-3'/%3E%3C/svg%3E");
+    --icon-warnung: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z'/%3E%3Cpath d='M12 9v4M12 17h.01'/%3E%3C/svg%3E");
+    --icon-haken: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+    --icon-links: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
+    --icon-rechts: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+    --icon-auto: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2'/%3E%3Ccircle cx='7' cy='17' r='2'/%3E%3Cpath d='M9 17h6'/%3E%3Ccircle cx='17' cy='17' r='2'/%3E%3C/svg%3E");
+    --icon-transporter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2'/%3E%3Cpath d='M15 18H9'/%3E%3Cpath d='M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14'/%3E%3Ccircle cx='17' cy='18' r='2'/%3E%3Ccircle cx='7' cy='18' r='2'/%3E%3C/svg%3E");
+    --icon-roller: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='5.5' cy='17.5' r='2.5'/%3E%3Ccircle cx='18.5' cy='17.5' r='2.5'/%3E%3Cpath d='M8 17.5h8'/%3E%3Cpath d='M14 5h2.5l2.5 10'/%3E%3Cpath d='M3 15.5C3 13 5 11 7.5 11H12l2 6'/%3E%3C/svg%3E");
+    --icon-fahrrad: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='18.5' cy='17.5' r='3.5'/%3E%3Ccircle cx='5.5' cy='17.5' r='3.5'/%3E%3Ccircle cx='15' cy='5' r='1'/%3E%3Cpath d='M12 17.5V14l-3-3 4-3 2 3h2'/%3E%3C/svg%3E");
+}
+
+.icon--plus { --icon: var(--icon-plus); }
+.icon--abmelden { --icon: var(--icon-abmelden); }
+.icon--zurueck { --icon: var(--icon-zurueck); }
+.icon--schluessel { --icon: var(--icon-schluessel); }
+.icon--warnung { --icon: var(--icon-warnung); }
+.icon--haken { --icon: var(--icon-haken); }
+.icon--links { --icon: var(--icon-links); }
+.icon--rechts { --icon: var(--icon-rechts); }
+.icon--auto { --icon: var(--icon-auto); }
+.icon--transporter { --icon: var(--icon-transporter); }
+.icon--roller { --icon: var(--icon-roller); }
+.icon--fahrrad { --icon: var(--icon-fahrrad); }
+
+/* Fahrzeug ohne Foto: das Icon seiner Fahrzeugart auf Alu */
+.ohne-bild {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: var(--alu);
+    color: var(--grau);
+    font-size: 12.5px;
+}
+
+/* Vor .treffer__bild usw., die sonst display: block setzen */
+.ohne-bild.treffer__bild,
+.ohne-bild.fahrzeugliste__bild,
+.ohne-bild.steckbrief__bild {
+    display: flex;
+}
+
+.ohne-bild .icon {
+    width: 40px;
+    height: 40px;
+    opacity: 0.75;
+}
+
 /* Einleitender Satz unter dem Titel */
 .lead {
-    max-width: 70ch;
+    max-width: 110ch;
     margin-top: 0;
     color: var(--grau);
 }
@@ -318,6 +421,7 @@ h3 {
 }
 
 .nav__link--klein {
+    gap: 6px;
     font-size: 14px;
 }
 
@@ -387,6 +491,12 @@ summary.banner__zeile::-webkit-details-marker {
 
 .banner__text strong {
     margin-right: 0.4em;
+    color: var(--rot);
+}
+
+/* Überfällig: Warndreieck vor dem Satzanfang */
+.banner__text .icon {
+    margin-right: 6px;
     color: var(--rot);
 }
 
@@ -501,6 +611,10 @@ summary.banner__zeile:hover .banner__knopf--details {
     font-weight: 600;
 }
 
+.seitenkopf__zurueck .icon {
+    margin-left: -3px;
+}
+
 /* --- 6. Schilder ------------------------------------------------------------ */
 
 /* Hauptblock links, schmale Nebenspalte rechts */
@@ -517,30 +631,44 @@ summary.banner__zeile:hover .banner__knopf--details {
     gap: 32px;
 }
 
-/* Abschnittstitel: Versal-Label, daneben der Wert groß */
+/* Abschnittstitel: die Überschrift groß, daneben der Wert klein in Grau,
+   z. B. „Belegung  8 von 14 Tagen frei · heute bis 21.11.2026“ */
 .abschnitt {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     align-content: flex-end;
-    gap: 4px 12px;
+    gap: 2px 12px;
     min-height: 27px;
     margin: 0 0 12px;
-    color: var(--grau);
-    font-family: var(--schrift-label);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-}
-
-.abschnitt__wert {
     color: var(--tinte);
-    font-family: var(--schrift);
     font-size: 22px;
     font-weight: 700;
-    letter-spacing: 0;
-    text-transform: none;
+}
+
+.abschnitt__wert,
+.abschnitt__zusatz {
+    color: var(--grau);
+    font-size: 16px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Zusatz nach dem Wert, durch einen Mittelpunkt getrennt */
+.abschnitt__zusatz {
+    font-weight: 400;
+}
+
+.abschnitt__wert + .abschnitt__zusatz::before {
+    content: "·";
+    margin-right: 12px;
+}
+
+/* Erklärender Satz unter einem Abschnittstitel, z. B. auf buchen.php */
+.abschnitt__hinweis {
+    margin: -6px 0 12px;
+    color: var(--grau);
+    font-size: 15px;
 }
 
 /* Das Schild: Kopf mit Kennzeichen und Stand, darunter Kennwertfelder
@@ -562,36 +690,55 @@ summary.banner__zeile:hover .banner__knopf--details {
     border-bottom: 1px solid var(--haar);
 }
 
+/* Name des Fahrzeugs groß, darunter Kennzeichen und Fahrzeugart klein */
 .schild__name {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 2px 16px;
     min-width: 0;
 }
 
-.schild__kennzeichen {
+.schild__fahrzeug {
     margin: 0;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
+    line-height: 1.2;
 }
 
-.schild__kennzeichen a {
+.schild__fahrzeug a {
     color: var(--tinte);
     text-decoration: none;
 }
 
-.schild__kennzeichen a:hover {
+.schild__fahrzeug a:hover {
     text-decoration: underline;
     text-decoration-thickness: 2px;
 }
 
 .schild__modell {
-    margin: 0;
+    margin: 2px 0 0;
     color: var(--grau);
     font-size: 14px;
+}
+
+/* Kennzeichen in der Zeile darunter: Tinte, gesperrt, tabellarische Ziffern */
+.kennzeichen {
+    color: var(--tinte);
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Steckbrief: Name steht schon im Titel, im Kopf das Kennzeichen als Feld */
+.schild__kennwert {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+}
+
+.schild__kennwert-wert {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
 }
 
 /* Feld „Stand“ rechts im Kopf: Label über Wert wie die Kennwertfelder,
@@ -753,19 +900,27 @@ summary.banner__zeile:hover .banner__knopf--details {
     border-left: none;
 }
 
-/* Die Knöpfe bleiben in einer Zeile, nur das Formular bricht darunter um. */
-.schild .aktionen .klappaktion[open] {
-    display: contents;
+/* Offen ist das Formular die einzige Aufgabe im Schild: Der Knopf, der es
+   geöffnet hat, und die übrigen Aktionen (Genehmigen, Stornieren, Hinweise)
+   treten zurück. Absenden und Abbrechen stehen nebeneinander unter dem
+   Formular. */
+.klappaktion[open] > summary {
+    display: none;
 }
 
-.schild .aktionen .klappaktion[open] > .klappaktion__form,
-.schild .aktionen .klappaktion[open]::details-content {
-    flex-basis: 100%;
+.schild__aktionen:has(.klappaktion[open]) > :not(.klappaktion[open]):not(:has(.klappaktion[open])),
+.aktionen:has(> .klappaktion[open]) > :not(.klappaktion[open]) {
+    display: none;
+}
+
+.schild .klappaktion[open] {
+    flex: 1 1 100%;
 }
 
 /* Im Schild kein eigener Kasten um das Formular, nur die Haarlinie */
 .schild .klappaktion__form {
     max-width: 40rem;
+    margin-top: 0;
     padding: 0;
     border: none;
     background: none;
@@ -821,8 +976,8 @@ summary.banner__zeile:hover .banner__knopf--details {
 }
 
 @container (max-width: 40rem) {
-    .schild__kennzeichen {
-        font-size: 20px;
+    .schild__fahrzeug {
+        font-size: 18px;
     }
 
     /* Halbe Schildbreite: Trennlinie über der Mitte der Felder 2 × 2 */
@@ -971,6 +1126,65 @@ summary.banner__zeile:hover .banner__knopf--details {
     }
 }
 
+/* Zweiter Abschnitt in einer Spalte, z. B. „Noch nicht behoben“ unter den
+   neuen Schäden: kleinerer Titel, mehr Abstand nach oben */
+.abschnitt.abschnitt--klein {
+    margin-top: 24px;
+    font-size: 18px;
+}
+
+/* Bekannte Schäden auf der Übersicht: ein Schild, je Schaden eine Zeile mit
+   Fahrzeug und Stand, darunter Beschreibung und Kennzeichen */
+.schadenliste {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.schadenliste__eintrag {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 14px 12px;
+    border-top: 1px solid var(--haar);
+}
+
+.schadenliste__eintrag:first-child {
+    border-top: none;
+}
+
+.schadenliste__kopf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 12px;
+}
+
+.schadenliste__fahrzeug {
+    color: var(--tinte);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.schadenliste__fahrzeug:hover {
+    text-decoration: underline;
+}
+
+.schadenliste__eintrag .marke {
+    font-size: 14px;
+}
+
+.schadenliste__text {
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.schadenliste__zusatz {
+    color: var(--grau);
+    font-size: 13px;
+}
+
 /* Kurze Zeile unter einem Abschnitt, z. B. „Kein Fahrzeug wegen Schaden in
    Wartung“ */
 .zeile {
@@ -1088,8 +1302,24 @@ summary.banner__zeile:hover .banner__knopf--details {
     background: #f7f8f9;
 }
 
-.klappaktion__form .button {
-    align-self: flex-start;
+/* Datum im Formular nicht breiter als nötig */
+.klappaktion__form .form__input[type="date"] {
+    max-width: 16rem;
+}
+
+/* Titel des offenen Formulars, z. B. „Antrag ablehnen“ */
+.klappaktion__titel {
+    margin: 0 0 2px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+/* Absenden und Abbrechen in einer Zeile */
+.klappaktion__knoepfe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
 }
 
 .klappaktion__frage {
@@ -1104,14 +1334,33 @@ summary.banner__zeile:hover .banner__knopf--details {
     font-size: 0.85rem;
 }
 
+/* Meldung über die ganze Inhaltsbreite, vorn ein Icon: Warndreieck bei
+   Fehler und Hinweis, Haken bei Erfolg */
 .alert {
-    max-width: 80ch;
+    position: relative;
     margin: 0 0 20px;
-    padding: 10px 14px;
+    padding: 11px 16px 11px 44px;
     border: 1px solid var(--rot);
     border-radius: var(--radius);
     background: var(--rot-flaeche);
     color: var(--rot);
+}
+
+.alert::before {
+    content: "";
+    position: absolute;
+    top: 13px;
+    left: 16px;
+    width: 18px;
+    height: 18px;
+    background: currentColor;
+    -webkit-mask: var(--icon-warnung) center / contain no-repeat;
+    mask: var(--icon-warnung) center / contain no-repeat;
+}
+
+.alert--erfolg::before {
+    -webkit-mask-image: var(--icon-haken);
+    mask-image: var(--icon-haken);
 }
 
 .alert__zeile {
@@ -1238,27 +1487,26 @@ input[type="checkbox"] {
     margin-top: 0;
 }
 
-/* Erste Spalte: Kennzeichen wie im Schildkopf, Modell darunter als
-   .table__zusatz */
-.table__kennzeichen {
+/* Erste Spalte: Name des Fahrzeugs wie im Schildkopf, das Kennzeichen
+   darunter als .table__zusatz */
+.table__fahrzeug {
     font-weight: 700;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
 }
 
-.table__kennzeichen a {
+.table__fahrzeug a {
     color: var(--tinte);
     text-decoration: none;
 }
 
-.table__kennzeichen a:hover {
+.table__fahrzeug a:hover {
     text-decoration: underline;
     text-decoration-thickness: 2px;
 }
 
-.table__kennzeichen .table__zusatz {
-    font-weight: 400;
-    letter-spacing: 0;
+.table__fahrzeug .table__zusatz {
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
 }
 
 /* Mit .table davor, sonst gewinnt text-align: left aus .table th/td. */
@@ -1361,6 +1609,13 @@ input[type="checkbox"] {
     }
 }
 
+/* „Fahrzeuge anzeigen“ mittig in seinem Abschnitt */
+.buchungssuche .schild__aktionen {
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 10px;
+}
+
 /* Schmal (Handy): zwei Felder je Zeile statt sechs untereinander */
 @container (max-width: 40rem) {
     .buchungssuche__felder {
@@ -1385,13 +1640,10 @@ input[type="checkbox"] {
     border-bottom-left-radius: 3px;
 }
 
-/* Fahrzeug ohne Bild */
-.treffer__bild--platzhalter {
-    display: grid;
-    place-items: center;
-    background: var(--alu);
-    color: var(--grau);
-    font-size: 13px;
+/* Fahrzeug ohne Bild: Icon der Fahrzeugart (.ohne-bild) */
+.treffer__bild.ohne-bild .icon {
+    width: 34px;
+    height: 34px;
 }
 
 /* Typ, Sitze, Antrieb, Führerschein: festes Raster für alle Schilder */
@@ -1553,28 +1805,107 @@ fieldset.schadenwahl {
     }
 }
 
-/* Rückfrage vor dem Stornieren als Popup (Popover-Attribut). Nur das Nötige;
-   die Gestaltung folgt in der Design-Runde. */
+/* Rückfrage vor dem Stornieren als Popup (Popover-Attribut): ein Schild in
+   der Mitte, Kopf mit Frage, die Buchung als Kennwertfelder, Aktionen unten
+   rechts (Abbrechen, dann Stornieren rot gefüllt). */
 .rueckfrage {
-    max-width: min(28rem, calc(100vw - 32px));
-    padding: 18px 20px;
+    width: min(30rem, calc(100vw - 32px));
+    padding: 0;
     border: 1px solid var(--linie);
     border-radius: var(--radius);
     background: var(--schild);
     color: var(--tinte);
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.18s ease-out, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), display 0.18s allow-discrete, overlay 0.18s allow-discrete;
+}
+
+@starting-style {
+    .rueckfrage:popover-open {
+        opacity: 0;
+        transform: translateY(8px);
+    }
 }
 
 .rueckfrage::backdrop {
-    background: rgb(19 35 58 / 35%);
+    background: rgb(19 35 58 / 45%);
 }
 
 .rueckfrage__titel {
-    margin: 0 0 6px;
-    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--haar);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.rueckfrage__titel .icon--warnung {
+    color: var(--rot);
+}
+
+.rueckfrage .felder {
+    border-bottom: 1px solid var(--haar);
 }
 
 .rueckfrage__text {
-    margin: 0 0 14px;
+    margin: 0;
+    padding: 12px 18px;
+    color: var(--grau);
+    font-size: 15px;
+}
+
+/* Eingaben im Popup (Fahrt beginnen, Zeitraum ändern) */
+.rueckfrage__inhalt {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 18px 14px;
+}
+
+/* Von und Bis nebeneinander */
+.rueckfrage__inhalt--zeile {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+}
+
+.rueckfrage__inhalt--zeile > div {
+    flex: 1 1 10rem;
+}
+
+.rueckfrage__inhalt + .rueckfrage__text {
+    padding-top: 0;
+}
+
+/* Popup höher als der Bildschirm (Handy, viele Schäden): scrollt in sich */
+.rueckfrage {
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+}
+
+.rueckfrage .felder {
+    grid-auto-columns: minmax(0, 1fr);
+}
+
+.rueckfrage .aktionen {
+    justify-content: flex-end;
+    padding: 12px 18px 14px;
+    border-top: 1px solid var(--haar);
+}
+
+/* Bestätigen einer Gefahr: hier rot gefüllt, wie man es kennt */
+.button--gefahr-voll {
+    border-color: var(--rot);
+    background: var(--rot);
+    color: #fff;
+}
+
+.button--gefahr-voll:hover {
+    border-color: var(--rot-dunkel);
+    background: var(--rot-dunkel);
 }
 
 /* Ende 8b */
@@ -1679,25 +2010,43 @@ fieldset.schadenwahl {
         width: 100%;
         min-height: 44px;
     }
+
+    /* Im Stapel steht der Stand neben dem Namen; das Bild hätte keinen Platz */
+    .fahrzeugliste .fahrzeugliste__fahrzeug {
+        min-width: 0;
+    }
+
+    .fahrzeugliste .fahrzeugliste__bild {
+        display: none;
+    }
 }
 
-/* Kleines Bild vor dem Kennzeichen in der Fahrzeugliste */
+/* Erste Spalte der Fahrzeugliste: Bild links, Name und Kennzeichen daneben.
+   Zellen mittig, damit die Zeile so hoch wie das Bild bleibt. */
+.table.fahrzeugliste td {
+    vertical-align: middle;
+}
+
+.fahrzeugliste__fahrzeug {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 15rem;
+}
+
 .fahrzeugliste__bild {
     display: block;
-    width: 72px;
+    flex: none;
+    width: 84px;
     aspect-ratio: 3 / 2;
-    margin-bottom: 6px;
     object-fit: cover;
     border: 1px solid var(--haar);
     border-radius: var(--radius-klein);
 }
 
-.fahrzeugliste__bild--platzhalter {
-    display: grid;
-    place-items: center;
-    background: var(--alu);
-    color: var(--grau);
-    font-size: 11px;
+.fahrzeugliste__bild.ohne-bild .icon {
+    width: 26px;
+    height: 26px;
 }
 
 /* Ende 8c */
@@ -1725,13 +2074,14 @@ fieldset.schadenwahl {
     border-bottom: 1px solid var(--haar);
 }
 
-/* Fahrzeug ohne Bild */
-.steckbrief__bild--platzhalter {
-    display: grid;
-    place-items: center;
-    background: var(--alu);
-    color: var(--grau);
-    font-size: 13px;
+/* Fahrzeug ohne Bild: großes Icon der Fahrzeugart (.ohne-bild) */
+.steckbrief__bild.ohne-bild {
+    font-size: 14px;
+}
+
+.steckbrief__bild.ohne-bild .icon {
+    width: 64px;
+    height: 64px;
 }
 
 /* Merkmale: zwei Spalten, Haarlinien zwischen den Feldern und Zeilen */
@@ -1802,7 +2152,8 @@ fieldset.schadenwahl {
 
 /* Helle Ampelfläche nur hinter belegten Tagen */
 .steckbrief__tag--frei     { background: var(--gruen-flaeche); }
-.steckbrief__tag--vergeben { background: var(--alu); }
+.steckbrief__tag--vergeben { background: var(--vergeben); }
+.steckbrief__tag--vergeben .marke { color: var(--vergeben-text); }
 .steckbrief__tag--wartung  { background: var(--gelb-flaeche); }
 
 .steckbrief__datum {
@@ -1871,24 +2222,25 @@ fieldset.schadenwahl {
 .legende {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px 20px;
-    margin: 0 0 12px;
+    gap: 8px 26px;
+    margin: 0 0 14px;
     padding: 0;
     list-style: none;
-    color: var(--grau);
-    font-size: 13.5px;
+    color: var(--tinte);
+    font-size: 15.5px;
+    font-weight: 500;
 }
 
 .legende__eintrag {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 9px;
 }
 
 .legende__muster {
     flex: none;
-    width: 24px;
-    height: 14px;
+    width: 34px;
+    height: 20px;
     border: 1px solid var(--linie);
     border-radius: 2px;
     background: var(--schild);
@@ -1961,8 +2313,10 @@ fieldset.schadenwahl {
     position: sticky;
     left: 0;
     z-index: 1;
-    width: 12.5rem;
-    padding: 8px 14px;
+    width: 14rem;
+    padding: 4px 14px;
+    font-size: 15px;
+    line-height: 1.3;
     border-left: none;
     background: var(--schild);
     text-align: left;
@@ -1979,9 +2333,18 @@ fieldset.schadenwahl {
     vertical-align: bottom;
 }
 
+/* Flache Reihen: Name in einer Zeile (zu lang: „…“, ganz im title),
+   Kennzeichen klein darunter */
+.kalender__fahrzeug a,
 .kalender__fahrzeug .table__zusatz {
+    display: block;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.kalender__fahrzeug .table__zusatz {
+    font-size: 12.5px;
 }
 
 /* Gruppe (Fahrzeugart): Label auf Alu; der Name bleibt beim Scrollen links */
@@ -2010,7 +2373,7 @@ fieldset.schadenwahl {
 
 /* Belegte Zelle über die Tage des Balkens (colspan) */
 .kalender__belegt {
-    padding: 7px 3px;
+    padding: 4px 3px;
     vertical-align: middle;
 }
 
@@ -2018,7 +2381,7 @@ fieldset.schadenwahl {
    schmale Schrift, damit „Überfällig“ in einen Tag passt. */
 .kalender__balken {
     display: block;
-    height: 32px;
+    height: 28px;
     padding: 0 6px;
     overflow: hidden;
     border: 1px solid var(--linie);
@@ -2026,7 +2389,7 @@ fieldset.schadenwahl {
     font-family: var(--schrift-label);
     font-size: 14px;
     font-weight: 600;
-    line-height: 30px;
+    line-height: 26px;
     text-decoration: none;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2098,12 +2461,18 @@ a.kalender__balken:hover {
     }
 
     .kalender__tabelle .kalender__fahrzeug {
-        width: 6.5rem;
+        width: 8.5rem;
         padding: 8px 10px;
+        font-size: 14px;
+        line-height: 1.3;
     }
 
     .kalender__fahrzeug .table__zusatz {
         display: none;
+    }
+
+    .kalender__fahrzeug a {
+        white-space: normal;
     }
 
     .blaettern {
@@ -2180,8 +2549,11 @@ a.kalender__balken:hover {
 /* Ende 8f */
 
 /* --- 8g. Dashboard (dashboard.php) ------------------------------------------ */
-/* Nur das Nötige für Kennzahlen und Balken; die Diagramme gestaltet die
-   Design-Runde. Die Filterleiste teilt sich die Regeln aus 8f. */
+/* Kennzahlen als Schild, darunter die Diagramme als Schilder: Säulen je
+   Monat über die ganze Breite, darunter nebeneinander km je Fahrzeug und
+   Wartungen je Fahrzeug. Eine Datenfarbe (--daten), Werte direkt an den
+   Balken, keine Achsen und kein Raster. Die Filterleiste teilt sich die
+   Regeln aus 8f. */
 
 .dashboard__abschnitt {
     margin-bottom: 32px;
@@ -2194,23 +2566,248 @@ a.kalender__balken:hover {
     justify-content: space-between;
 }
 
-.dashboard-tabelle__balken {
-    width: 40%;
+/* km je Fahrzeug breiter als Wartungen */
+.dashboard__paar {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 32px;
+    align-items: start;
 }
 
-/* Balken: graue Spur, darin der Anteil am größten Wert der Tabelle */
-.balken {
-    display: block;
-    height: 10px;
-    border-radius: var(--radius-klein);
-    background: var(--alu);
+.diagramm {
+    margin-bottom: 0;
 }
 
-.balken__wert {
+/* Säulen je Monat: Wert über der Säule, Monat und Fahrten darunter */
+.saeulen {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    margin: 0;
+    padding: 18px 18px 14px;
+    list-style: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.saeule {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    text-align: center;
+}
+
+/* Die Fläche hat eine feste Höhe; die Säule nimmt ihren Anteil davon,
+   höchstens 82 %, damit der Wert darüber Platz hat. */
+.saeule__flaeche {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    height: 210px;
+    border-bottom: 1px solid var(--linie);
+}
+
+.saeule__wert {
+    margin-bottom: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.saeule__balken {
+    width: min(68px, 64%);
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: var(--daten);
+}
+
+.saeule__monat {
+    margin-top: 8px;
+    font-weight: 500;
+}
+
+.saeule__zusatz {
+    color: var(--grau);
+    font-size: 13.5px;
+}
+
+/* Gestapelte Säule (anstehende Buchungen): unten bestätigt in Datenblau,
+   darüber Anträge gestrichelt in Ocker wie im Kalender. 2px Fuge dazwischen. */
+.saeule__balken--antrag {
+    border: 1px dashed var(--gelb);
+    border-bottom: none;
+    background: var(--schild);
+}
+
+.saeule__balken--unten {
+    margin-top: 2px;
+    border-radius: 0;
+}
+
+/* Wochenende leicht hinterlegt, wie im Kalender */
+.saeule--wochenende .saeule__flaeche {
+    background: color-mix(in srgb, var(--alu) 55%, var(--schild));
+}
+
+/* Überfällige HU/AU: Stand, daher in Ampel-Rot */
+.saeule--ueberfaellig .saeule__balken {
+    background: var(--rot);
+}
+
+.saeule--ueberfaellig .saeule__monat {
+    color: var(--rot);
+    font-weight: 600;
+}
+
+.saeulen--tage .saeule__balken,
+.saeulen--monate .saeule__balken {
+    width: min(44px, 70%);
+}
+
+.saeulen--tage .saeule__flaeche,
+.saeulen--monate .saeule__flaeche {
+    height: 150px;
+}
+
+/* Legende über einem Diagramm mit zwei Reihen */
+.diagramm__legende {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 24px;
+    margin: 0;
+    padding: 14px 18px 0;
+    list-style: none;
+    font-size: 14.5px;
+}
+
+.diagramm__legende li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.diagramm__muster {
+    width: 22px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--daten);
+}
+
+.diagramm__muster--antrag {
+    border: 1px dashed var(--gelb);
+    background: var(--schild);
+}
+
+.diagramm__fuss {
+    margin: 0;
+    padding: 0 18px 14px;
+    color: var(--grau);
+    font-size: 13.5px;
+}
+
+/* Namen unter dem HU/AU-Diagramm */
+.diagramm__liste {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--haar);
+    list-style: none;
+}
+
+.diagramm__liste {
+    padding: 4px 0 8px;
+}
+
+.diagramm__liste li {
+    padding: 8px 18px;
+}
+
+.diagramm__liste a {
+    color: var(--tinte);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.diagramm__liste a:hover {
+    text-decoration: underline;
+}
+
+/* Liegende Balken je Fahrzeug: Name links, Balken mit Wert am Ende */
+.balkenliste {
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.balkenliste__zeile {
+    display: grid;
+    grid-template-columns: minmax(9rem, 2fr) minmax(0, 3fr);
+    gap: 16px;
+    align-items: center;
+    padding: 7px 18px;
+}
+
+.balkenliste__zeile:hover {
+    background: #f6f7f8;
+}
+
+.balkenliste__name {
+    min-width: 0;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.balkenliste__name small {
     display: block;
-    height: 100%;
-    border-radius: var(--radius-klein);
-    background: var(--grau);
+    color: var(--grau);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+/* Spur mit Grundlinie links; Platz für den Wert hinter dem Balken */
+.balkenliste__spur {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 26px;
+    border-left: 1px solid var(--linie);
+}
+
+.balkenliste__balken {
+    flex: none;
+    width: calc((100% - 5.5rem) * var(--anteil));
+    height: 16px;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background: var(--daten);
+}
+
+.balkenliste__wert {
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Ohne Wert (Fahrrad ohne km-Stand): nur ein Strich in Grau */
+.balkenliste__wert--leer {
+    color: var(--grau);
+    font-weight: 400;
+}
+
+.diagramm .table__empty,
+.diagramm__leer {
+    margin: 0;
+    padding: 16px 18px;
+    color: var(--grau);
+}
+
+@media (max-width: 1000px) {
+    .dashboard__paar {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 @media (max-width: 700px) {
@@ -2219,8 +2816,48 @@ a.kalender__balken:hover {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .dashboard-tabelle__balken {
-        width: 30%;
+    .saeulen {
+        padding: 14px 6px 10px;
+    }
+
+    .saeule__flaeche {
+        height: 170px;
+    }
+
+    .saeule {
+        padding: 0 2px;
+    }
+
+    .saeule__wert,
+    .saeule__monat {
+        font-size: 12.5px;
+    }
+
+    /* Monat und Fahrten dürfen in zwei Zeilen stehen */
+    .saeule__monat,
+    .saeule__zusatz {
+        line-height: 1.25;
+    }
+
+    .saeule__zusatz {
+        font-size: 11.5px;
+    }
+
+    .saeule__einheit {
+        display: none;
+    }
+
+    /* 14 Tage bzw. 13 Monate passen nicht nebeneinander: seitlich scrollen */
+    .saeulen--tage,
+    .saeulen--monate {
+        overflow-x: auto;
+        grid-auto-columns: minmax(44px, 1fr);
+    }
+
+    .balkenliste__zeile {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 4px;
+        padding: 8px 14px;
     }
 }
 
@@ -2238,13 +2875,23 @@ a.kalender__balken:hover {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    gap: 4px 24px;
-    padding-top: 16px;
-    padding-bottom: 16px;
+    gap: 16px 32px;
+    padding-top: 20px;
+    padding-bottom: 22px;
 }
 
 .fussleiste__block p + p {
     margin-top: 2px;
+}
+
+/* Erste Zeile eines Blocks etwas kräftiger */
+.fussleiste__titel {
+    color: var(--tinte);
+    font-weight: 600;
+}
+
+.fussleiste__anschrift {
+    font-style: normal;
 }
 
 .fussleiste p {
@@ -2393,17 +3040,12 @@ a.kalender__balken:hover {
     }
 
     .schild__aktionen .aktionen > *,
-    .schild .aktionen .klappaktion[open] > summary {
+    .klappaktion__knoepfe > * {
         flex: 1 1 0;
     }
 
-    .schild .aktionen .klappaktion[open] > .klappaktion__form,
-    .schild .aktionen .klappaktion[open]::details-content {
+    .schild .aktionen .klappaktion[open] {
         flex: 1 1 100%;
-    }
-
-    .klappaktion__form .button {
-        align-self: stretch;
     }
 
     .table {

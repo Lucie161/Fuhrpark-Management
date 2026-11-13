@@ -210,9 +210,9 @@ require_once __DIR__ . '/includes/header.php';
                         $marke = buchung_stand($Laufend, $ich);
                         ?>
                         <tr<?= $Laufend->GetID() === $buchungId ? ' class="table__zeile--gewaehlt"' : '' ?>>
-                            <td class="table__kennzeichen">
-                                <?= e($LaufendFahrzeug->GetKennzeichen()) ?>
-                                <span class="table__zusatz"><?= e($LaufendFahrzeug->GetHersteller() . ' ' . $LaufendFahrzeug->GetModell()) ?></span>
+                            <td class="table__fahrzeug">
+                                <?= e($LaufendFahrzeug->GetHersteller() . ' ' . $LaufendFahrzeug->GetModell()) ?>
+                                <span class="table__zusatz"><?= e($LaufendFahrzeug->GetKennzeichen()) ?></span>
                             </td>
                             <td data-label="Zeitraum"><?= e(zeitraum_kurz($Laufend->GetStart(), $Laufend->GetEnde())) ?></td>
                             <td class="table__stand" data-label="Stand"><span class="marke marke--<?= e($marke[1]) ?>"><?= e($marke[0]) ?></span></td>

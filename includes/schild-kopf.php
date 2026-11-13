@@ -1,7 +1,7 @@
 <?php
 /**
- * Kopf eines Schilds: Kennzeichen groß, Modell und Fahrzeugart klein, rechts
- * das Feld „Stand“ mit Farbpunkt in Ampelfarbe.
+ * Kopf eines Schilds: Name des Fahrzeugs groß, darunter Kennzeichen und
+ * Fahrzeugart klein, rechts das Feld „Stand“ mit Farbpunkt in Ampelfarbe.
  *
  * Erwartet von der einbindenden Seite:
  *   $SchildFahrzeug  das Fahrzeug (CFahrzeug)
@@ -14,11 +14,11 @@ declare(strict_types=1);
 ?>
 <div class="schild__kopf">
     <div class="schild__name">
-        <h3 class="schild__kennzeichen">
-            <a href="<?= url('fahrzeug.php?id=' . $SchildFahrzeug->GetID()) ?>"><?= e($SchildFahrzeug->GetKennzeichen()) ?></a>
+        <h3 class="schild__fahrzeug">
+            <a href="<?= url('fahrzeug.php?id=' . $SchildFahrzeug->GetID()) ?>"><?= e($SchildFahrzeug->GetHersteller() . ' ' . $SchildFahrzeug->GetModell()) ?></a>
         </h3>
         <p class="schild__modell">
-            <?= e($SchildFahrzeug->GetHersteller() . ' ' . $SchildFahrzeug->GetModell()) ?>
+            <span class="kennzeichen"><?= e($SchildFahrzeug->GetKennzeichen()) ?></span>
             &middot; <?= e($Arten->GetBezeichnung($SchildFahrzeug->GetArtID())) ?>
         </p>
     </div>

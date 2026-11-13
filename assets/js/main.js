@@ -1,7 +1,8 @@
 /**
  * Allgemeines Skript der Anwendung.
- * Aufklappen der Navigation auf schmalen Bildschirmen und die Schadensfelder
- * der Rückgabe.
+ * Aufklappen der Navigation auf schmalen Bildschirmen, die Schadensfelder
+ * der Rückgabe, „Abbrechen“ in aufgeklappten Formularen und Popups, die nach
+ * einem Fehler wieder offen sein sollen.
  */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -26,6 +27,27 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         schadenFelderZeigen();
     }
+
+    // Popup, das nach einem Fehler offen bleiben soll (Fahrt beginnen,
+    // Zeitraum ändern): gleich wieder öffnen.
+    document.querySelectorAll('[popover][data-offen]').forEach(function (popup) {
+        if (popup.showPopover) {
+            popup.showPopover();
+        }
+    });
+
+    // Aufgeklapptes Formular (Ablehnen): „Abbrechen“
+    // klappt es zu, statt die Seite neu zu laden.
+    document.querySelectorAll('.klappaktion__abbrechen').forEach(function (link) {
+        link.addEventListener('click', function (ereignis) {
+            var klappaktion = link.closest('details');
+
+            if (klappaktion) {
+                ereignis.preventDefault();
+                klappaktion.open = false;
+            }
+        });
+    });
 
     var toggle = document.querySelector('.nav-toggle');
     var nav = document.getElementById('hauptnavigation');
