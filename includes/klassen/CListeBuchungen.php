@@ -46,17 +46,22 @@ class CListeBuchungen
 
     /**
      * Lädt die ungelesenen Entscheidungen zu Buchungen des Nutzers: abgelehnt
-     * oder wegen Wartung storniert, noch nicht als gelesen markiert, die
-     * neueste zuerst. Selbst stornierte Buchungen zählen nicht.
+     * oder automatisch storniert (Wartung, Ausmustern, Zeitraum vorbei), noch
+     * nicht als gelesen markiert, die neueste zuerst. Selbst stornierte
+     * Buchungen zählen nicht.
      */
     public function LadenUngeleseneEntscheidungen(int $in_NutzerID): void
     {
         $this->Laden(
             CBuchung::SQL_MIT_NAMEN . ' WHERE (b.antragsteller_id = ? OR b.fahrer_id = ?)
-               AND (b.status_id = ? OR (b.status_id = ? AND b.entscheidung_kommentar = ?))
+               AND (b.status_id = ? OR (b.status_id = ? AND b.entscheidung_kommentar IN (?, ?, ?, ?)))
                AND b.entscheidung_gelesen_am IS NULL
              ORDER BY b.entscheidung_am DESC, b.id DESC',
-            [$in_NutzerID, $in_NutzerID, STATUS_ABGELEHNT, STATUS_STORNIERT, CWartung::STORNO_GRUND]
+            [
+                $in_NutzerID, $in_NutzerID, STATUS_ABGELEHNT, STATUS_STORNIERT,
+                CWartung::STORNO_GRUND, CFahrzeug::STORNO_AUSGEMUSTERT,
+                CBuchung::STORNO_NICHT_ANGETRETEN, CBuchung::STORNO_NICHT_ENTSCHIEDEN,
+            ]
         );
     }
 
@@ -86,12 +91,12 @@ class CListeBuchungen
     }
 
     /**
-     * Lädt die offenen Anträge für den Fuhrparkleiter, die ältesten zuerst.
+     * Lädt die offenen Anträge für den Fuhrparkleiter, die nächste Fahrt zuerst.
      */
     public function LadenOffeneAntraege(): void
     {
         $this->Laden(
-            CBuchung::SQL_MIT_NAMEN . ' WHERE b.status_id = ? ORDER BY b.beantragt_am, b.id',
+            CBuchung::SQL_MIT_NAMEN . ' WHERE b.status_id = ? ORDER BY b.start, b.beantragt_am, b.id',
             [STATUS_OFFEN]
         );
     }

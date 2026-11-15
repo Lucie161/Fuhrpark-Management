@@ -127,7 +127,7 @@ CREATE TABLE schweregrade (
 
 INSERT INTO schweregrade (id, bezeichnung) VALUES
     (1, 'Kleinschaden'),
-    (2, 'Schaden');          -- mit Wartung
+    (2, 'Schwerer Schaden'); -- Fahrzeug geht in die Wartung
 
 
 -- ---------------------------------------------------------------------------
@@ -235,7 +235,7 @@ CREATE TABLE schaeden (
     id           INT UNSIGNED     NOT NULL AUTO_INCREMENT,
     buchung_id   INT UNSIGNED     NOT NULL,             -- bei welcher Fahrt gemeldet
     anlass_id    TINYINT UNSIGNED NOT NULL,
-    schwere_id   TINYINT UNSIGNED NOT NULL,             -- 2 (mit Wartung) sperrt das Fahrzeug
+    schwere_id   TINYINT UNSIGNED NOT NULL,             -- 2 (schwerer Schaden) sperrt das Fahrzeug
     beschreibung TEXT             NOT NULL,
     gemeldet_am  DATETIME         NOT NULL,
     behoben_am   DATETIME         NULL,                 -- NULL = noch offen

@@ -7,12 +7,12 @@
  * ist (includes/banner.php).
  *
  * Mitarbeiter: oben je eine Benachrichtigung über eine Ablehnung oder eine
- * Stornierung wegen Wartung, bis sie mit „Gelesen“ weggeklickt wird. Links
+ * automatische Stornierung, bis sie mit „Gelesen“ weggeklickt wird. Links
  * „Meine Fahrten“ mit laufender Fahrt („Zurückgeben“), Fahrt, die beginnen
  * kann („Fahrt beginnen“), und der nächsten genehmigten Fahrt. Rechts
  * höchstens drei noch nicht bestätigte Anträge.
  *
- * Fuhrparkleiter: links „Zu erledigen“ mit den drei ältesten offenen Anträgen
+ * Fuhrparkleiter: links „Zu erledigen“ mit den drei nächsten offenen Anträgen
  * zum direkten Entscheiden. Rechts die neuen Schäden (Fahrzeug gesperrt,
  * noch ohne Wartungsende), die Zahl der Fahrzeuge, die ein Schaden in
  * Wartung hält und ein Hinweis auf überschrittene Wartungsenden. Zuletzt über
@@ -52,7 +52,7 @@ $pageTitle = 'Übersicht';
 $pageZusatz = datum_lang($heute);
 
 // So viele offene Anträge stehen direkt auf der Übersicht: beim
-// Fuhrparkleiter die ältesten zum Entscheiden (die übrigen in
+// Fuhrparkleiter die nächsten zum Entscheiden (die übrigen in
 // genehmigungen.php), beim Mitarbeiter die nächsten (die übrigen in
 // meine-buchungen.php).
 $antraegeAufUebersicht = 3;
@@ -94,7 +94,7 @@ if (!ist_fuhrparkleiter()) {
 
     $Naechste = $ListeMeine->GetNaechsteGenehmigte();
 
-    // Benachrichtigungen über Ablehnungen und Stornierungen wegen Wartung,
+    // Benachrichtigungen über Ablehnungen und automatische Stornierungen,
     // bis sie als gelesen markiert sind
     $ListeEntscheidungen = new CListeBuchungen();
     $ListeEntscheidungen->LadenUngeleseneEntscheidungen($ich);
@@ -123,7 +123,7 @@ if (ist_fuhrparkleiter()) {
     $bannerFahrten = $ListeUeberfaellige->GetAlle();
     $bannerMitNamen = true;
 
-    // Offene Anträge, älteste zuerst, wie in genehmigungen.php
+    // Offene Anträge, die nächste Fahrt zuerst, wie in genehmigungen.php
     $ListeAntraege = new CListeBuchungen();
     $ListeAntraege->LadenOffeneAntraege();
 
@@ -197,7 +197,7 @@ require_once __DIR__ . '/includes/header.php';
                     <?= $anzahl === 0 ? 'keine offenen Anträge' : e((string) $anzahl) . ($anzahl === 1 ? ' offener Antrag' : ' offene Anträge') ?>
                 </span>
                 <?php if ($anzahl > count($fuhrpark['antraege'])): ?>
-                    <span class="abschnitt__zusatz">die <?= e((string) count($fuhrpark['antraege'])) ?> ältesten</span>
+                    <span class="abschnitt__zusatz">die <?= e((string) count($fuhrpark['antraege'])) ?> nächsten</span>
                 <?php endif; ?>
             </h2>
 

@@ -4,7 +4,7 @@
 -- relativ zum heutigen Tag, damit jede Seite zu jedem Zeitpunkt alle Zustände
 -- zeigt: offen, genehmigt, unterwegs (davon eine überfällig), abgeschlossen,
 -- abgelehnt und storniert. Dazu Schäden: offen und behoben, Kleinschäden und
--- Schäden mit Wartung, gemeldet bei Rückgabe oder Übernahme.
+-- schwere Schäden, gemeldet bei Rückgabe oder Übernahme.
 --
 -- Die IDs 11–24 entsprechen den Beispieldaten der Prototyp-Seiten. Ab 56
 -- folgen weitere Buchungen, ab 60 ältere Fahrten über etwa vier Monate. Die
@@ -20,7 +20,7 @@
 --   status_id  1 beantragt (offen), 2 genehmigt, 3 unterwegs, 4 abgeschlossen,
 --              5 abgelehnt, 6 storniert
 --   anlass_id  1 bei Übernahme, 2 bei Rückgabe
---   schwere_id 1 Kleinschaden, 2 Schaden mit Wartung
+--   schwere_id 1 Kleinschaden, 2 schwerer Schaden
 
 SET NAMES utf8mb4;
 
@@ -97,7 +97,11 @@ VALUES
     (120, 16, 4, 4, @heute + INTERVAL 12 DAY, @heute + INTERVAL 13 DAY, 5, 2, 2,
         TIMESTAMP(@heute - INTERVAL 7 DAY, '14:30'), 6, TIMESTAMP(@heute - INTERVAL 6 DAY, '09:25'), NULL),
     (121, 18, 3, 3, @heute + INTERVAL 8 DAY,  @heute + INTERVAL 9 DAY,  1, 5, 1,
-        TIMESTAMP(@heute - INTERVAL 2 DAY, '12:15'), NULL, NULL, NULL);
+        TIMESTAMP(@heute - INTERVAL 2 DAY, '12:15'), NULL, NULL, NULL),
+    -- Finn: Rad 2 vorgestern, genehmigt, aber nie begonnen. Wird beim ersten
+    -- Seitenaufruf automatisch storniert (CBuchung::StorniereVerfallene()).
+    (122, 9, 3, 3, @heute - INTERVAL 2 DAY,   @heute - INTERVAL 2 DAY,   3, 1, 2,
+        TIMESTAMP(@heute - INTERVAL 5 DAY, '10:40'), NULL, NULL, NULL);
 
 
 -- Unterwegs. km_start ist der km-Stand des Fahrzeugs bei Fahrtbeginn.
@@ -148,7 +152,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 15 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 14 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 11 DAY, '07:45'), 48166,
         TIMESTAMP(@heute - INTERVAL 11 DAY, '17:05'), 48250, NULL),
-    -- Schaden mit Wartung (Schaden 1): Sprinter steht deshalb in Wartung (stammdaten.sql)
+    -- schwerer Schaden (Schaden 1): Sprinter steht deshalb in Wartung (stammdaten.sql)
     (36, 4, 5, 5, @heute - INTERVAL 15 DAY,  @heute - INTERVAL 13 DAY,  1, 3, 4,
         TIMESTAMP(@heute - INTERVAL 19 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 18 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 15 DAY, '07:00'), 87167,
@@ -203,7 +207,7 @@ VALUES
         TIMESTAMP(@heute - INTERVAL 48 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 47 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 44 DAY, '08:00'), 47706,
         TIMESTAMP(@heute - INTERVAL 44 DAY, '16:40'), 47824, NULL),
-    -- Schaden mit Wartung, nach der Reparatur freigegeben (Schaden 6)
+    -- schwerer Schaden, nach der Reparatur freigegeben (Schaden 6)
     (46, 3, 3, 3, @heute - INTERVAL 51 DAY,  @heute - INTERVAL 50 DAY,  1, 3, 4,
         TIMESTAMP(@heute - INTERVAL 55 DAY, '10:00'), 6, TIMESTAMP(@heute - INTERVAL 54 DAY, '09:00'),
         TIMESTAMP(@heute - INTERVAL 51 DAY, '07:00'), 112072,

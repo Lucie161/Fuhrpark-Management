@@ -76,7 +76,7 @@ const ANLASS_UEBERNAHME = 1;
 const ANLASS_RUECKGABE  = 2;
 
 // --- schweregrade -----------------------------------------------------------
-// Ein Kleinschaden sperrt nichts; ein Schaden mit Wartung sperrt das Fahrzeug,
+// Ein Kleinschaden sperrt nichts; ein schwerer Schaden sperrt das Fahrzeug,
 // bis der Fuhrparkleiter es freigibt.
 
 const SCHWERE_KLEIN   = 1;

@@ -8,7 +8,8 @@
  * einzelne Zellen. Wochenweise blättern, höchstens 4 Wochen über die heutige
  * Ansicht hinaus, nicht in die Vergangenheit: kalender.php?woche=0 bis 4.
  * Reine Anzeige ohne JavaScript und ohne Verschieben.
- * Gerechnet wird in ganzen Tagen.
+ * Gerechnet wird in ganzen Tagen. Auf dem Handy ist die Fahrzeugspalte
+ * schmaler und die Tage sind kompakter, der Kalender scrollt seitlich.
  *
  * Fuhrparkleiter: alle Fahrzeuge und alle Buchungen, im Balken der Vorname
  * des Fahrers, Fahrer und Zweck im title. Ein Antrag führt zu den offenen
@@ -133,6 +134,11 @@ foreach ($fahrzeuge as $id => $Fahrzeug) {
         ? $anzahlTage - 1
         : min((int) $ansichtVon->diff($Fahrzeug->GetWartungBis())->format('%r%a'), $anzahlTage - 1);
 
+    // Endet die Wartung vor dem Zeitraum, belegt sie keinen Tag.
+    if ($bis < 0) {
+        continue;
+    }
+
     $schluessel = 'w' . $id;
     $balken[$schluessel] = [
         'text'            => 'Wartung',
@@ -145,7 +151,6 @@ foreach ($fahrzeuge as $id => $Fahrzeug) {
         'ueberschneidung' => false,
     ];
 
-    // Endet die Wartung vor dem Zeitraum, ist $bis negativ und nichts wird belegt.
     for ($tag = 0; $tag <= $bis; $tag++) {
         $belegung[$id][$tag] = $schluessel;
     }
@@ -181,17 +186,19 @@ foreach ($ListeBuchungen->GetAlle() as $Buchung) {
     if ($fuhrparkleiter) {
         // Vorname im Balken; hat jemand anderes für den Fahrer gebucht, steht das dabei.
         $text = $Buchung->GetFahrerVorname();
-        $hinweis = $marke[0] . ': ' . $Buchung->GetFahrerName()
+        $zeile = $Buchung->GetFahrerName()
             . ($Buchung->GetAntragstellerID() !== $Buchung->GetFahrerID() ? ' (gebucht von ' . $Buchung->GetAntragstellerName() . ')' : '')
-            . ', ' . $zeitraum . ', ' . $zweck;
+            . ', ' . $zweck;
+        $hinweis = $marke[0] . ': ' . $zeile . ', ' . $zeitraum;
         $link = $antrag ? 'genehmigungen.php' : null;
     } else {
         // Eigene Buchung: der Stand im Balken; andere Namen nur, wenn ich nicht
         // selbst fahre oder nicht selbst gebucht habe.
         $text = $marke[0];
-        $hinweis = $marke[0] . ': ' . $zweck . ', ' . $zeitraum
+        $zeile = $zweck
             . ($Buchung->GetFahrerID() !== $ich ? ', Fahrer: ' . $Buchung->GetFahrerName() : '')
             . ($Buchung->GetAntragstellerID() !== $ich ? ', gebucht von ' . $Buchung->GetAntragstellerName() : '');
+        $hinweis = $marke[0] . ': ' . $zeile . ', ' . $zeitraum;
         $link = $Buchung->IstUeberfaellig() ? 'rueckgabe.php?buchung=' . $Buchung->GetID() : 'meine-buchungen.php';
     }
 
@@ -288,11 +295,10 @@ require_once __DIR__ . '/includes/header.php';
 <p class="lead">
     <?php if ($fuhrparkleiter): ?>
         Belegung aller Fahrzeuge über 14 Tage. Fahrer und Zweck erscheinen beim Zeigen auf eine
-        Buchung; Anträge führen zu den offenen Anträgen.
+        Buchung. Anträge führen zu den offenen Anträgen.
     <?php else: ?>
         Ihre Buchungen über 14 Tage, nur die Fahrzeuge, die Sie gebucht haben. Buchungen anderer
-        sehen Sie hier nicht; ob ein Fahrzeug frei ist, zeigt
-        <a href="<?= url('buchen.php') ?>">Fahrzeug buchen</a>.
+        sehen Sie hier nicht. Ob ein Fahrzeug frei ist, sehen Sie beim Buchen.
     <?php endif; ?>
 </p>
 
@@ -347,11 +353,23 @@ require_once __DIR__ . '/includes/header.php';
                             <th class="kalender__kopf<?= $tag['wochenende'] ? ' kalender__kopf--wochenende' : '' ?><?= $tag['heute'] ? ' kalender__kopf--heute' : '' ?>"
                                 scope="col">
                                 <span class="kalender__wochentag"><?= e($tag['wochentag']) ?></span>
-                                <?= e($tag['datum']->format('d.m.')) ?>
+                                <?= e($tag['datum']->format('d.')) ?><span class="kalender__monat"><?= e($tag['datum']->format('m.')) ?></span>
                             </th>
                         <?php endforeach; ?>
                     </tr>
                 </thead>
+
+                <?php
+                // Gleiche Modelle zählen, sie werden unten durchnummeriert, z. B. „Charger4 (1)“
+                $modellAnzahl = [];
+                foreach ($gruppen as $liste) {
+                    foreach ($liste as $Fahrzeug) {
+                        $modell = $Fahrzeug->GetModell();
+                        $modellAnzahl[$modell] = ($modellAnzahl[$modell] ?? 0) + 1;
+                    }
+                }
+                $modellNr = [];
+                ?>
 
                 <?php foreach ($Fahrzeugarten->GetAlle() as $Art): ?>
                     <?php if (isset($gruppen[$Art->GetID()])): ?>
@@ -365,8 +383,17 @@ require_once __DIR__ . '/includes/header.php';
                             <?php foreach ($gruppen[$Art->GetID()] as $id => $Fahrzeug): ?>
                                 <tr>
                                     <th class="kalender__fahrzeug table__fahrzeug" scope="row">
-                                        <?php $kalenderName = $Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell(); ?>
-                                        <a href="<?= url('fahrzeug.php?id=' . $id) ?>" title="<?= e($kalenderName) ?>"><?= e($kalenderName) ?></a>
+                                        <?php
+                                        // Modell, bei mehreren gleichen mit Nummer
+                                        $modell = $Fahrzeug->GetModell();
+                                        if ($modellAnzahl[$modell] > 1) {
+                                            $modellNr[$modell] = ($modellNr[$modell] ?? 0) + 1;
+                                            $modell .= ' (' . $modellNr[$modell] . ')';
+                                        }
+                                        $kalenderName = $Fahrzeug->GetHersteller() . ' ' . $modell;
+                                        ?>
+                                        <!-- Hersteller fällt auf dem Handy weg, ganz im title -->
+                                        <a href="<?= url('fahrzeug.php?id=' . $id) ?>" title="<?= e($kalenderName) ?>"><span class="kalender__hersteller"><?= e($Fahrzeug->GetHersteller()) ?> </span><?= e($modell) ?></a>
                                         <span class="table__zusatz"><?= e($Fahrzeug->GetKennzeichen()) ?></span>
                                     </th>
 

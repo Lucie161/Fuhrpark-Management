@@ -196,7 +196,7 @@ class CSchaden
     }
 
     /**
-     * Sperrt der Schaden das Fahrzeug? Ein Schaden mit Wartung immer, bei einem
+     * Sperrt der Schaden das Fahrzeug? Ein schwerer Schaden immer, bei einem
      * Luxusauto auch ein Kleinschaden.
      */
     public function Sperrt(): bool

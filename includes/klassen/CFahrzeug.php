@@ -19,6 +19,10 @@ class CFahrzeug
     // Monaten ansteht.
     private const HU_AU_VORLAUF = '+2 month';
 
+    // Steht in entscheidung_kommentar der Buchungen, die beim Ausmustern
+    // storniert werden; der Fahrer liest ihn unter „Frühere Buchungen“.
+    public const STORNO_AUSGEMUSTERT = 'Automatisch storniert: Das Fahrzeug wurde ausgemustert.';
+
     private int $m_ID;
     private string $m_Kennzeichen;
     private int $m_ArtID;
@@ -87,6 +91,83 @@ class CFahrzeug
         $Zeile = $Statement->fetch();
 
         return $Zeile !== false ? new CFahrzeug($Zeile) : null;
+    }
+
+    /**
+     * Mustert das Fahrzeug aus. Nur der Fuhrparkleiter, und nur, wenn niemand
+     * damit unterwegs ist.
+     *
+     * In einer Transaktion: Beantragte und genehmigte Buchungen werden
+     * storniert, eine laufende Wartung endet heute und offene Schäden gelten
+     * als erledigt. Steckbrief und Fahrtenbuch bleiben. Liefert die
+     * stornierten Buchungen mit Namen, für die Bestätigung. Steht etwas im
+     * Weg, wirft sie CFachlicherFehler.
+     */
+    public function Ausmustern(int $in_NutzerID): array
+    {
+        $Nutzer = CNutzer::LoadByID($in_NutzerID);
+
+        if ($Nutzer === null || $Nutzer->GetRolleID() !== ROLLE_FUHRPARKLEITER) {
+            throw new CFachlicherFehler('Ausmustern darf nur der Fuhrparkleiter.');
+        }
+
+        db()->beginTransaction();
+
+        try {
+            // Fahrzeug sperren, damit keine Buchung oder Fahrt dazwischenkommt
+            $Statement = db()->prepare('SELECT geloescht_am FROM fahrzeuge WHERE id = ? FOR UPDATE');
+            $Statement->execute([$this->m_ID]);
+            $Zeile = $Statement->fetch();
+
+            if ($Zeile === false || $Zeile['geloescht_am'] !== null) {
+                throw new CFachlicherFehler('Dieses Fahrzeug ist bereits ausgemustert.');
+            }
+
+            $Statement = db()->prepare('SELECT COUNT(*) FROM buchungen WHERE fahrzeug_id = ? AND status_id = ?');
+            $Statement->execute([$this->m_ID, STATUS_UNTERWEGS]);
+
+            if ((int) $Statement->fetchColumn() > 0) {
+                throw new CFachlicherFehler('Mit dem Fahrzeug ist noch jemand unterwegs. Bitte erst nach der Rückgabe ausmustern.');
+            }
+
+            // Beantragte und genehmigte Buchungen merken und stornieren
+            $Statement = db()->prepare(CBuchung::SQL_MIT_NAMEN . ' WHERE b.fahrzeug_id = ? AND b.status_id IN (?, ?) ORDER BY b.start');
+            $Statement->execute([$this->m_ID, STATUS_OFFEN, STATUS_GENEHMIGT]);
+            $Stornierte = array_map(fn (array $Zeile): CBuchung => new CBuchung($Zeile), $Statement->fetchAll());
+
+            $Statement = db()->prepare(
+                'UPDATE buchungen SET status_id = ?, entscheidung_am = NOW(), entscheidung_kommentar = ?
+                  WHERE fahrzeug_id = ? AND status_id IN (?, ?)'
+            );
+            $Statement->execute([STATUS_STORNIERT, self::STORNO_AUSGEMUSTERT, $this->m_ID, STATUS_OFFEN, STATUS_GENEHMIGT]);
+
+            // Laufende Wartung beenden, offene Schäden als erledigt markieren
+            $Statement = db()->prepare(
+                'UPDATE wartungen SET freigegeben_am = CURDATE(), freigegeben_von = ? WHERE fahrzeug_id = ? AND freigegeben_am IS NULL'
+            );
+            $Statement->execute([$in_NutzerID, $this->m_ID]);
+
+            $Statement = db()->prepare(
+                'UPDATE schaeden s JOIN buchungen b ON b.id = s.buchung_id
+                    SET s.behoben_am = NOW(), s.behoben_von = ?
+                  WHERE b.fahrzeug_id = ? AND s.behoben_am IS NULL'
+            );
+            $Statement->execute([$in_NutzerID, $this->m_ID]);
+
+            // Ausmustern
+            $Statement = db()->prepare('UPDATE fahrzeuge SET geloescht_am = NOW() WHERE id = ?');
+            $Statement->execute([$this->m_ID]);
+
+            db()->commit();
+        } catch (Throwable $Fehler) {
+            // Bei jedem Fehler alles zurücknehmen; die Seite zeigt den Grund.
+            db()->rollBack();
+            throw $Fehler;
+        }
+
+        $this->m_GeloeschtAm = new DateTimeImmutable();
+
+        return $Stornierte;
     }
 
     // --- Fachfunktionen -----------------------------------------------------

@@ -33,6 +33,15 @@ class CListeFahrzeuge
     }
 
     /**
+     * Lädt nur die ausgemusterten Fahrzeuge, das zuletzt ausgemusterte zuerst.
+     * Für den eigenen Abschnitt in fahrzeuge.php.
+     */
+    public function LadenAusgemusterte(): void
+    {
+        $this->Laden(CFahrzeug::SQL . ' WHERE f.geloescht_am IS NOT NULL ORDER BY f.geloescht_am DESC, f.id', []);
+    }
+
+    /**
      * Lädt die Fahrzeuge im Bestand, die für die Suche in buchen.php in Frage
      * kommen: genug Sitzplätze, die gewählte Art (0 = alle) und passend zum
      * Zweck. Ob sie im Zeitraum frei sind, prüft die Seite.

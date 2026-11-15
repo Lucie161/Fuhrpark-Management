@@ -2,7 +2,7 @@
 /**
  * Anträge genehmigen, nur für den Fuhrparkleiter.
  *
- * Alle offenen Anträge, älteste zuerst, jeder als Schild wie auf der
+ * Alle offenen Anträge, die nächste Fahrt zuerst, jeder als Schild wie auf der
  * Übersicht (includes/schild-antrag.php): Antragsteller (und Fahrer, wenn er
  * nicht selbst beantragt hat), Zeitraum, Zweck, wie lange der Antrag schon
  * wartet, rechts Genehmigen und Ablehnen. Genehmigen geht nur, wenn das
@@ -109,7 +109,7 @@ require_once __DIR__ . '/includes/header.php';
             <?= $anzahl === 0 ? 'keine Anträge' : e((string) $anzahl) . ($anzahl === 1 ? ' Antrag' : ' Anträge') ?>
         </span>
         <?php if ($anzahl > 1): ?>
-            <span class="abschnitt__zusatz">älteste zuerst</span>
+            <span class="abschnitt__zusatz">nächste Fahrt zuerst</span>
         <?php endif; ?>
     </h2>
 

@@ -7,7 +7,7 @@
  * Liste mit Fahrern erst hinter „Details“, ohne JavaScript. Mitarbeiter: je
  * eigene Fahrt eine Meldung mit „Zurückgeben“.
  *
- * Weiß, nur Mitarbeiter: je Ablehnung oder Stornierung wegen Wartung eine
+ * Weiß, nur Mitarbeiter: je Ablehnung oder automatischer Stornierung eine
  * Benachrichtigung mit Link zur Buchung und, solange der Zeitraum nicht vorbei
  * ist, zur Suche nach einem Ersatzfahrzeug, bis sie mit „Gelesen“ weggeklickt
  * wird (POST an index.php).
@@ -67,10 +67,19 @@ $bannerHeute = new DateTimeImmutable('today');
         <?php
         $abgelehnt = $Entscheidung->GetStatusID() === STATUS_ABGELEHNT;
         $BannerFahrzeug = CFahrzeug::LoadByID($Entscheidung->GetFahrzeugID());
+
+        // Überschrift je Grund der Absage
+        $bannerTitel = match ($Entscheidung->GetEntscheidungKommentar()) {
+            CWartung::STORNO_GRUND             => 'Wegen Wartung storniert:',
+            CFahrzeug::STORNO_AUSGEMUSTERT     => 'Fahrzeug ausgemustert, storniert:',
+            CBuchung::STORNO_NICHT_ANGETRETEN  => 'Nicht angetreten, storniert:',
+            CBuchung::STORNO_NICHT_ENTSCHIEDEN => 'Antrag verfallen:',
+            default                            => 'Antrag abgelehnt:',
+        };
         ?>
         <div class="banner banner--hinweis banner--<?= $abgelehnt ? 'abgelehnt' : 'storniert' ?> banner__zeile">
             <p class="banner__text">
-                <strong><?= $abgelehnt ? 'Antrag abgelehnt:' : 'Wegen Wartung storniert:' ?></strong>
+                <strong><?= e($bannerTitel) ?></strong>
                 <?= e($BannerFahrzeug->GetHersteller() . ' ' . $BannerFahrzeug->GetModell()) ?>, <?= e(zeitraum_kurz($Entscheidung->GetStart(), $Entscheidung->GetEnde())) ?>.
                 <?php if ($abgelehnt): ?>
                     <span class="banner__zusatz">„<?= e($Entscheidung->GetEntscheidungKommentar()) ?>“</span>

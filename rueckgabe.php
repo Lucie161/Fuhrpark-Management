@@ -39,7 +39,7 @@ $heute = new DateTimeImmutable('today');
 $schadenText = [
     CBuchung::KEIN_SCHADEN => 'Nein',
     SCHWERE_KLEIN          => 'Kleinschaden',
-    SCHWERE_WARTUNG        => 'Mit Wartung',
+    SCHWERE_WARTUNG        => 'Schwerer Schaden',
 ];
 
 // Meine laufenden Fahrten (Status „unterwegs“)
@@ -314,8 +314,8 @@ require_once __DIR__ . '/includes/header.php';
                                 <?php endif; ?>
                             <?php else: ?>
                                 Ein Kleinschaden (z. B. ein Kratzer) sperrt das Fahrzeug nicht; der nächste
-                                Fahrer sieht ihn vor Fahrtbeginn. Mit Wartung ist das Fahrzeug gesperrt, bis
-                                der Fuhrparkleiter es wieder freigibt.
+                                Fahrer sieht ihn vor Fahrtbeginn. Ein schwerer Schaden (das Fahrzeug muss in die
+                                Werkstatt) sperrt es, bis der Fuhrparkleiter es wieder freigibt.
                             <?php endif; ?>
                         </span>
                     </fieldset>

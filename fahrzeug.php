@@ -380,7 +380,7 @@ require_once __DIR__ . '/includes/header.php';
                         <td class="table__stand" data-label="Stand">
                             <?php if ($inWartung): ?>
                                 <span class="marke marke--gelb">In Wartung</span>
-                                <span class="table__zusatz"><?= $Schaden->GetSchwereID() === SCHWERE_WARTUNG ? 'Schaden mit Wartung' : 'Kleinschaden' ?></span>
+                                <span class="table__zusatz"><?= $Schaden->GetSchwereID() === SCHWERE_WARTUNG ? 'Schwerer Schaden' : 'Kleinschaden' ?></span>
                             <?php else: ?>
                                 <span class="marke marke--grau">Kleinschaden</span>
                             <?php endif; ?>

@@ -38,6 +38,11 @@ class CBuchung
     // „Neuer Schaden?“ bei der Rückgabe: 0 heißt nein, sonst die schwere_id.
     public const KEIN_SCHADEN = 0;
 
+    // Gründe für das automatische Stornieren, wenn der Zeitraum vorbei ist
+    // (StorniereVerfallene()). Stehen in entscheidung_kommentar.
+    public const STORNO_NICHT_ANGETRETEN = 'Automatisch storniert: Die Fahrt wurde im gebuchten Zeitraum nicht begonnen.';
+    public const STORNO_NICHT_ENTSCHIEDEN = 'Automatisch storniert: Der Antrag wurde bis zum Ende des Zeitraums nicht entschieden.';
+
     private int $m_ID;
     private int $m_FahrzeugID;
     private int $m_AntragstellerID;
@@ -400,9 +405,10 @@ class CBuchung
     }
 
     /**
-     * Markiert die Benachrichtigung über eine Ablehnung oder eine Stornierung
-     * wegen Wartung als gelesen. Das dürfen Antragsteller und Fahrer; danach
-     * verschwindet sie für beide von der Übersicht.
+     * Markiert die Benachrichtigung über eine Ablehnung oder eine automatische
+     * Stornierung (Wartung, Ausmustern, Zeitraum vorbei) als gelesen. Das
+     * dürfen Antragsteller und Fahrer; danach verschwindet sie für beide von
+     * der Übersicht.
      */
     public function EntscheidungGelesen(int $in_NutzerID): void
     {
@@ -420,6 +426,22 @@ class CBuchung
     }
 
     // --- Ablauf der Fahrt ---------------------------------------------------
+
+    /**
+     * Storniert alle Buchungen, deren Zeitraum vorbei ist, ohne dass die Fahrt
+     * begonnen hat: genehmigte („nicht angetreten“) und nie entschiedene
+     * Anträge. So belegen sie nichts mehr und stehen unter „Frühere
+     * Buchungen“. Läuft bei jedem Seitenaufruf (config.php).
+     */
+    public static function StorniereVerfallene(): void
+    {
+        $Statement = db()->prepare(
+            'UPDATE buchungen SET status_id = ?, entscheidung_am = NOW(), entscheidung_kommentar = ?
+              WHERE status_id = ? AND ende < CURDATE()'
+        );
+        $Statement->execute([STATUS_STORNIERT, self::STORNO_NICHT_ANGETRETEN, STATUS_GENEHMIGT]);
+        $Statement->execute([STATUS_STORNIERT, self::STORNO_NICHT_ENTSCHIEDEN, STATUS_OFFEN]);
+    }
 
     /**
      * Storniert die Buchung. Das dürfen Antragsteller und Fahrer, solange die

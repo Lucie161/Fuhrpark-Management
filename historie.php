@@ -2,8 +2,8 @@
 /**
  * Historie: Fahrtenbuch aller Fahrzeuge, nur für den Fuhrparkleiter.
  *
- * Nur die Liste, ohne Kennzahlen; ausgewertet wird im Dashboard
- * (dashboard.php). Über der Tabelle eine Suche und die Filter als
+ * Nur die Liste, ohne Kennzahlen; ausgewertet wird in der Analyse
+ * (analyse.php). Über der Tabelle eine Suche und die Filter als
  * GET-Formular, damit sich eine Auswahl als Link weitergeben lässt.
  *
  * Aufruf: historie.php, mit Zeitraum historie.php?von=2026-09-01&bis=2026-09-30,
@@ -154,8 +154,7 @@ require_once __DIR__ . '/includes/header.php';
 
 <p class="lead">
     Fahrtenbuch aller Fahrzeuge: abgeschlossene Fahrten mit km-Ständen, gemeldeten Schäden und
-    Bemerkungen, dazu die Wartungen. Eine Fahrt zählt zum Tag ihrer Rückgabe. Auswertungen stehen
-    im <a href="<?= url('dashboard.php') ?>">Dashboard</a>.
+    Bemerkungen, dazu die Wartungen. Eine Fahrt zählt zum Tag ihrer Rückgabe.
 </p>
 
 <?php
@@ -249,7 +248,7 @@ require __DIR__ . '/includes/auswertung-filterleiste.php';
                             $bemerkung = $Fahrt->GetBemerkung();
 
                             $marke = match (true) {
-                                $Schaden !== null && $Schaden->GetSchwereID() === SCHWERE_WARTUNG => ['Schaden mit Wartung', 'gelb'],
+                                $Schaden !== null && $Schaden->GetSchwereID() === SCHWERE_WARTUNG => ['Schwerer Schaden', 'gelb'],
                                 $Schaden !== null => ['Kleinschaden', 'grau'],
                                 $bemerkung !== '' => ['Bemerkung', 'grau'],
                                 default           => null,

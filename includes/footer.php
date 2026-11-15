@@ -3,8 +3,8 @@
  * Fußbereich jeder Seite: schließt den Inhalt und lädt das Skript.
  *
  * Links die Anwendung, in der Mitte für Mitarbeiter der Fuhrparkleiter als
- * Ansprechpartner, rechts die Anschrift der Firma. $Angemeldet kommt aus
- * header.php.
+ * Ansprechpartner mit der Adresse des Fuhrparks, rechts die Anschrift der Firma.
+ * $Angemeldet kommt aus header.php.
  */
 
 declare(strict_types=1);
@@ -19,7 +19,7 @@ if ($FussNutzer !== null && $FussNutzer->GetRolleID() === ROLLE_MITARBEITER) {
 
     foreach ($FussListe->GetAlle() as $Eintrag) {
         if ($Eintrag->GetRolleID() === ROLLE_FUHRPARKLEITER) {
-            $fussKontakt[] = $Eintrag->GetName();
+            $fussKontakt[] = $Eintrag;
         }
     }
 }
@@ -37,9 +37,10 @@ if ($FussNutzer !== null && $FussNutzer->GetRolleID() === ROLLE_MITARBEITER) {
         <?php if ($fussKontakt !== []): ?>
             <div class="fussleiste__block">
                 <p class="fussleiste__titel">Fragen zum Fuhrpark</p>
-                <?php foreach ($fussKontakt as $kontakt): ?>
-                    <p><?= e($kontakt) ?>, Fuhrparkleiter</p>
+                <?php foreach ($fussKontakt as $Kontakt): ?>
+                    <p><?= e($Kontakt->GetName()) ?>, Fuhrparkleiter</p>
                 <?php endforeach; ?>
+                <p><a href="mailto:<?= e(FUHRPARK_EMAIL) ?>"><?= e(FUHRPARK_EMAIL) ?></a></p>
             </div>
         <?php endif; ?>
 

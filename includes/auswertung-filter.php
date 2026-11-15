@@ -1,6 +1,6 @@
 <?php
 /**
- * Zeitraum und Filter für historie.php und dashboard.php, aus der Adresse
+ * Zeitraum und Filter für historie.php und analyse.php, aus der Adresse
  * (GET): von, bis, auswahl ('art:1' = Kategorie, 'id:3' = ein Fahrzeug) und
  * fahrer (Nutzer-ID). Ungültige Angaben landen als Satz in $fehler.
  *

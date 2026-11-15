@@ -21,7 +21,9 @@
  * nur die Meldung dazu.
  *
  * Aufruf aus dem Steckbrief: buchen.php?fahrzeug=1, das Fahrzeug steht dann
- * oben. Die Suche steht in der Adresse, z. B.
+ * oben. Kann der Fahrer es nicht buchen, nennt ein Hinweis den Grund: was
+ * nicht vom Zeitraum abhängt (Führerschein, Freigabe, Wartung, überfällig)
+ * schon vor der Suche, alles andere danach. Die Suche steht in der Adresse, z. B.
  * buchen.php?beginn=2026-10-07&ende=2026-10-08&zweck=1 (Zweck und
  * Fahrzeugart als ID aus den Schlüsseltabellen).
  */
@@ -211,8 +213,8 @@ if ($suche === [] && $meineSperre === null) {
     }
 }
 
-// Aus dem Steckbrief vorgewählt, aber nicht in der Liste: Hinweis mit dem
-// Grund statt stillem Fehlen.
+// Aus dem Steckbrief vorgewählt, aber nicht buchbar: Hinweis mit dem Grund
+// statt stillem Fehlen.
 $auswahlHinweis = null;
 
 if ($suche !== [] && $Vorwahl !== null && !isset($liste[$auswahl])) {
@@ -224,6 +226,27 @@ if ($suche !== [] && $Vorwahl !== null && !isset($liste[$auswahl])) {
         $auswahlHinweis = $Vorwahl->GetName() . ': ' . $zweckGrund;
     } elseif ($Vorwahl->GetSitzplaetze() < $personen) {
         $auswahlHinweis = $Vorwahl->GetName() . ' hat nur ' . $Vorwahl->GetSitzplaetze() . ' Sitzplätze.';
+    }
+
+    if ($auswahlHinweis !== null) {
+        $auswahlHinweis .= ' Bitte wählen Sie ein anderes Fahrzeug, einen anderen Zeitraum oder Zweck.';
+    }
+} elseif ($suche === [] && $Vorwahl !== null && !$Vorwahl->IstAusgemustert()) {
+    // Vor der Suche: Gründe, die nicht vom Zeitraum abhängen, gleich nennen.
+    // Ob das Fahrzeug im Zeitraum frei ist, zeigt erst die Suche.
+    $anderer = ' Wählen Sie ein anderes Fahrzeug oder buchen Sie für einen Kollegen, der es fahren darf.';
+    $spaeter = ' Wählen Sie einen späteren Zeitraum oder ein anderes Fahrzeug.';
+
+    $auswahlHinweis = match (true) {
+        !$Fahrer->HatFuehrerschein($Vorwahl->GetFuehrerschein()) => $grundText['fuehrerschein'] . '.' . $anderer,
+        $Vorwahl->FehltFreigabe($Fahrer)                          => $grundText['luxus'] . '.' . $anderer,
+        $Vorwahl->IstUeberfaellig()                               => 'ist vom vorigen Fahrer noch nicht zurückgegeben.' . $spaeter,
+        $Vorwahl->IstInWartung()                                  => 'ist derzeit in Wartung (' . $Vorwahl->GetWartungText() . ').' . $spaeter,
+        default                                                   => null,
+    };
+
+    if ($auswahlHinweis !== null) {
+        $auswahlHinweis = $Vorwahl->GetName() . ' ' . $auswahlHinweis;
     }
 }
 
@@ -393,7 +416,7 @@ require_once __DIR__ . '/includes/header.php';
                 <span class="abschnitt__wert"><?= e((string) count($alleFahrzeuge)) ?> im Bestand</span>
             </h2>
             <p class="abschnitt__hinweis">
-                <?php if ($Vorwahl !== null): ?>
+                <?php if ($Vorwahl !== null && $auswahlHinweis === null): ?>
                     Wählen Sie Zeitraum und Zweck, dann sehen Sie, ob <?= e($Vorwahl->GetName()) ?> frei ist.
                 <?php else: ?>
                     Wählen Sie Zeitraum und Zweck, dann sehen Sie, welche frei sind.
@@ -419,7 +442,7 @@ require_once __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
             <?php if ($auswahlHinweis !== null): ?>
-                <p class="alert alert--hinweis"><?= e($auswahlHinweis) ?> Bitte wählen Sie ein anderes Fahrzeug, einen anderen Zeitraum oder Zweck.</p>
+                <p class="alert alert--hinweis"><?= e($auswahlHinweis) ?></p>
             <?php endif; ?>
 
             <?php foreach ($suche !== [] ? $liste : $alleFahrzeuge as $id => $SchildFahrzeug): ?>

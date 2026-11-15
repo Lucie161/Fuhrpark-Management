@@ -8,9 +8,10 @@
  * gemeldeten Schäden stehen in schaeden.php, hier nur ein Hinweis am
  * Fahrzeug. Mitarbeiter finden die Fahrzeuge in buchen.php und im Steckbrief.
  *
- * Statuspflege, keine Stammdatenpflege: Fahrzeuge werden hier weder angelegt
- * noch gelöscht. Ausgemusterte Fahrzeuge (geloescht_am gesetzt) stehen nicht
- * in der Liste.
+ * Statuspflege, keine Stammdatenpflege: Fahrzeuge werden hier nicht angelegt
+ * und ihre Merkmale nicht geändert. „Ausmustern“ (CFahrzeug::Ausmustern(),
+ * mit Rückfrage als Popup) nimmt ein Fahrzeug aus dem Bestand; die
+ * ausgemusterten stehen getrennt in einer eigenen Tabelle unter der Liste.
  *
  * Filter und Sortierung kommen per GET, ohne JavaScript, z. B.
  * fahrzeuge.php?art=1&sortierung=hu_au&richtung=auf. Übernommen werden nur
@@ -140,6 +141,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect($zurueck);
         }
 
+        // Ausmustern: Buchungen werden storniert, die Bestätigung zählt sie auf
+        if ($aktion === 'ausmustern') {
+            $Stornierte = $Fahrzeug->Ausmustern($ich);
+
+            merke_meldung(
+                $Fahrzeug->GetName() . ' ist ausgemustert und kann nicht mehr gebucht werden.'
+                    . stornierte_text($Stornierte),
+                'erfolg',
+                ['Zum Steckbrief', 'fahrzeug.php?id=' . $id]
+            );
+            redirect($seite);
+        }
+
         if ($aktion !== 'wartung' && $aktion !== 'verlaengern') {
             throw new CFachlicherFehler('Diese Aktion gibt es nicht.');
         }
@@ -197,6 +211,10 @@ $ListeBestand = new CListeFahrzeuge();
 $ListeBestand->LadenImBestand();
 $anzahlBestand = $ListeBestand->Count();
 
+// Ausgemusterte, getrennt unter der Liste
+$ListeAusgemustert = new CListeFahrzeuge();
+$ListeAusgemustert->LadenAusgemusterte();
+
 // Spalten der Tabelle: Überschrift, Sortierung (null = nicht sortierbar),
 // CSS-Klasse. Der Stand steht hinter den Kennwerten, damit er auf dem Handy
 // rechts neben dem Kennzeichen sitzt (.table--stapel).
@@ -242,19 +260,8 @@ function wartung_meldung(CFahrzeug $Fahrzeug, CWartung $Wartung, array $buchunge
 {
     // Bis wann das Fahrzeug gesperrt ist
     $text = $Fahrzeug->GetName() . ' ist in Wartung, voraussichtlich bis '
-        . $Wartung->GetVoraussichtlichBis()->format('d.m.Y') . '. Bis dahin kann es nicht gebucht werden.';
-
-    // Die stornierten Buchungen mit Zeitraum und Fahrer aufzählen
-    $storniert = array_map(
-        fn (CBuchung $Buchung): string => zeitraum_text($Buchung->GetStart(), $Buchung->GetEnde())
-            . ' (' . $Buchung->GetFahrerName() . ')',
-        $Wartung->GetStornierte()
-    );
-
-    if ($storniert !== []) {
-        $text .= ' Automatisch storniert, die Fahrer sehen den Grund unter „Frühere Buchungen“: '
-            . implode('; ', $storniert) . '.';
-    }
+        . $Wartung->GetVoraussichtlichBis()->format('d.m.Y') . '. Bis dahin kann es nicht gebucht werden.'
+        . stornierte_text($Wartung->GetStornierte());
 
     // Laufende Fahrten storniert niemand; der Fuhrparkleiter muss die
     // Rückgabe selbst klären.
@@ -266,6 +273,26 @@ function wartung_meldung(CFahrzeug $Fahrzeug, CWartung $Wartung, array $buchunge
     }
 
     return $text;
+}
+
+/**
+ * Satz zu den automatisch stornierten Buchungen mit Zeitraum und Fahrer, leer
+ * ohne Stornierung.
+ */
+function stornierte_text(array $buchungen): string
+{
+    if ($buchungen === []) {
+        return '';
+    }
+
+    $liste = array_map(
+        fn (CBuchung $Buchung): string => zeitraum_text($Buchung->GetStart(), $Buchung->GetEnde())
+            . ' (' . $Buchung->GetFahrerName() . ')',
+        $buchungen
+    );
+
+    return ' Automatisch storniert, die Fahrer sehen den Grund unter „Frühere Buchungen“: '
+        . implode('; ', $liste) . '.';
 }
 
 /**
@@ -285,8 +312,8 @@ require_once __DIR__ . '/includes/header.php';
 ?>
 
 <p class="lead">
-    Fahrzeuge für Wartung oder Reparatur sperren und wieder freigeben. Gemeldete Schäden stehen
-    unter <a href="<?= url('schaeden.php') ?>">Schäden</a>.
+    Übersicht aller Fahrzeuge. Hier setzen Sie ein Fahrzeug in Wartung, geben es wieder frei oder
+    mustern es aus.
 </p>
 
 <?php if ($fehler !== []): ?>
@@ -297,51 +324,61 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 <?php endif; ?>
 
-<!-- Filterleiste: per GET, die Sortierung bleibt erhalten -->
-<form class="filter" method="get" action="<?= url('fahrzeuge.php') ?>">
-    <?php if (isset($ansicht['sortierung'])): ?>
-        <input type="hidden" name="sortierung" value="<?= e($sortierung) ?>">
-        <input type="hidden" name="richtung" value="<?= e($richtung) ?>">
-    <?php endif; ?>
-
-    <div class="filter__feld filter__feld--schmal">
-        <label class="form__label" for="art">Fahrzeugart</label>
-        <select class="form__input" id="art" name="art">
-            <option value="">Alle</option>
-            <?php foreach ($Fahrzeugarten->GetAlle() as $Art): ?>
-                <?php $wert = (string) $Art->GetID(); ?>
-                <option value="<?= e($wert) ?>"<?= $wert === $filter['art'] ? ' selected' : '' ?>><?= e($Art->GetPlural()) ?></option>
-            <?php endforeach; ?>
-        </select>
-    </div>
-
-    <div class="filter__feld filter__feld--schmal">
-        <label class="form__label" for="status">Stand</label>
-        <select class="form__input" id="status" name="status">
-            <option value="">Alle</option>
-            <?php foreach ($standMarke as $wert => $marke): ?>
-                <option value="<?= e($wert) ?>"<?= $wert === $filter['status'] ? ' selected' : '' ?>><?= e($marke[0]) ?></option>
-            <?php endforeach; ?>
-        </select>
-    </div>
-
-    <div class="filter__feld filter__feld--schmal">
-        <label class="form__label" for="hu_au">HU/AU</label>
-        <select class="form__input" id="hu_au" name="hu_au">
-            <option value="">Alle</option>
-            <option value="faellig"<?= $filter['hu_au'] === 'faellig' ? ' selected' : '' ?>>bald fällig oder überfällig</option>
-        </select>
-    </div>
-
-    <div class="aktionen">
-        <button class="button" type="submit">Filtern</button>
-
-        <?php if (array_filter($filter) !== []): ?>
-            <a class="button button--zweitrangig"
-               href="<?= e(url('fahrzeuge.php' . (isset($ansicht['sortierung']) ? '?' . http_build_query(['sortierung' => $sortierung, 'richtung' => $richtung]) : ''))) ?>">Filter zurücksetzen</a>
+<!-- Filterleiste: per GET, die Sortierung bleibt erhalten. Auf dem Handy
+     zugeklappt, solange kein Filter gesetzt ist, am Desktop immer offen. -->
+<?php $anzahlFilter = count(array_filter($filter)); ?>
+<details class="filterklappe"<?= $anzahlFilter > 0 ? ' open' : '' ?>>
+    <summary class="filterklappe__kopf">
+        Filter
+        <?php if ($anzahlFilter > 0): ?>
+            <span class="filterklappe__zusatz"><?= e((string) $anzahlFilter) ?> gesetzt</span>
         <?php endif; ?>
-    </div>
-</form>
+    </summary>
+    <form class="filter" method="get" action="<?= url('fahrzeuge.php') ?>">
+        <?php if (isset($ansicht['sortierung'])): ?>
+            <input type="hidden" name="sortierung" value="<?= e($sortierung) ?>">
+            <input type="hidden" name="richtung" value="<?= e($richtung) ?>">
+        <?php endif; ?>
+
+        <div class="filter__feld filter__feld--schmal">
+            <label class="form__label" for="art">Fahrzeugart</label>
+            <select class="form__input" id="art" name="art">
+                <option value="">Alle</option>
+                <?php foreach ($Fahrzeugarten->GetAlle() as $Art): ?>
+                    <?php $wert = (string) $Art->GetID(); ?>
+                    <option value="<?= e($wert) ?>"<?= $wert === $filter['art'] ? ' selected' : '' ?>><?= e($Art->GetPlural()) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="filter__feld filter__feld--schmal">
+            <label class="form__label" for="status">Stand</label>
+            <select class="form__input" id="status" name="status">
+                <option value="">Alle</option>
+                <?php foreach ($standMarke as $wert => $marke): ?>
+                    <option value="<?= e($wert) ?>"<?= $wert === $filter['status'] ? ' selected' : '' ?>><?= e($marke[0]) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="filter__feld filter__feld--schmal">
+            <label class="form__label" for="hu_au">HU/AU</label>
+            <select class="form__input" id="hu_au" name="hu_au">
+                <option value="">Alle</option>
+                <option value="faellig"<?= $filter['hu_au'] === 'faellig' ? ' selected' : '' ?>>bald fällig oder überfällig</option>
+            </select>
+        </div>
+
+        <div class="aktionen">
+            <button class="button" type="submit">Filtern</button>
+
+            <?php if (array_filter($filter) !== []): ?>
+                <a class="button button--zweitrangig"
+                   href="<?= e(url('fahrzeuge.php' . (isset($ansicht['sortierung']) ? '?' . http_build_query(['sortierung' => $sortierung, 'richtung' => $richtung]) : ''))) ?>">Filter zurücksetzen</a>
+            <?php endif; ?>
+        </div>
+    </form>
+</details>
 
 <section aria-labelledby="fahrzeugliste">
     <h2 class="abschnitt" id="fahrzeugliste">
@@ -455,6 +492,48 @@ require_once __DIR__ . '/includes/header.php';
                                 <a class="button button--klein button--zweitrangig"
                                    href="<?= e(url('fahrzeuge.php?' . http_build_query($ansicht + ['formular' => $id]))) ?>#formular"><?= e($knopf) ?></a>
                             <?php endif; ?>
+
+                            <?php if (!$Fahrzeug->IstUnterwegs()): ?>
+                                <!-- Rückfrage als Popup wie beim Stornieren, geht ohne JavaScript -->
+                                <?php $popup = 'ausmustern-' . $id; ?>
+                                <button class="button button--klein button--gefahr" type="button" popovertarget="<?= e($popup) ?>">Ausmustern</button>
+
+                                <div class="rueckfrage" id="<?= e($popup) ?>" popover>
+                                    <form method="post" action="<?= e(url($seite)) ?>">
+                                        <input type="hidden" name="fahrzeug" value="<?= e((string) $id) ?>">
+                                        <input type="hidden" name="aktion" value="ausmustern">
+                                        <p class="rueckfrage__titel">
+                                            <span class="icon icon--warnung" aria-hidden="true"></span>
+                                            Fahrzeug ausmustern?
+                                        </p>
+                                        <dl class="felder">
+                                            <div class="feld">
+                                                <dt>Fahrzeug</dt>
+                                                <dd><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></dd>
+                                            </div>
+                                            <div class="feld">
+                                                <dt>Kennzeichen</dt>
+                                                <dd><?= e($Fahrzeug->GetKennzeichen()) ?></dd>
+                                            </div>
+                                        </dl>
+                                        <p class="rueckfrage__text">
+                                            Es kann danach nicht mehr gebucht werden.
+                                            <?php if ($buchungen !== []): ?>
+                                                <?= e((string) count($buchungen)) ?> <?= count($buchungen) === 1 ? 'Buchung wird' : 'Buchungen werden' ?> storniert.
+                                            <?php endif; ?>
+                                            <?php if ($Fahrzeug->IstInWartung()): ?>
+                                                Die Wartung endet, offene Schäden gelten als erledigt.
+                                            <?php endif; ?>
+                                            Steckbrief und Fahrtenbuch bleiben erhalten.
+                                        </p>
+                                        <div class="aktionen">
+                                            <button class="button button--klein button--zweitrangig" type="button"
+                                                    popovertarget="<?= e($popup) ?>" popovertargetaction="hide">Abbrechen</button>
+                                            <button class="button button--klein button--gefahr-voll" type="submit">Ja, ausmustern</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </td>
                 </tr>
@@ -548,5 +627,43 @@ require_once __DIR__ . '/includes/header.php';
         </tbody>
     </table>
 </section>
+
+<?php if ($ListeAusgemustert->Count() > 0): ?>
+    <!-- Ausgemusterte Fahrzeuge: nicht mehr buchbar, Steckbrief und Fahrtenbuch bleiben -->
+    <section class="fahrzeuge-ausgemustert" aria-labelledby="ausgemustert">
+        <h2 class="abschnitt" id="ausgemustert">
+            Ausgemustert
+            <span class="abschnitt__wert"><?= e((string) $ListeAusgemustert->Count()) ?> <?= $ListeAusgemustert->Count() === 1 ? 'Fahrzeug' : 'Fahrzeuge' ?></span>
+        </h2>
+
+        <table class="table table--stapel fahrzeugliste">
+            <thead>
+                <tr>
+                    <th>Fahrzeug</th>
+                    <th>Art</th>
+                    <th>Baujahr</th>
+                    <th class="table__num">km-Stand</th>
+                    <th>Ausgemustert am</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($ListeAusgemustert->GetAlle() as $Fahrzeug): ?>
+                    <tr>
+                        <td class="table__fahrzeug">
+                            <a href="<?= url('fahrzeug.php?id=' . $Fahrzeug->GetID()) ?>"><?= e($Fahrzeug->GetHersteller() . ' ' . $Fahrzeug->GetModell()) ?></a>
+                            <span class="table__zusatz"><?= e($Fahrzeug->GetKennzeichen()) ?></span>
+                        </td>
+                        <td data-label="Art"><?= e($Fahrzeugarten->GetBezeichnung($Fahrzeug->GetArtID())) ?></td>
+                        <td data-label="Baujahr"><?= $Fahrzeug->GetBaujahr() !== null ? e((string) $Fahrzeug->GetBaujahr()) : '&ndash;' ?></td>
+                        <td class="table__num" data-label="km-Stand">
+                            <?= $Fahrzeug->GetKmStand() !== null ? e(number_format($Fahrzeug->GetKmStand(), 0, ',', '.')) : '&ndash;' ?>
+                        </td>
+                        <td data-label="Ausgemustert am"><?= e($Fahrzeug->GetGeloeschtAm()->format('d.m.Y')) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </section>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

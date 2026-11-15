@@ -18,6 +18,9 @@ const FIRMA_NAME    = 'Helios Solar GmbH';
 const FIRMA_STRASSE = 'Sokratesplatz 1';
 const FIRMA_ORT     = '24149 Kiel';
 
+// Sammeladresse des Fuhrparks, im Fuß unter „Fragen zum Fuhrpark“
+const FUHRPARK_EMAIL = 'fuhrpark@helios-solar.de';
+
 // 'dev' zeigt PHP-Fehler im Browser an, 'prod' blendet sie aus.
 // Vor dem Live-Gang auf 'prod' stellen.
 const APP_ENV = 'dev';
@@ -78,3 +81,6 @@ spl_autoload_register(function (string $klasse): void {
         require_once $datei;
     }
 });
+
+// Buchungen, deren Zeitraum ohne Fahrtbeginn vorbei ist, verfallen.
+CBuchung::StorniereVerfallene();

@@ -1,6 +1,6 @@
 <?php
 /**
- * Filterleiste für historie.php und dashboard.php: Zeitraum, Fahrzeug oder
+ * Filterleiste für historie.php und analyse.php: Zeitraum, Fahrzeug oder
  * Kategorie und Mitarbeiter in einem GET-Formular, damit sich eine Auswahl
  * als Link weitergeben lässt.
  *

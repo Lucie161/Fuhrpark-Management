@@ -32,7 +32,7 @@ $nav = [
     'kalender.php'            => ['Kalender',            [ROLLE_MITARBEITER, ROLLE_FUHRPARKLEITER]],
     'genehmigungen.php'       => ['Anträge genehmigen',  [ROLLE_FUHRPARKLEITER]],
     'historie.php'            => ['Historie',            [ROLLE_FUHRPARKLEITER]],
-    'dashboard.php'           => ['Dashboard',           [ROLLE_FUHRPARKLEITER]],
+    'analyse.php'             => ['Analyse',             [ROLLE_FUHRPARKLEITER]],
 ];
 
 // Seiten ohne eigenen Navigationspunkt => Punkt, der für sie aktiv ist.
@@ -52,6 +52,8 @@ $Angemeldet = is_logged_in() ? CNutzer::LoadByID(aktueller_nutzer()) : null;
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($pageTitle) ?> &ndash; <?= e(APP_NAME) ?></title>
+    <link rel="icon" type="image/png" href="<?= url('assets/img/app-icon.png') ?>">
+    <link rel="apple-touch-icon" href="<?= url('assets/img/app-icon.png') ?>">
     <link rel="stylesheet" href="<?= url('assets/css/style.css') ?>">
     <!-- Mit JavaScript klappt die Navigation auf dem Handy erst auf Knopfdruck auf. -->
     <script>document.documentElement.classList.add('js');</script>
@@ -61,18 +63,12 @@ $Angemeldet = is_logged_in() ? CNutzer::LoadByID(aktueller_nutzer()) : null;
 <header class="kopfleiste">
     <div class="container kopfleiste__innen">
         <a class="logo" href="<?= url('index.php') ?>">
-            <svg class="logo__zeichen" viewBox="0 0 18 18" aria-hidden="true">
-                <rect x="1" y="1" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"/>
-                <rect x="4" y="4" width="4" height="4" fill="currentColor"/>
-                <rect x="10" y="4" width="4" height="4" fill="currentColor"/>
-                <rect x="4" y="10" width="4" height="4" fill="currentColor"/>
-                <rect x="10" y="10" width="4" height="4" fill="currentColor"/>
-            </svg>
+            <img class="logo__zeichen" src="<?= url('assets/img/app-icon.png') ?>" alt="" width="28" height="28">
             <?= e(APP_NAME) ?>
         </a>
 
-        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="hauptnavigation">
-            Menü
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="hauptnavigation" aria-label="Menü">
+            <span class="icon icon--menue" aria-hidden="true"></span>
         </button>
 
         <nav id="hauptnavigation" class="nav">

@@ -10,7 +10,7 @@
  * Bemerkungen ohne Schaden stehen nur im Fahrtenbuch.
  *
  * Bei Luxusautos sperrt schon ein Kleinschaden das Fahrzeug
- * (CSchaden::Sperrt()); er wird wie ein Schaden mit Wartung durch das
+ * (CSchaden::Sperrt()); er wird wie ein schwerer Schaden durch das
  * Freigeben behoben.
  *
  * Ein Kleinschaden lässt sich als behoben markieren. Hält der Schaden das
@@ -89,9 +89,7 @@ require_once __DIR__ . '/includes/header.php';
 ?>
 
 <p class="lead">
-    Ein Kleinschaden sperrt das Fahrzeug nicht; die Fahrer sehen ihn vor Fahrtbeginn und müssen ihn
-    nicht erneut melden. Ein Schaden mit Wartung sperrt das Fahrzeug bis zur Freigabe, bei
-    Luxusautos schon ein Kleinschaden.
+    Ein schwerer Schaden sperrt das Fahrzeug bis zur Freigabe, ein Kleinschaden nur bei Luxusautos.
 </p>
 
 <?php if ($fehler !== []): ?>
@@ -232,7 +230,7 @@ require_once __DIR__ . '/includes/header.php';
                         <span class="table__zusatz">von <?= e($Schaden->GetFahrerName()) ?></span>
                     </td>
                     <td data-label="Art">
-                        <?= $Schaden->GetSchwereID() === SCHWERE_WARTUNG ? 'Schaden mit Wartung' : 'Kleinschaden' ?>
+                        <?= $Schaden->GetSchwereID() === SCHWERE_WARTUNG ? 'Schwerer Schaden' : 'Kleinschaden' ?>
                         <span class="table__zusatz"><?= e($Anlaesse->GetBezeichnung($Schaden->GetAnlassID())) ?></span>
                     </td>
                     <td class="table__stand" data-label="Stand">

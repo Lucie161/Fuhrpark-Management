@@ -174,7 +174,7 @@ class CWartung
      * Gibt das Fahrzeug wieder frei.
      *
      * Hat ein Schaden die Wartung ausgelöst, gilt er damit als behoben, egal
-     * ob Kleinschaden (Luxusauto) oder Schaden mit Wartung.
+     * ob Kleinschaden (Luxusauto) oder schwerer Schaden.
      */
     public function Freigeben(int $in_NutzerID): void
     {
