@@ -2692,8 +2692,9 @@ a.kalender__balken:hover {
 
 /* --- 8g. Analyse (analyse.php) --------------------------------------------- */
 /* Kennzahlen als Schild, darunter die Diagramme als Schilder: Säulen je
-   Monat über die ganze Breite, darunter nebeneinander km je Fahrzeug und
-   Wartungen je Fahrzeug. Eine Datenfarbe (--daten), Werte direkt an den
+   Woche (oder Monat) über die ganze Breite, darunter zwei Spalten (links km je Fahrzeug
+   und je Antrieb, rechts Wartungen, Auslastung und Zweck), zuletzt der
+   Ausblick mit Buchungen und HU/AU nebeneinander. Eine Datenfarbe (--daten), Werte direkt an den
    Balken, keine Achsen und kein Raster. Die Filterleiste teilt sich die
    Regeln aus 8f. */
 
@@ -2708,7 +2709,7 @@ a.kalender__balken:hover {
     justify-content: space-between;
 }
 
-/* km je Fahrzeug breiter als Wartungen */
+/* Linke Spalte breiter, die Diagramme stehen in jeder Spalte übereinander */
 .analyse__paar {
     display: grid;
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
@@ -2720,7 +2721,7 @@ a.kalender__balken:hover {
     margin-bottom: 0;
 }
 
-/* Ab Auslastung je zwei Diagramme nebeneinander, jedes halb so breit */
+/* Ausblick: zwei Säulendiagramme nebeneinander, jedes halb so breit */
 .analyse__zwei {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2759,7 +2760,8 @@ a.kalender__balken:hover {
     width: min-content;
 }
 
-/* Säulen je Monat: Wert über der Säule, Monat und Fahrten darunter */
+/* Säulen je Woche oder Monat: Wert über der Säule, Woche bzw. Monat und
+   Fahrten darunter */
 .saeulen {
     display: grid;
     grid-auto-columns: minmax(0, 1fr);
@@ -3041,9 +3043,11 @@ a.kalender__balken:hover {
         display: none;
     }
 
-    /* 14 Tage bzw. 13 Monate passen nicht nebeneinander: seitlich scrollen */
+    /* 14 Tage, 13 Monate bzw. bis zu 15 Wochen passen nicht nebeneinander:
+       seitlich scrollen */
     .saeulen--tage,
-    .saeulen--monate {
+    .saeulen--monate,
+    .saeulen--wochen {
         overflow-x: auto;
         grid-auto-columns: minmax(44px, 1fr);
     }

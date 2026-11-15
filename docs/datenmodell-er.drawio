@@ -38,7 +38,7 @@
           <mxGeometry y="54" width="220" height="24" as="geometry" />
         </mxCell>
         <mxCell id="buchungen" value="buchungen" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" vertex="1" parent="1">
-          <mxGeometry x="560" y="200" width="220" height="462" as="geometry" />
+          <mxGeometry x="560" y="200" width="220" height="486" as="geometry" />
         </mxCell>
         <mxCell id="buchungen_0" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen">
           <mxGeometry y="30" width="220" height="24" as="geometry" />
@@ -79,20 +79,23 @@
         <mxCell id="buchungen_12" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;entscheidung_kommentar" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen">
           <mxGeometry y="318" width="220" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="buchungen_13" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;begonnen_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen">
+        <mxCell id="buchungen_18" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;entscheidung_gelesen_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen">
           <mxGeometry y="342" width="220" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="buchungen_14" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;km_start" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen">
+        <mxCell id="buchungen_13" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;begonnen_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen">
           <mxGeometry y="366" width="220" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="buchungen_15" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;zurueckgegeben_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen">
+        <mxCell id="buchungen_14" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;km_start" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen">
           <mxGeometry y="390" width="220" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="buchungen_16" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;km_ende" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen">
+        <mxCell id="buchungen_15" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;zurueckgegeben_am" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen">
           <mxGeometry y="414" width="220" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="buchungen_17" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;bemerkung" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen">
+        <mxCell id="buchungen_16" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;km_ende" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="buchungen">
           <mxGeometry y="438" width="220" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="buchungen_17" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;bemerkung" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="buchungen">
+          <mxGeometry y="462" width="220" height="24" as="geometry" />
         </mxCell>
         <mxCell id="schaeden" value="schaeden" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#2f5d8a;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#2f5d8a;" vertex="1" parent="1">
           <mxGeometry x="1000" y="40" width="220" height="222" as="geometry" />
@@ -206,7 +209,7 @@
           <mxGeometry y="54" width="220" height="24" as="geometry" />
         </mxCell>
         <mxCell id="fahrzeugarten" value="fahrzeugarten" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#6b7c93;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#6b7c93;" vertex="1" parent="1">
-          <mxGeometry x="1000" y="840" width="220" height="78" as="geometry" />
+          <mxGeometry x="1000" y="840" width="220" height="102" as="geometry" />
         </mxCell>
         <mxCell id="fahrzeugarten_0" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="fahrzeugarten">
           <mxGeometry y="30" width="220" height="24" as="geometry" />
@@ -214,8 +217,11 @@
         <mxCell id="fahrzeugarten_1" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;bezeichnung" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#edf3fa;" vertex="1" parent="fahrzeugarten">
           <mxGeometry y="54" width="220" height="24" as="geometry" />
         </mxCell>
+        <mxCell id="fahrzeugarten_2" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;&lt;/span&gt;plural" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="fahrzeugarten">
+          <mxGeometry y="78" width="220" height="24" as="geometry" />
+        </mxCell>
         <mxCell id="antriebe" value="antriebe" style="swimlane;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;arcSize=6;absoluteArcSize=1;shadow=1;fillColor=#6b7c93;swimlaneFillColor=#ffffff;fontColor=#ffffff;strokeColor=#6b7c93;" vertex="1" parent="1">
-          <mxGeometry x="1000" y="950" width="220" height="78" as="geometry" />
+          <mxGeometry x="1000" y="974" width="220" height="78" as="geometry" />
         </mxCell>
         <mxCell id="antriebe_0" value="&lt;span style=&quot;display:inline-block;width:46px;color:#6b7c93;font-size:10px;&quot;&gt;PK&lt;/span&gt;&lt;u&gt;&lt;b&gt;id&lt;/b&gt;&lt;/u&gt;" style="text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=12;fontColor=#1f2933;fillColor=#ffffff;" vertex="1" parent="antriebe">
           <mxGeometry y="30" width="220" height="24" as="geometry" />
@@ -649,8 +655,8 @@
             <mxPoint x="0" y="0" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="hinweis_schluessel" value="&lt;b&gt;Schlüsseltabellen&lt;/b&gt; (graue Kopfzeile)&lt;br&gt;&lt;br&gt;Feste Wertelisten statt ENUM: &lt;span style=&quot;font-family:monospace;&quot;&gt;id&lt;/span&gt;, &lt;span style=&quot;font-family:monospace;&quot;&gt;bezeichnung&lt;/span&gt;.&lt;br&gt;Die IDs sind fest vergeben und entsprechen&lt;br&gt;den Konstanten in &lt;span style=&quot;font-family:monospace;&quot;&gt;includes/konstanten.php&lt;/span&gt;,&lt;br&gt;z. B. &lt;span style=&quot;font-family:monospace;&quot;&gt;STATUS_UNTERWEGS = 3&lt;/span&gt;.&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;buchungsstatus&lt;/span&gt; ist nach dem Ablauf&lt;br&gt;geordnet: 1–3 belegen das Fahrzeug,&lt;br&gt;4–6 sind erledigt." style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#f1f4f8;strokeColor=#6b7c93;" vertex="1" parent="1">
-          <mxGeometry x="-360" y="600" width="320" height="170" as="geometry" />
+        <mxCell id="hinweis_schluessel" value="&lt;b&gt;Schlüsseltabellen&lt;/b&gt; (graue Kopfzeile)&lt;br&gt;&lt;br&gt;Feste Wertelisten statt ENUM: &lt;span style=&quot;font-family:monospace;&quot;&gt;id&lt;/span&gt;, &lt;span style=&quot;font-family:monospace;&quot;&gt;bezeichnung&lt;/span&gt;,&lt;br&gt;bei &lt;span style=&quot;font-family:monospace;&quot;&gt;fahrzeugarten&lt;/span&gt; auch &lt;span style=&quot;font-family:monospace;&quot;&gt;plural&lt;/span&gt;.&lt;br&gt;Die IDs sind fest vergeben und entsprechen&lt;br&gt;den Konstanten in &lt;span style=&quot;font-family:monospace;&quot;&gt;includes/konstanten.php&lt;/span&gt;,&lt;br&gt;z. B. &lt;span style=&quot;font-family:monospace;&quot;&gt;STATUS_UNTERWEGS = 3&lt;/span&gt;.&lt;br&gt;&lt;span style=&quot;font-family:monospace;&quot;&gt;buchungsstatus&lt;/span&gt; ist nach dem Ablauf&lt;br&gt;geordnet: 1–3 belegen das Fahrzeug,&lt;br&gt;4–6 sind erledigt." style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;spacingRight=8;fontColor=#1f2933;fontSize=11;shadow=1;fillColor=#f1f4f8;strokeColor=#6b7c93;" vertex="1" parent="1">
+          <mxGeometry x="-360" y="600" width="320" height="186" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
