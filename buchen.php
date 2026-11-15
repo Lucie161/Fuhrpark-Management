@@ -453,19 +453,20 @@ require_once __DIR__ . '/includes/header.php';
                 $antrieb = $SchildFahrzeug->GetAntriebID();
                 ?>
                 <article class="schild treffer">
-                    <?php require __DIR__ . '/includes/schild-kopf.php'; ?>
+                    <!-- Bild links über Kopf und Feldern, auf dem Handy als Band dazwischen -->
+                    <div class="treffer__raster">
+                        <?php if ($bild !== null && is_file(__DIR__ . '/assets/img/' . $bild)): ?>
+                            <img class="treffer__bild" src="<?= url('assets/img/' . $bild) ?>" alt="" loading="lazy">
+                        <?php else: ?>
+                            <span class="treffer__bild ohne-bild">
+                                <span class="icon icon--<?= art_icon($SchildFahrzeug->GetArtID()) ?>" aria-hidden="true"></span>
+                                kein Bild
+                            </span>
+                        <?php endif; ?>
 
-                    <div class="schild__koerper">
-                        <div class="treffer__inhalt">
-                            <?php if ($bild !== null && is_file(__DIR__ . '/assets/img/' . $bild)): ?>
-                                <img class="treffer__bild" src="<?= url('assets/img/' . $bild) ?>" alt="" loading="lazy">
-                            <?php else: ?>
-                                <span class="treffer__bild ohne-bild">
-                                    <span class="icon icon--<?= art_icon($SchildFahrzeug->GetArtID()) ?>" aria-hidden="true"></span>
-                                    kein Bild
-                                </span>
-                            <?php endif; ?>
+                        <?php require __DIR__ . '/includes/schild-kopf.php'; ?>
 
+                        <div class="schild__koerper">
                             <dl class="felder felder--treffer">
                                 <div class="feld">
                                     <dt>Typ</dt>
@@ -484,26 +485,26 @@ require_once __DIR__ . '/includes/header.php';
                                     <dd><?= $SchildFahrzeug->GetFuehrerschein() !== null ? 'Klasse ' . e($SchildFahrzeug->GetFuehrerschein()) : 'keiner nötig' ?></dd>
                                 </div>
                             </dl>
-                        </div>
 
-                        <?php if ($suche !== []): ?>
-                            <!-- Eigenes Formular je Fahrzeug, die Suche steht in der Adresse -->
-                            <form class="schild__aktionen" method="post"
-                                  action="<?= e(url('buchen.php?' . http_build_query($suche))) ?>">
-                                <input type="hidden" name="fahrzeug" value="<?= e((string) $id) ?>">
-                                <button class="button button--klein" type="submit"><?= $antrag ? 'Beantragen' : 'Buchen' ?></button>
-                                <p class="schild__hinweis">
-                                    <?= $antrag ? 'Der Fuhrparkleiter entscheidet über den Antrag.' : 'Die Buchung gilt sofort.' ?>
-                                </p>
-                            </form>
-                        <?php else: ?>
-                            <!-- Vor der Suche: kein Knopf, nur der Weg dorthin -->
-                            <div class="schild__aktionen">
-                                <p class="schild__hinweis">
-                                    Zum Buchen oben Zeitraum und Zweck wählen.
-                                </p>
-                            </div>
-                        <?php endif; ?>
+                            <?php if ($suche !== []): ?>
+                                <!-- Eigenes Formular je Fahrzeug, die Suche steht in der Adresse -->
+                                <form class="schild__aktionen" method="post"
+                                      action="<?= e(url('buchen.php?' . http_build_query($suche))) ?>">
+                                    <input type="hidden" name="fahrzeug" value="<?= e((string) $id) ?>">
+                                    <button class="button button--klein" type="submit"><?= $antrag ? 'Beantragen' : 'Buchen' ?></button>
+                                    <p class="schild__hinweis">
+                                        <?= $antrag ? 'Der Fuhrparkleiter entscheidet über den Antrag.' : 'Die Buchung gilt sofort.' ?>
+                                    </p>
+                                </form>
+                            <?php else: ?>
+                                <!-- Vor der Suche: kein Knopf, nur der Weg dorthin -->
+                                <div class="schild__aktionen">
+                                    <p class="schild__hinweis">
+                                        Zum Buchen oben Zeitraum und Zweck wählen.
+                                    </p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </article>
             <?php endforeach; ?>

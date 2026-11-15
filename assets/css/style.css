@@ -1667,21 +1667,29 @@ input[type="checkbox"] {
     }
 }
 
-/* Fahrzeug-Schild: links das Bild, daneben die Kennwerte, rechts der Knopf */
-.treffer__inhalt {
+/* Fahrzeug-Schild: links das Bild über Kopf und Feldern, daneben Kopf,
+   Kennwerte und Knopf. Die Bildspalte wächst mit dem Schild, höchstens 14rem. */
+.treffer__raster {
     display: grid;
-    grid-template-columns: 8rem minmax(0, 1fr);
+    grid-template-columns: clamp(8rem, 22cqi, 14rem) minmax(0, 1fr);
 }
 
-/* Das Bild füllt die Höhe der Feldzeile, ohne sie zu strecken */
+.treffer .schild__kopf,
+.treffer .schild__koerper {
+    grid-column: 2;
+}
+
+/* Das Bild füllt die Höhe von Kopf und Feldern, ohne sie zu strecken */
 .treffer__bild {
     display: block;
+    grid-column: 1;
+    grid-row: 1 / 3;
     width: 100%;
     height: 0;
     min-height: 100%;
-    object-fit: cover;
+    padding: 12px;
+    object-fit: contain;
     border-right: 1px solid var(--haar);
-    border-bottom-left-radius: 3px;
 }
 
 /* Fahrzeug ohne Bild: Icon der Fahrzeugart (.ohne-bild) */
@@ -1695,18 +1703,47 @@ input[type="checkbox"] {
     grid-template-columns: 1.2fr 0.6fr 1fr 1fr;
 }
 
+/* Mittlere Breite: neben dem Bild ist für vier Felder kein Platz, also 2 × 2 */
+@container (max-width: 56rem) {
+    .felder.felder--treffer {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-auto-flow: row;
+    }
+
+    .felder--treffer .feld:nth-child(odd) {
+        border-right: 1px solid var(--haar);
+    }
+
+    .felder--treffer .feld:nth-child(even) {
+        border-right: none;
+    }
+
+    .felder--treffer .feld:nth-child(n+3) {
+        border-top: 1px solid var(--haar);
+    }
+}
+
 @container (max-width: 40rem) {
-    /* Bild als Band über den Feldern, die Felder 2 × 2 */
-    .treffer__inhalt {
+    /* Bild als Band zwischen Kopf und Feldern, die Felder 2 × 2 */
+    .treffer__raster {
         grid-template-columns: minmax(0, 1fr);
     }
 
+    .treffer .schild__kopf,
+    .treffer .schild__koerper {
+        grid-column: 1;
+    }
+
+    .treffer .schild__koerper {
+        grid-row: 3;
+    }
+
     .treffer__bild {
+        grid-row: 2;
         height: auto;
         min-height: 0;
         aspect-ratio: 5 / 2;
         border-right: none;
-        border-radius: 0;
         border-bottom: 1px solid var(--haar);
     }
 
@@ -2088,7 +2125,8 @@ fieldset.schadenwahl {
     flex: none;
     width: 84px;
     aspect-ratio: 3 / 2;
-    object-fit: cover;
+    padding: 3px;
+    object-fit: contain;
     border: 1px solid var(--haar);
     border-radius: var(--radius-klein);
 }
@@ -2119,7 +2157,8 @@ fieldset.schadenwahl {
     width: 100%;
     aspect-ratio: 5 / 2;
     max-height: 16rem;
-    object-fit: cover;
+    padding: 16px;
+    object-fit: contain;
     border-bottom: 1px solid var(--haar);
 }
 
